@@ -1,11 +1,29 @@
+import { usePlanUi } from '../hooks/planUi'
 import { addDays, formatDay, isSameDay } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
+import { semesterWeek } from '../lib/semesterWeek'
 import { DayTimeline } from './DayTimeline'
 import { UpcomingDeadlines } from './UpcomingDeadlines'
 
 interface Props {
   meetings: PlanMeeting[]
   now: Date
+}
+
+// "Poniedziałek, 5 października" + numer tygodnia semestru (jeśli włączony w ustawieniach)
+function TodayTitle({ meetings, now }: Props) {
+  const { prefs } = usePlanUi()
+  const week = prefs.showWeekNumber ? semesterWeek(now, meetings) : null
+  return (
+    <h2 className="day-title">
+      {formatDay(now)}
+      {week && (
+        <span className="week-number">
+          tydz. {week.number} · {week.odd ? 'nieparzysty' : 'parzysty'}
+        </span>
+      )}
+    </h2>
+  )
 }
 
 export function TodayView({ meetings, now }: Props) {
@@ -15,7 +33,7 @@ export function TodayView({ meetings, now }: Props) {
   if (hasRemaining) {
     return (
       <section>
-        <h2 className="day-title">{formatDay(now)}</h2>
+        <TodayTitle meetings={meetings} now={now} />
         <UpcomingDeadlines now={now} />
         <DayTimeline meetings={today} now={now} />
       </section>
@@ -28,7 +46,7 @@ export function TodayView({ meetings, now }: Props) {
 
   return (
     <section>
-      <h2 className="day-title">{formatDay(now)}</h2>
+      <TodayTitle meetings={meetings} now={now} />
       <UpcomingDeadlines now={now} />
       <div className="empty-state">
         {today.length === 0 ? 'Dziś nie masz zajęć.' : 'Na dziś to już wszystko.'}

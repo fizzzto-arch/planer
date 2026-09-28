@@ -3,6 +3,7 @@ import { usePlanUi } from '../hooks/planUi'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
+import { semesterWeek } from '../lib/semesterWeek'
 import { DayTimeline } from './DayTimeline'
 import { WeekGrid } from './WeekGrid'
 
@@ -16,7 +17,7 @@ export function WeekView({ meetings, now }: Props) {
   // Z której strony ma wjechać nowy tydzień.
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
-  const { extras, addCustomMeeting } = usePlanUi()
+  const { extras, addCustomMeeting, prefs } = usePlanUi()
 
   function goTo(target: Date) {
     if (target.getTime() === weekStart.getTime()) return
@@ -26,9 +27,11 @@ export function WeekView({ meetings, now }: Props) {
 
   const weekEnd = addDays(weekStart, 7)
   const weekMeetings = meetings.filter((m) => m.start >= weekStart && m.start < weekEnd)
-  const hasWeekend = weekMeetings.some((m) => m.start.getDay() === 0 || m.start.getDay() === 6)
+  const hasWeekend =
+    prefs.alwaysWeekend || weekMeetings.some((m) => m.start.getDay() === 0 || m.start.getDay() === 6)
   const days = Array.from({ length: hasWeekend ? 7 : 5 }, (_, i) => addDays(weekStart, i))
   const isCurrentWeek = isSameDay(weekStart, startOfWeek(now))
+  const semWeek = prefs.showWeekNumber ? semesterWeek(weekStart, meetings) : null
 
   return (
     <section>
@@ -43,6 +46,11 @@ export function WeekView({ meetings, now }: Props) {
         </button>
         <div className="week-label">
           <strong>{formatWeekRange(weekStart)}</strong>
+          {semWeek && (
+            <span className="week-number">
+              tydzień {semWeek.number} · {semWeek.odd ? 'nieparzysty' : 'parzysty'}
+            </span>
+          )}
           {isCurrentWeek ? (
             <span className="muted">ten tydzień</span>
           ) : (

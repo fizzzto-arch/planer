@@ -17,15 +17,17 @@ import {
   type MeetingOverride,
   type SeriesEdit,
 } from '../lib/extras'
+import { parsePrefs, type Prefs } from '../lib/prefs'
 import { parseTypeColors, type TypeColors } from '../lib/typeColors'
 import { RETRY_AFTER_MS } from './useCloud'
 
 const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings']
 
-// Dokument w kolekcji "settings" z kolorami typów zajęć.
+// Dokumenty w kolekcji "settings": kolory typów zajęć i pozostałe ustawienia.
 const COLORS_DOC = 'colors'
+const PREFS_DOC = 'prefs'
 
-type RawCollections = Partial<Record<CollectionName, CloudDoc[]>>
+export type RawCollections = Partial<Record<CollectionName, CloudDoc[]>>
 
 // Firestore nie przyjmuje wartości undefined - usuwamy je przed zapisem.
 function clean<T extends object>(obj: T): Record<string, unknown> {
@@ -38,6 +40,7 @@ function toExtras(raw: RawCollections): Extras {
     const course = parseCourse(d.data)
     if (course) courses.set(d.id, course)
   }
+  const prefsDoc = raw.settings?.find((d) => d.id === PREFS_DOC)
   return {
     courses,
     deadlines: (raw.deadlines ?? []).flatMap((d) => parseDeadline(d.id, d.data) ?? []),
@@ -45,6 +48,7 @@ function toExtras(raw: RawCollections): Extras {
     seriesEdits: new Map((raw.seriesEdits ?? []).map((d) => [d.id, parseSeriesEdit(d.id, d.data)])),
     customMeetings: (raw.customMeetings ?? []).flatMap((d) => parseCustomMeeting(d.id, d.data) ?? []),
     typeColors: parseTypeColors(raw.settings?.find((d) => d.id === COLORS_DOC)?.data ?? {}),
+    prefs: prefsDoc ? parsePrefs(prefsDoc.data) : null,
   }
 }
 
@@ -180,6 +184,39 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  const savePrefs = useCallback(
+    (prefs: Prefs) => write((c, u) => c.setItem(u, 'settings', PREFS_DOC, { ...prefs })),
+    [write],
+  )
+
+  // Kopia zapasowa: wszystkie dokumenty dodatków (bez znaczników czasu serwera).
+  const exportBackup = useCallback((): BackupFile => {
+    const data: Record<string, CloudDoc[]> = {}
+    for (const name of COLLECTIONS) {
+      data[name] = (collections?.[name] ?? []).map((d) => {
+        const { updatedAt: _updatedAt, ...rest } = d.data
+        return { id: d.id, data: rest }
+      })
+    }
+    return { app: 'planer', version: 1, exportedAt: new Date().toISOString(), collections: data }
+  }, [collections])
+
+  // Przywraca dokumenty z kopii (nadpisuje te o tych samych id, reszty nie rusza).
+  const importBackup = useCallback(
+    async (backup: BackupFile): Promise<number> => {
+      if (!client || !uid) return 0
+      let count = 0
+      for (const name of COLLECTIONS) {
+        for (const d of backup.collections[name] ?? []) {
+          await client.setItem(uid, name, d.id, d.data)
+          count++
+        }
+      }
+      return count
+    },
+    [client, uid],
+  )
+
   if (!client || !uid) return null
 
   return {
@@ -195,7 +232,37 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     saveCustomMeeting,
     deleteCustomMeeting,
     saveTypeColors,
+    savePrefs,
+    exportBackup,
+    importBackup,
   }
+}
+
+export interface BackupFile {
+  app: 'planer'
+  version: 1
+  exportedAt: string
+  collections: Record<string, CloudDoc[]>
+}
+
+// Sprawdza, czy wczytany plik to kopia Planera; zwraca ją albo powód odrzucenia.
+export function parseBackup(value: unknown): BackupFile | string {
+  if (typeof value !== 'object' || value === null) return 'To nie jest plik kopii Planera.'
+  const v = value as Record<string, unknown>
+  if (v.app !== 'planer' || v.version !== 1) return 'To nie jest plik kopii Planera (albo pochodzi z nowszej wersji).'
+  if (typeof v.collections !== 'object' || v.collections === null) return 'Plik kopii jest uszkodzony.'
+  const collections: Record<string, CloudDoc[]> = {}
+  for (const name of COLLECTIONS) {
+    const docs = (v.collections as Record<string, unknown>)[name]
+    if (docs === undefined) continue
+    if (!Array.isArray(docs)) return 'Plik kopii jest uszkodzony.'
+    collections[name] = docs.filter(
+      (d): d is CloudDoc =>
+        typeof d === 'object' && d !== null && typeof d.id === 'string' && d.id.length > 0 && !d.id.includes('/') &&
+        typeof d.data === 'object' && d.data !== null,
+    )
+  }
+  return { app: 'planer', version: 1, exportedAt: String(v.exportedAt ?? ''), collections }
 }
 
 export type ExtrasApi = NonNullable<ReturnType<typeof useExtras>>

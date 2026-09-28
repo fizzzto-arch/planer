@@ -37,7 +37,7 @@ function MeetingsByDay({ meetings, now }: { meetings: PlanMeeting[]; now: Date }
 }
 
 export function CourseView({ courseName, meetings, now, onBack }: Props) {
-  const { extras, editDeadline, addCustomMeeting } = usePlanUi()
+  const { extras, editDeadline, addCustomMeeting, displayName } = usePlanUi()
   const courseMeetings = meetings.filter((m) => m.courseName === courseName)
   const summary = summarizeCourses(courseMeetings, now)[0]
   const upcoming = courseMeetings.filter((m) => m.end > now)
@@ -62,7 +62,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
       </button>
 
       <header className="course-header">
-        <h2>{courseName}</h2>
+        <h2>{displayName(courseName)}</h2>
+        {displayName(courseName) !== courseName && <p className="course-fullname">{courseName}</p>}
         {summary && <p className="muted">{formatTypes(summary.types)}</p>}
         {summary?.next && (
           <p className="course-next">
@@ -77,41 +78,41 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
       )}
 
       {extras && (
-        <>
-          <div className="panel">
-            <div className="section-head">
-              <h3 className="panel-title">Terminy</h3>
-              <button type="button" className="button small" onClick={() => editDeadline({ courseName })}>
-                + Dodaj
-              </button>
-            </div>
-            {activeDeadlines.length === 0 ? (
-              <p className="muted">Brak nadchodzących kolokwiów i terminów.</p>
-            ) : (
-              <DeadlineList deadlines={activeDeadlines} now={now} />
-            )}
-            {closedDeadlines.length > 0 && (
-              <details className="collapsible">
-                <summary>Minione i zrobione ({closedDeadlines.length})</summary>
-                <DeadlineList deadlines={closedDeadlines} now={now} />
-              </details>
-            )}
+        <div className="panel">
+          <div className="section-head">
+            <h3 className="panel-title">Terminy</h3>
+            <button type="button" className="button small" onClick={() => editDeadline({ courseName })}>
+              + Dodaj
+            </button>
           </div>
-
-          <div className="panel">
-            <h3 className="panel-title">Notatka do przedmiotu</h3>
-            <NoteField
-              id={`course-note-${courseKey(courseName)}`}
-              value={note}
-              rows={5}
-              placeholder="np. zasady zaliczenia, kontakt do prowadzącego, próg na ocenę"
-              onSave={(text) => extras.saveCourseNote(courseName, text)}
-            />
-          </div>
-        </>
+          {activeDeadlines.length === 0 ? (
+            <p className="muted">Brak nadchodzących kolokwiów i terminów.</p>
+          ) : (
+            <DeadlineList deadlines={activeDeadlines} now={now} />
+          )}
+          {closedDeadlines.length > 0 && (
+            <details className="collapsible">
+              <summary>Minione i zrobione ({closedDeadlines.length})</summary>
+              <DeadlineList deadlines={closedDeadlines} now={now} />
+            </details>
+          )}
+        </div>
       )}
 
       <MaterialsSection courseName={courseName} />
+
+      {extras && (
+        <div className="panel">
+          <h3 className="panel-title">Notatka do przedmiotu</h3>
+          <NoteField
+            id={`course-note-${courseKey(courseName)}`}
+            value={note}
+            rows={5}
+            placeholder="np. zasady zaliczenia, kontakt do prowadzącego, próg na ocenę"
+            onSave={(text) => extras.saveCourseNote(courseName, text)}
+          />
+        </div>
+      )}
 
       <div className="section-head">
         <h3 className="section-title">Zajęcia</h3>

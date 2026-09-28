@@ -1,22 +1,22 @@
 import { Fragment, type CSSProperties } from 'react'
+import { usePlanUi } from '../hooks/planUi'
 import { formatDuration, isSameDay, minutesBetween } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { shortBuilding } from '../lib/usos'
 import { MeetingCard } from './MeetingCard'
-
-// Przerwa krótsza niż to jest zwykłym przejściem między salami, a nie okienkiem.
-const MIN_GAP_MIN = 30
 
 interface Props {
   meetings: PlanMeeting[] // zajęcia jednego dnia, posortowane
   now: Date
 }
 
-function transitionNote(prev: PlanMeeting, next: PlanMeeting): string | null {
+// minGap: przerwa krótsza niż to jest zwykłym przejściem między salami, a nie okienkiem
+// (ustawienie "próg okienka").
+function transitionNote(prev: PlanMeeting, next: PlanMeeting, minGap: number): string | null {
   const gap = minutesBetween(prev.end, next.start)
   const notes: string[] = []
   if (gap < 0) notes.push('Zajęcia nakładają się!')
-  else if (gap >= MIN_GAP_MIN) notes.push(`Okienko ${formatDuration(gap)}`)
+  else if (gap >= minGap) notes.push(`Okienko ${formatDuration(gap)}`)
 
   const from = shortBuilding(prev.building)
   const to = shortBuilding(next.building)
@@ -28,6 +28,7 @@ function transitionNote(prev: PlanMeeting, next: PlanMeeting): string | null {
 }
 
 export function DayTimeline({ meetings, now }: Props) {
+  const { prefs } = usePlanUi()
   const nextId = meetings.find((m) => m.start > now && isSameDay(m.start, now) && !m.cancelled)?.id
 
   // Kolejny numer elementu - karty pojawiają się kaskadowo, jedna po drugiej.
@@ -37,7 +38,7 @@ export function DayTimeline({ meetings, now }: Props) {
   return (
     <ol className="timeline">
       {meetings.map((m, i) => {
-        const note = i > 0 ? transitionNote(meetings[i - 1], m) : null
+        const note = i > 0 ? transitionNote(meetings[i - 1], m, prefs.gapMinutes) : null
         return (
           <Fragment key={m.id}>
             {note && (

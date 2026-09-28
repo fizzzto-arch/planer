@@ -2,14 +2,14 @@ import { usePlanUi } from '../hooks/planUi'
 import { upcomingDeadlines } from '../lib/deadlines'
 import { DeadlineList } from './DeadlineList'
 
-const DAYS_AHEAD = 14
 const MAX_ITEMS = 3
 
 // Pasek "Nadchodzące terminy" w widoku Dziś - pokazuje się tylko, gdy coś jest.
+// Zasięg (ile dni naprzód) ustawia się w ustawieniach.
 export function UpcomingDeadlines({ now }: { now: Date }) {
-  const { extras } = usePlanUi()
+  const { extras, prefs } = usePlanUi()
   if (!extras) return null
-  const upcoming = upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD)
+  const upcoming = upcomingDeadlines(extras.extras.deadlines, now, prefs.upcomingDays)
   if (upcoming.length === 0) return null
 
   return (

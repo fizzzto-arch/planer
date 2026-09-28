@@ -32,13 +32,17 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
       setError('Wybierz datę.')
       return
     }
+    if (!time) {
+      setError('Wybierz godzinę.')
+      return
+    }
     onSave({
       id: draft.id,
       kind,
       title: title.trim(),
       courseName: courseName || null,
       date,
-      time: time || null,
+      time,
       note: note.trim(),
       done,
     })
@@ -64,7 +68,9 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
         </div>
 
         <label className="field">
-          <span className="field-label">Tytuł</span>
+          <span className="field-label">
+            Tytuł <span className="label-note">(opcjonalnie)</span>
+          </span>
           <input
             className="text-input"
             value={title}
@@ -91,15 +97,15 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
             <input className="text-input" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
           </label>
           <label className="field">
-            <span className="field-label">
-              Godzina <span className="label-note">(opcjonalnie)</span>
-            </span>
-            <input className="text-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <span className="field-label">Godzina</span>
+            <input className="text-input" type="time" value={time} required onChange={(e) => setTime(e.target.value)} />
           </label>
         </div>
 
         <label className="field">
-          <span className="field-label">Notatka</span>
+          <span className="field-label">
+            Notatka <span className="label-note">(opcjonalnie)</span>
+          </span>
           <textarea
             className="text-input note-input"
             rows={3}

@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function DeadlineList({ deadlines, now, showCourse = false, compact = false }: Props) {
-  const { extras, editDeadline } = usePlanUi()
+  const { extras, editDeadline, displayName } = usePlanUi()
 
   return (
     <ul className={`deadline-list${compact ? ' is-compact' : ''}`}>
@@ -43,7 +43,7 @@ export function DeadlineList({ deadlines, now, showCourse = false, compact = fal
               <span className="deadline-meta">
                 {date && formatShortDay(date)}
                 {d.time && ` · ${d.time}`}
-                {showCourse && d.courseName && ` · ${d.courseName}`}
+                {showCourse && d.courseName && ` · ${displayName(d.courseName)}`}
               </span>
             </button>
             <span className="deadline-countdown">{d.done ? 'zrobione' : countdownLabel(d, now)}</span>

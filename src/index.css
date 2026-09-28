@@ -27,29 +27,43 @@
   line-height: 1.4;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121215;
-    --surface: #1c1c21;
-    --text: #ececef;
-    --muted: #9a9aa3;
-    --border: #2e2e35;
-    --accent: #6d97f0;
-    --accent-text: #0e1320;
-    --danger: #f06a6a;
-    --now: #ff6b70;
-    --ok: #3cc48f;
-    --warn: #f0a050;
+/* Motyw wybiera ustawienie (jasny / ciemny / jak w systemie) - skrypt w index.html
+   i usePrefs ustawiają data-theme na <html>, zanim strona się narysuje. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
 
-    --c-wyk: #7ea6ee;
-    --c-cwi: #f5b25e;
-    --c-lab: #a6cf55;
-    --c-pro: #ebd046;
-    --c-sem: #3cc6d4;
-    --c-lek: #b690ef;
-    --c-wf: #f07a7a;
-    --c-inne: #9a9aa3;
-  }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121215;
+  --surface: #1c1c21;
+  --text: #ececef;
+  --muted: #9a9aa3;
+  --border: #2e2e35;
+  --accent: #6d97f0;
+  --accent-text: #0e1320;
+  --danger: #f06a6a;
+  --now: #ff6b70;
+  --ok: #3cc48f;
+  --warn: #f0a050;
+
+  --c-wyk: #7ea6ee;
+  --c-cwi: #f5b25e;
+  --c-lab: #a6cf55;
+  --c-pro: #ebd046;
+  --c-sem: #3cc6d4;
+  --c-lek: #b690ef;
+  --c-wf: #f07a7a;
+  --c-inne: #9a9aa3;
+}
+
+/* Rozmiar tekstu - wszystkie rozmiary w rem skalują się razem. */
+:root[data-text-size='small'] {
+  font-size: 14px;
+}
+
+:root[data-text-size='large'] {
+  font-size: 18px;
 }
 
 * {
@@ -783,11 +797,21 @@ a {
   }
 }
 
-/* Użytkownik wyłączył animacje w systemie - szanujemy to */
+/* Animacje wyłączone w ustawieniach Planera */
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Ustawienie "jak w systemie": system prosi o ograniczenie ruchu */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root[data-motion='system'] *,
+  :root[data-motion='system'] *::before,
+  :root[data-motion='system'] *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     animation-delay: 0ms !important;

@@ -27,7 +27,7 @@ function NoteIcon() {
 }
 
 export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = true }: Props) {
-  const { extras, openCourse, editDeadline, editMeeting, deadlinesFor } = usePlanUi()
+  const { extras, openCourse, editDeadline, editMeeting, deadlinesFor, displayName } = usePlanUi()
   const isPast = m.end <= now
   const isNow = m.start <= now && now < m.end
   const building = shortBuilding(m.building)
@@ -52,7 +52,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           <span className="card-time-end">{formatTime(m.end)}</span>
         </div>
         <div className="card-main">
-          <div className="card-title">{m.courseName}</div>
+          <div className="card-title">{displayName(m.courseName)}</div>
           <div className="card-meta">
             <span className="type-badge">{typeLabel(m.type)}</span>
             {m.groupNumber !== null && <span>gr. {m.groupNumber}</span>}

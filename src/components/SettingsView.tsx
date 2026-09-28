@@ -3,20 +3,36 @@ import type { CloudApi } from '../hooks/useCloud'
 import type { PlanApi } from '../hooks/usePlan'
 import { formatShortDay, formatUpdatedAt } from '../lib/dates'
 import { plural } from '../lib/plural'
+import type { ExtrasApi } from '../hooks/useExtras'
+import type { PrefsApi } from '../hooks/usePrefs'
 import type { TypeColorsApi } from '../hooks/useTypeColors'
 import { AccountPanel } from './AccountPanel'
+import { BackupPanel } from './BackupPanel'
 import { ColorsPanel } from './ColorsPanel'
+import { AliasesPanel, AppearancePanel, PlanPrefsPanel } from './PreferencesPanels'
 import { SourceForm } from './SourceForm'
 
 interface Props {
   plan: PlanApi
   cloud: CloudApi
+  extras: ExtrasApi | null
   typeColors: TypeColorsApi
+  prefsApi: PrefsApi
+  courseNames: string[]
   now: Date
   onSourceChanged: () => void
 }
 
-export function SettingsView({ plan, cloud, typeColors, now, onSourceChanged }: Props) {
+export function SettingsView({
+  plan,
+  cloud,
+  extras,
+  typeColors,
+  prefsApi,
+  courseNames,
+  now,
+  onSourceChanged,
+}: Props) {
   const [changing, setChanging] = useState(false)
   const { source, meetings, updatedAt } = plan
   const courseCount = new Set(meetings.map((m) => m.courseName)).size
@@ -37,6 +53,10 @@ export function SettingsView({ plan, cloud, typeColors, now, onSourceChanged }: 
   return (
     <section>
       <AccountPanel cloud={cloud} />
+      <AppearancePanel prefsApi={prefsApi} signedIn={signedIn} />
+      <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
+      <PlanPrefsPanel prefsApi={prefsApi} />
+      <AliasesPanel prefsApi={prefsApi} courseNames={courseNames} />
 
       <div className="panel">
         <h3 className="panel-title">Źródło planu</h3>
@@ -91,7 +111,7 @@ export function SettingsView({ plan, cloud, typeColors, now, onSourceChanged }: 
         )}
       </div>
 
-      <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
+      <BackupPanel extras={extras} />
 
       <div className="panel">
         <p className="hint">

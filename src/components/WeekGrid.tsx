@@ -56,7 +56,7 @@ function layoutLanes(dayMeetings: PlanMeeting[]): Map<string, { lane: number; la
 }
 
 export function WeekGrid({ days, meetings, now }: Props) {
-  const { openCourse, deadlinesFor } = usePlanUi()
+  const { openCourse, deadlinesFor, displayName } = usePlanUi()
   const firstHour = Math.min(
     DEFAULT_FIRST_HOUR,
     ...meetings.map((m) => Math.floor(minuteOfDay(m.start) / 60)),
@@ -135,7 +135,7 @@ export function WeekGrid({ days, meetings, now }: Props) {
                     width: `${100 / laneCount}%`,
                   } as CSSProperties}
                 >
-                  <span className="grid-event-title">{m.courseName}</span>
+                  <span className="grid-event-title">{displayName(m.courseName)}</span>
                   <span className="grid-event-meta">
                     {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
                   </span>

@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { CustomMeeting, Deadline } from '../lib/extras'
 import type { PlanMeeting } from '../lib/edits'
+import type { Prefs } from '../lib/prefs'
 import type { ExtrasApi } from './useExtras'
 import type { SharedMaterialsApi } from './useSharedMaterials'
 
@@ -19,6 +20,8 @@ export interface PlanUi {
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych
   addCustomMeeting: (draft: CustomMeetingDraft) => void
   deadlinesFor: (meeting: PlanMeeting) => Deadline[] // terminy przypadające na te zajęcia
+  prefs: Prefs
+  displayName: (courseName: string) => string // skrót nazwy przedmiotu, jeśli ustawiony
 }
 
 export const PlanUiContext = createContext<PlanUi | null>(null)

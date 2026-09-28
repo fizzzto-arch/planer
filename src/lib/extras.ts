@@ -1,5 +1,6 @@
 // Własne dodatki użytkownika do planu, przechowywane na koncie (Firestore: users/{uid}/...).
 import { isTimeKey, parseDateKey } from './dates'
+import type { Prefs } from './prefs'
 import type { TypeColors } from './typeColors'
 import type { Meeting } from './usos'
 
@@ -80,6 +81,7 @@ export interface Extras {
   seriesEdits: Map<string, SeriesEdit>
   customMeetings: CustomMeeting[]
   typeColors: TypeColors // własne kolory typów zajęć (puste = domyślne jak w USOS)
+  prefs: Prefs | null // ustawienia zapisane na koncie; null = jeszcze nie zapisane
 }
 
 export const EMPTY_EXTRAS: Extras = {
@@ -89,6 +91,7 @@ export const EMPTY_EXTRAS: Extras = {
   seriesEdits: new Map(),
   customMeetings: [],
   typeColors: {},
+  prefs: null,
 }
 
 // Id dokumentu Firestore nie może zawierać "/", więc kodujemy nazwę.

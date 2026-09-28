@@ -1,0 +1,112 @@
+// Ustawienia użytkownika. Zapisywane w przeglądarce, a po zalogowaniu także na koncie.
+
+export type AnimationsMode = 'on' | 'off' | 'system'
+export type ThemeMode = 'system' | 'light' | 'dark'
+export type TextSize = 'small' | 'normal' | 'large'
+export type StartView = 'today' | 'week' | 'courses'
+
+export interface Prefs {
+  animations: AnimationsMode
+  theme: ThemeMode
+  compact: boolean
+  textSize: TextSize
+  startView: StartView
+  showWeekNumber: boolean
+  gapMinutes: number // od ilu minut przerwa to "okienko"
+  alwaysWeekend: boolean // siatka tygodnia zawsze z sobotą i niedzielą
+  upcomingDays: number // zasięg paska "Nadchodzące terminy"
+  courseAliases: Record<string, string> // pełna nazwa przedmiotu -> skrót
+}
+
+export const DEFAULT_PREFS: Prefs = {
+  animations: 'on',
+  theme: 'system',
+  compact: false,
+  textSize: 'normal',
+  startView: 'today',
+  showWeekNumber: true,
+  gapMinutes: 30,
+  alwaysWeekend: false,
+  upcomingDays: 14,
+  courseAliases: {},
+}
+
+export const GAP_OPTIONS = [15, 30, 45, 60]
+export const UPCOMING_OPTIONS = [7, 14, 30]
+
+// Klucz czytany też przez skrypt w index.html (motyw przed pierwszym rysowaniem).
+export const PREFS_STORAGE_KEY = 'planer.prefs'
+
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback
+}
+
+function numberFrom(value: unknown, allowed: number[], fallback: number): number {
+  return typeof value === 'number' && allowed.includes(value) ? value : fallback
+}
+
+export function parsePrefs(raw: Record<string, unknown>): Prefs {
+  const aliases: Record<string, string> = {}
+  if (typeof raw.courseAliases === 'object' && raw.courseAliases !== null) {
+    for (const [name, alias] of Object.entries(raw.courseAliases as Record<string, unknown>)) {
+      // Bez przycinania spacji - inaczej wersja z konta różniłaby się od wpisywanej ("Grafika k").
+      if (typeof alias === 'string' && alias.trim()) aliases[name] = alias.slice(0, 40)
+    }
+  }
+  const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback)
+  return {
+    animations: oneOf(raw.animations, ['on', 'off', 'system'], DEFAULT_PREFS.animations),
+    theme: oneOf(raw.theme, ['system', 'light', 'dark'], DEFAULT_PREFS.theme),
+    compact: bool(raw.compact, DEFAULT_PREFS.compact),
+    textSize: oneOf(raw.textSize, ['small', 'normal', 'large'], DEFAULT_PREFS.textSize),
+    startView: oneOf(raw.startView, ['today', 'week', 'courses'], DEFAULT_PREFS.startView),
+    showWeekNumber: bool(raw.showWeekNumber, DEFAULT_PREFS.showWeekNumber),
+    gapMinutes: numberFrom(raw.gapMinutes, GAP_OPTIONS, DEFAULT_PREFS.gapMinutes),
+    alwaysWeekend: bool(raw.alwaysWeekend, DEFAULT_PREFS.alwaysWeekend),
+    upcomingDays: numberFrom(raw.upcomingDays, UPCOMING_OPTIONS, DEFAULT_PREFS.upcomingDays),
+    courseAliases: aliases,
+  }
+}
+
+export function loadLocalPrefs(): Prefs | null {
+  try {
+    const raw = localStorage.getItem(PREFS_STORAGE_KEY)
+    return raw ? parsePrefs(JSON.parse(raw)) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveLocalPrefs(prefs: Prefs): void {
+  try {
+    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs))
+  } catch {
+    // bez zapisu - ustawienia zostaną do przeładowania
+  }
+}
+
+export function resolveTheme(theme: ThemeMode, systemDark: boolean): 'light' | 'dark' {
+  return theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
+}
+
+// Wygląd sterowany atrybutami na <html>, żeby CSS mógł z nich korzystać wszędzie
+// (także w oknach dialogowych rysowanych nad stroną).
+export function applyPrefsToDocument(prefs: Prefs, systemDark: boolean): void {
+  const root = document.documentElement
+  root.dataset.theme = resolveTheme(prefs.theme, systemDark)
+  root.dataset.motion = prefs.animations
+  root.dataset.textSize = prefs.textSize
+  root.classList.toggle('compact', prefs.compact)
+}
+
+export function displayName(courseName: string, prefs: Pick<Prefs, 'courseAliases'>): string {
+  return prefs.courseAliases[courseName]?.trim() || courseName
+}
+
+// Podpowiedź skrótu: pierwsze litery słów dłuższych niż 2 znaki
+// ("Podstawy elementów i układów elektronicznych" -> "PEUE"). Jedno słowo = bez skrótu.
+export function suggestAlias(courseName: string): string {
+  const words = courseName.split(/\s+/).filter((w) => w.length > 2)
+  if (words.length < 2) return courseName
+  return words.map((w) => w[0].toUpperCase()).join('')
+}

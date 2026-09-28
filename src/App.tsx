@@ -16,6 +16,8 @@ import { useCloud } from './hooks/useCloud'
 import { useExtras } from './hooks/useExtras'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
+import { usePrefs } from './hooks/usePrefs'
+import { displayName } from './lib/prefs'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
@@ -95,8 +97,10 @@ function App() {
     cloud.uid,
     cloud.state.kind === 'signedIn' ? cloud.state.user.email : null,
   )
+  const prefsApi = usePrefs(extrasApi)
+  const { prefs } = prefsApi
   const now = useNow()
-  const [view, setView] = useState<View>('today')
+  const [view, setView] = useState<View>(() => prefs.startView)
   const [course, setCourse] = useState<string | null>(readCourseFromHistory)
   const [deadlineDraft, setDeadlineDraft] = useState<DeadlineDraft | null>(null)
   const [editingMeeting, setEditingMeeting] = useState<PlanMeeting | null>(null)
@@ -155,8 +159,10 @@ function App() {
         const end = toMin(toTimeKey(m.end))
         return sameDay.filter((d) => !d.time || (toMin(d.time) >= start && toMin(d.time) < end))
       },
+      prefs,
+      displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, deadlinesByDay, extras.customMeetings],
+    [extrasApi, materials, openCourse, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
@@ -247,7 +253,10 @@ function App() {
                   <SettingsView
                     plan={plan}
                     cloud={cloud}
+                    extras={extrasApi}
                     typeColors={typeColors}
+                    prefsApi={prefsApi}
+                    courseNames={courseNames}
                     now={now}
                     onSourceChanged={() => setView('today')}
                   />

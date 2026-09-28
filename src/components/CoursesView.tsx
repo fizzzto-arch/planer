@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, openCourse, editDeadline } = usePlanUi()
+  const { extras, openCourse, editDeadline, displayName } = usePlanUi()
   const courses = summarizeCourses(meetings, now)
   const deadlines = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD) : []
 
@@ -53,7 +53,10 @@ export function CoursesView({ meetings, now }: Props) {
                 onClick={() => openCourse(course.name)}
               >
                 <span className="course-row-main">
-                  <span className="course-row-name">{course.name}</span>
+                  <span className="course-row-name">{displayName(course.name)}</span>
+                  {displayName(course.name) !== course.name && (
+                    <span className="course-row-meta">{course.name}</span>
+                  )}
                   <span className="course-row-meta">{formatTypes(course.types)}</span>
                   {course.next && (
                     <span className="course-row-meta">

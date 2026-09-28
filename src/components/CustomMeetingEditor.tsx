@@ -92,7 +92,9 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
             </select>
           </label>
           <label className="field">
-            <span className="field-label">Sala</span>
+            <span className="field-label">
+              Sala <span className="label-note">(opcjonalnie)</span>
+            </span>
             <input className="text-input" value={room} placeholder="np. 161" onChange={(e) => setRoom(e.target.value)} />
           </label>
         </div>
