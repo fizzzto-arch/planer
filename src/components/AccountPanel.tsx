@@ -1,5 +1,5 @@
 import type { CloudApi } from '../hooks/useCloud'
-import { LoginForm } from './LoginForm'
+import { AuthForm } from './AuthForm'
 
 interface Props {
   cloud: CloudApi
@@ -17,10 +17,9 @@ export function AccountPanel({ cloud }: Props) {
       {state.kind === 'signedOut' && (
         <>
           <p className="hint">
-            Zaloguj się, żeby ten sam plan był na telefonie i komputerze. Konto zakłada administrator
-            Planera.
+            Zaloguj się albo załóż konto, żeby ten sam plan był na telefonie i komputerze.
           </p>
-          <LoginForm cloud={cloud} />
+          <AuthForm cloud={cloud} />
         </>
       )}
 

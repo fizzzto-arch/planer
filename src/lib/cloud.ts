@@ -2,6 +2,7 @@
 // żeby nie spowalniać pierwszego wyświetlenia planu.
 import { FirebaseError, getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app'
 import {
+  createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -31,12 +32,17 @@ const AUTH_ERRORS: Record<string, string> = {
   'auth/network-request-failed': 'Brak połączenia z internetem.',
   'auth/operation-not-allowed': 'Logowanie e-mailem nie jest jeszcze włączone w Firebase.',
   'auth/configuration-not-found': 'Logowanie nie jest jeszcze skonfigurowane w Firebase.',
+  'auth/email-already-in-use': 'Konto z tym e-mailem już istnieje. Zaloguj się.',
+  'auth/weak-password': 'Hasło musi mieć co najmniej 6 znaków.',
+  'auth/admin-restricted-operation': 'Rejestracja jest wyłączona. Poproś administratora Planera o konto.',
 }
 
 function describeError(e: unknown): string {
   if (e instanceof FirebaseError) {
     if (AUTH_ERRORS[e.code]) return AUTH_ERRORS[e.code]
-    if (e.code === 'permission-denied') return 'Brak dostępu do danych konta.'
+    if (e.code === 'permission-denied') {
+      return 'Twój e-mail nie jest jeszcze na liście osób z dostępem. Poproś administratora Planera o dopisanie. Do tego czasu plan działa tylko na tym urządzeniu.'
+    }
     if (e.code === 'unavailable') return 'Brak połączenia z serwerem synchronizacji.'
     return `Błąd synchronizacji (${e.code}).`
   }
@@ -58,6 +64,14 @@ function createCloud(config: FirebaseOptions) {
     async signIn(email: string, password: string): Promise<void> {
       try {
         await signInWithEmailAndPassword(auth, email, password)
+      } catch (e) {
+        throw new Error(describeError(e))
+      }
+    },
+
+    async signUp(email: string, password: string): Promise<void> {
+      try {
+        await createUserWithEmailAndPassword(auth, email, password)
       } catch (e) {
         throw new Error(describeError(e))
       }

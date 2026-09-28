@@ -82,6 +82,14 @@ export function useCloud(plan: PlanApi) {
     [cloud],
   )
 
+  const signUp = useCallback(
+    async (email: string, password: string) => {
+      if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
+      await cloud.signUp(email, password)
+    },
+    [cloud],
+  )
+
   const resetPassword = useCallback(
     async (email: string) => {
       if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
@@ -100,6 +108,7 @@ export function useCloud(plan: PlanApi) {
     // Na koncie jest plan, którego ta przeglądarka jeszcze nie ma (trwa pobieranie).
     isAdopting: state.kind === 'signedIn' && !!cloudUrl && cloudUrl !== localUrl,
     signIn,
+    signUp,
     resetPassword,
     signOut,
   }

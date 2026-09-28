@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LoginForm } from './components/LoginForm'
+import { AuthForm } from './components/AuthForm'
 import { SettingsView } from './components/SettingsView'
 import { SourceForm } from './components/SourceForm'
 import { Tabs } from './components/Tabs'
@@ -81,9 +81,11 @@ function App() {
             )}
             {signedOut && (
               <section className="panel view-enter">
-                <h2 className="day-title">Masz konto w Planerze?</h2>
-                <p className="muted">Zaloguj się, a Twój plan pobierze się sam.</p>
-                <LoginForm cloud={cloud} />
+                <h2 className="day-title">Konto w Planerze</h2>
+                <p className="muted">
+                  Zaloguj się albo załóż konto, a plan będzie na wszystkich Twoich urządzeniach.
+                </p>
+                <AuthForm cloud={cloud} />
               </section>
             )}
             <section className="panel view-enter">
