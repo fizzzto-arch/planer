@@ -7,6 +7,7 @@ import { CustomMeetingEditor } from './components/CustomMeetingEditor'
 import { DeadlineEditor } from './components/DeadlineEditor'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { MeetingEditor } from './components/MeetingEditor'
+import { OptimizerView } from './components/OptimizerView'
 import { SettingsView } from './components/SettingsView'
 import { SourceForm } from './components/SourceForm'
 import { Tabs } from './components/Tabs'
@@ -99,10 +100,15 @@ function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extr
   )
 }
 
-// Strona przedmiotu jest wpisem w historii przeglądarki, więc gest "wstecz" wraca do planu.
-function readCourseFromHistory(): string | null {
-  const state = window.history.state as { course?: unknown } | null
-  return typeof state?.course === 'string' ? state.course : null
+// Podstrony (przedmiot, optymalizator) to wpisy w historii przeglądarki,
+// więc gest "wstecz" wraca do planu.
+type Page = { kind: 'course'; name: string } | { kind: 'optimizer' } | null
+
+function readPageFromHistory(): Page {
+  const state = window.history.state as { course?: unknown; optimizer?: unknown } | null
+  if (typeof state?.course === 'string') return { kind: 'course', name: state.course }
+  if (state?.optimizer === true) return { kind: 'optimizer' }
+  return null
 }
 
 function App() {
@@ -120,7 +126,8 @@ function App() {
   const { prefs } = prefsApi
   const now = useNow()
   const [view, setView] = useState<View>(() => prefs.startView)
-  const [course, setCourse] = useState<string | null>(readCourseFromHistory)
+  const [page, setPage] = useState<Page>(readPageFromHistory)
+  const course = page?.kind === 'course' ? page.name : null
   const [deadlineDraft, setDeadlineDraft] = useState<DeadlineDraft | null>(null)
   const [editingMeeting, setEditingMeeting] = useState<PlanMeeting | null>(null)
   const [customDraft, setCustomDraft] = useState<CustomMeetingDraft | null>(null)
@@ -129,20 +136,26 @@ function App() {
   const meetings = useMemo(() => applyEdits(plan.meetings, extras), [plan.meetings, extras])
 
   useEffect(() => {
-    const onPopState = () => setCourse(readCourseFromHistory())
+    const onPopState = () => setPage(readPageFromHistory())
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
   const openCourse = useCallback((name: string) => {
     window.history.pushState({ course: name }, '')
-    setCourse(name)
+    setPage({ kind: 'course', name })
     window.scrollTo({ top: 0 })
   }, [])
 
-  const closeCourse = useCallback(() => {
-    if (readCourseFromHistory()) window.history.back()
-    else setCourse(null)
+  const openOptimizer = useCallback(() => {
+    window.history.pushState({ optimizer: true }, '')
+    setPage({ kind: 'optimizer' })
+    window.scrollTo({ top: 0 })
+  }, [])
+
+  const closePage = useCallback(() => {
+    if (readPageFromHistory()) window.history.back()
+    else setPage(null)
   }, [])
 
   // Terminy przypadające w dniu danych zajęć z tego samego przedmiotu.
@@ -161,6 +174,7 @@ function App() {
       extras: extrasApi,
       materials,
       openCourse,
+      openOptimizer,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
         const customId = customMeetingId(m.id)
@@ -181,7 +195,7 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, deadlinesByDay, extras.customMeetings, prefs],
+    [extrasApi, materials, openCourse, openOptimizer, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
@@ -256,7 +270,7 @@ function App() {
             tabs={tabs((admin?.pendingCount ?? 0) > 0)}
             value={view}
             onChange={(next) => {
-              if (course) closeCourse()
+              if (page) closePage()
               setView(next)
             }}
           />
@@ -264,10 +278,12 @@ function App() {
         <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
 
         {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
-        <div key={course ? `course:${course}` : view} className="view-enter">
+        <div key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view} className="view-enter">
           <ErrorBoundary>
-            {course ? (
-              <CourseView courseName={course} meetings={meetings} now={now} onBack={closeCourse} />
+            {page?.kind === 'optimizer' ? (
+              <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+            ) : course ? (
+              <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
             ) : (
               <>
                 {view === 'today' && <TodayView meetings={meetings} now={now} />}

@@ -16,6 +16,7 @@ export interface PlanUi {
   extras: ExtrasApi | null // null = niezalogowany
   materials: SharedMaterialsApi | null // wspólne pliki przedmiotów; null = niezalogowany
   openCourse: (courseName: string) => void
+  openOptimizer: () => void // "Dobierz grupy"
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych
   addCustomMeeting: (draft: CustomMeetingDraft) => void
