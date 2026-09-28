@@ -1,0 +1,133 @@
+import { formatShortDay, formatTime, isSameDay } from '../lib/dates'
+import { shortBuilding, typeLabel, typeSlug, type Meeting } from '../lib/usos'
+
+const PX_PER_MIN = 1.1
+const DEFAULT_FIRST_HOUR = 8
+const DEFAULT_LAST_HOUR = 16
+// Krótsze zajęcia pokazują nazwę i szczegóły w jednej linii każde.
+const SHORT_EVENT_MIN = 75
+
+interface Props {
+  days: Date[]
+  meetings: Meeting[] // zajęcia z tego tygodnia
+  now: Date
+}
+
+function minuteOfDay(d: Date): number {
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+// Nakładające się zajęcia dzielą szerokość kolumny na pasy.
+function layoutLanes(dayMeetings: Meeting[]): Map<string, { lane: number; lanes: number }> {
+  const out = new Map<string, { lane: number; lanes: number }>()
+  let cluster: { id: string; lane: number }[] = []
+  let laneEnds: number[] = []
+  let clusterEnd = -Infinity
+
+  const flush = () => {
+    for (const c of cluster) out.set(c.id, { lane: c.lane, lanes: laneEnds.length })
+    cluster = []
+    laneEnds = []
+  }
+
+  for (const m of dayMeetings) {
+    const start = m.start.getTime()
+    const end = m.end.getTime()
+    if (start >= clusterEnd) {
+      flush()
+      clusterEnd = -Infinity
+    }
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start)
+    if (lane === -1) {
+      lane = laneEnds.length
+      laneEnds.push(end)
+    } else {
+      laneEnds[lane] = end
+    }
+    cluster.push({ id: m.id, lane })
+    clusterEnd = Math.max(clusterEnd, end)
+  }
+  flush()
+  return out
+}
+
+export function WeekGrid({ days, meetings, now }: Props) {
+  const firstHour = Math.min(
+    DEFAULT_FIRST_HOUR,
+    ...meetings.map((m) => Math.floor(minuteOfDay(m.start) / 60)),
+  )
+  const lastHour = Math.max(DEFAULT_LAST_HOUR, ...meetings.map((m) => Math.ceil(minuteOfDay(m.end) / 60)))
+  const firstMin = firstHour * 60
+  const totalMin = (lastHour - firstHour) * 60
+  const hours = Array.from({ length: lastHour - firstHour + 1 }, (_, i) => firstHour + i)
+  const nowMin = minuteOfDay(now)
+
+  return (
+    <div className="week-grid" style={{ gridTemplateColumns: `3rem repeat(${days.length}, 1fr)` }}>
+      <div />
+      {days.map((day) => (
+        <div key={day.getTime()} className={`grid-day-head${isSameDay(day, now) ? ' is-today' : ''}`}>
+          {formatShortDay(day)}
+        </div>
+      ))}
+
+      <div className="grid-hours" style={{ height: totalMin * PX_PER_MIN }}>
+        {hours.map((h) => (
+          <span key={h} style={{ top: (h * 60 - firstMin) * PX_PER_MIN }}>
+            {h}:00
+          </span>
+        ))}
+      </div>
+
+      {days.map((day) => {
+        const dayMeetings = meetings.filter((m) => isSameDay(m.start, day))
+        const lanes = layoutLanes(dayMeetings)
+        const isToday = isSameDay(day, now)
+        return (
+          <div
+            key={day.getTime()}
+            className={`grid-col${isToday ? ' is-today' : ''}`}
+            style={{ height: totalMin * PX_PER_MIN, backgroundSize: `100% ${60 * PX_PER_MIN}px` }}
+          >
+            {dayMeetings.map((m) => {
+              const { lane, lanes: laneCount } = lanes.get(m.id) ?? { lane: 0, lanes: 1 }
+              const building = shortBuilding(m.building)
+              const details = [
+                typeLabel(m.type),
+                m.groupNumber !== null ? `gr. ${m.groupNumber}` : null,
+                m.room ? `s. ${m.room}` : null,
+                building,
+              ].filter(Boolean)
+              const durationMin = minuteOfDay(m.end) - minuteOfDay(m.start)
+              const classes = ['grid-event', `type-${typeSlug(m.type)}`]
+              if (durationMin < SHORT_EVENT_MIN) classes.push('is-short')
+              if (m.end <= now) classes.push('is-past')
+              if (m.cancelled) classes.push('is-cancelled')
+              return (
+                <div
+                  key={m.id}
+                  className={classes.join(' ')}
+                  title={`${m.courseName}\n${formatTime(m.start)}–${formatTime(m.end)}\n${details.join(' · ')}`}
+                  style={{
+                    top: (minuteOfDay(m.start) - firstMin) * PX_PER_MIN,
+                    height: Math.max(durationMin, 20) * PX_PER_MIN,
+                    left: `${(lane / laneCount) * 100}%`,
+                    width: `${100 / laneCount}%`,
+                  }}
+                >
+                  <div className="grid-event-title">{m.courseName}</div>
+                  <div className="grid-event-meta">
+                    {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
+                  </div>
+                </div>
+              )
+            })}
+            {isToday && nowMin >= firstMin && nowMin <= firstMin + totalMin && (
+              <div className="now-line" style={{ top: (nowMin - firstMin) * PX_PER_MIN }} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
