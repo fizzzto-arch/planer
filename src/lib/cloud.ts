@@ -9,16 +9,22 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth'
-import { doc, getFirestore, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getFirestore,
+  initializeFirestore,
+  onSnapshot,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  serverTimestamp,
+  setDoc,
+  type Firestore,
+} from 'firebase/firestore'
+import type { Cloud } from './cloudTypes'
 
-export interface CloudUser {
-  uid: string
-  email: string | null
-}
-
-export interface CloudData {
-  icalUrl: string | null
-}
+export type { Cloud, CloudUser, CloudData } from './cloudTypes'
 
 const AUTH_ERRORS: Record<string, string> = {
   'auth/invalid-credential': 'Nieprawidłowy e-mail lub hasło.',
@@ -49,47 +55,45 @@ function describeError(e: unknown): string {
   return 'Coś poszło nie tak.'
 }
 
-function createCloud(config: FirebaseOptions) {
+async function wrap(task: () => Promise<unknown>): Promise<void> {
+  try {
+    await task()
+  } catch (e) {
+    throw new Error(describeError(e))
+  }
+}
+
+// Pamięć podręczna na dysku: dodatki widać od razu, także offline, a zmiany
+// zrobione bez internetu wysyłają się same po powrocie połączenia.
+function openFirestore(app: ReturnType<typeof getApp>): Firestore {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+  } catch {
+    // np. przeglądarka bez IndexedDB albo baza już zainicjowana
+    return getFirestore(app)
+  }
+}
+
+function createCloud(config: FirebaseOptions): Cloud {
   // getApps() chroni przed podwójną inicjalizacją (React w trybie deweloperskim montuje dwa razy).
   const app = getApps().length > 0 ? getApp() : initializeApp(config)
   const auth = getAuth(app)
   auth.languageCode = 'pl' // maile (np. reset hasła) po polsku
-  const db = getFirestore(app)
+  const db = openFirestore(app)
 
   return {
-    watchUser(onChange: (user: CloudUser | null) => void): () => void {
+    watchUser(onChange) {
       return onAuthStateChanged(auth, (u) => onChange(u ? { uid: u.uid, email: u.email } : null))
     },
 
-    async signIn(email: string, password: string): Promise<void> {
-      try {
-        await signInWithEmailAndPassword(auth, email, password)
-      } catch (e) {
-        throw new Error(describeError(e))
-      }
-    },
+    signIn: (email, password) => wrap(() => signInWithEmailAndPassword(auth, email, password)),
+    signUp: (email, password) => wrap(() => createUserWithEmailAndPassword(auth, email, password)),
+    signOut: () => signOut(auth),
+    resetPassword: (email) => wrap(() => sendPasswordResetEmail(auth, email)),
 
-    async signUp(email: string, password: string): Promise<void> {
-      try {
-        await createUserWithEmailAndPassword(auth, email, password)
-      } catch (e) {
-        throw new Error(describeError(e))
-      }
-    },
-
-    async signOut(): Promise<void> {
-      await signOut(auth)
-    },
-
-    async resetPassword(email: string): Promise<void> {
-      try {
-        await sendPasswordResetEmail(auth, email)
-      } catch (e) {
-        throw new Error(describeError(e))
-      }
-    },
-
-    watchData(uid: string, onData: (data: CloudData) => void, onError: (message: string) => void): () => void {
+    watchData(uid, onData, onError) {
       return onSnapshot(
         doc(db, 'users', uid),
         (snap) => {
@@ -100,17 +104,25 @@ function createCloud(config: FirebaseOptions) {
       )
     },
 
-    async saveIcalUrl(uid: string, url: string): Promise<void> {
-      try {
-        await setDoc(doc(db, 'users', uid), { icalUrl: url, updatedAt: serverTimestamp() }, { merge: true })
-      } catch (e) {
-        throw new Error(describeError(e))
-      }
+    saveIcalUrl: (uid, url) =>
+      wrap(() => setDoc(doc(db, 'users', uid), { icalUrl: url, updatedAt: serverTimestamp() }, { merge: true })),
+
+    watchCollection(uid, name, onDocs, onError) {
+      return onSnapshot(
+        collection(db, 'users', uid, name),
+        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+        (e) => onError(describeError(e)),
+      )
     },
+
+    setItem: (uid, name, id, data) =>
+      wrap(() => setDoc(doc(db, 'users', uid, name, id), { ...data, updatedAt: serverTimestamp() })),
+
+    deleteItem: (uid, name, id) => wrap(() => deleteDoc(doc(db, 'users', uid, name, id))),
+
+    newId: () => doc(collection(db, '_')).id,
   }
 }
-
-export type Cloud = ReturnType<typeof createCloud>
 
 let instance: Cloud | null = null
 

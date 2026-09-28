@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react'
 import { formatShortDay, formatTime, isSameDay } from '../lib/dates'
-import { shortBuilding, typeLabel, typeSlug, type Meeting } from '../lib/usos'
+import type { PlanMeeting } from '../lib/edits'
+import { deadlineKindLabel } from '../lib/extras'
+import { usePlanUi } from '../hooks/planUi'
+import { shortBuilding, typeLabel, typeSlug } from '../lib/usos'
 
 const PX_PER_MIN = 1.1
 const DEFAULT_FIRST_HOUR = 8
@@ -10,7 +13,7 @@ const SHORT_EVENT_MIN = 75
 
 interface Props {
   days: Date[]
-  meetings: Meeting[] // zajęcia z tego tygodnia
+  meetings: PlanMeeting[] // zajęcia z tego tygodnia
   now: Date
 }
 
@@ -19,7 +22,7 @@ function minuteOfDay(d: Date): number {
 }
 
 // Nakładające się zajęcia dzielą szerokość kolumny na pasy.
-function layoutLanes(dayMeetings: Meeting[]): Map<string, { lane: number; lanes: number }> {
+function layoutLanes(dayMeetings: PlanMeeting[]): Map<string, { lane: number; lanes: number }> {
   const out = new Map<string, { lane: number; lanes: number }>()
   let cluster: { id: string; lane: number }[] = []
   let laneEnds: number[] = []
@@ -53,6 +56,7 @@ function layoutLanes(dayMeetings: Meeting[]): Map<string, { lane: number; lanes:
 }
 
 export function WeekGrid({ days, meetings, now }: Props) {
+  const { openCourse, deadlinesFor } = usePlanUi()
   const firstHour = Math.min(
     DEFAULT_FIRST_HOUR,
     ...meetings.map((m) => Math.floor(minuteOfDay(m.start) / 60)),
@@ -104,11 +108,25 @@ export function WeekGrid({ days, meetings, now }: Props) {
               if (durationMin < SHORT_EVENT_MIN) classes.push('is-short')
               if (m.end <= now) classes.push('is-past')
               if (m.cancelled) classes.push('is-cancelled')
+              if (m.custom) classes.push('is-custom')
+              const deadlines = deadlinesFor(m)
+              const tooltip = [
+                m.courseName,
+                `${formatTime(m.start)}–${formatTime(m.end)}`,
+                details.join(' · '),
+                ...deadlines.map((d) => `📌 ${d.title || deadlineKindLabel(d.kind)}`),
+                m.note ? `Notatka: ${m.note}` : null,
+                m.edited ? 'Zmienione ręcznie' : null,
+              ]
+                .filter(Boolean)
+                .join('\n')
               return (
-                <div
+                <button
+                  type="button"
                   key={m.id}
                   className={classes.join(' ')}
-                  title={`${m.courseName}\n${formatTime(m.start)}–${formatTime(m.end)}\n${details.join(' · ')}`}
+                  title={tooltip}
+                  onClick={() => openCourse(m.courseName)}
                   style={{
                     '--i': i,
                     top: (minuteOfDay(m.start) - firstMin) * PX_PER_MIN,
@@ -117,11 +135,18 @@ export function WeekGrid({ days, meetings, now }: Props) {
                     width: `${100 / laneCount}%`,
                   } as CSSProperties}
                 >
-                  <div className="grid-event-title">{m.courseName}</div>
-                  <div className="grid-event-meta">
+                  <span className="grid-event-title">{m.courseName}</span>
+                  <span className="grid-event-meta">
                     {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
-                  </div>
-                </div>
+                  </span>
+                  {(deadlines.length > 0 || m.note || m.edited) && (
+                    <span className="grid-event-flags" aria-hidden="true">
+                      {deadlines.length > 0 && <span className="flag flag-deadline" />}
+                      {m.note && <span className="flag flag-note" />}
+                      {m.edited && <span className="flag flag-edited" />}
+                    </span>
+                  )}
+                </button>
               )
             })}
             {isToday && nowMin >= firstMin && nowMin <= firstMin + totalMin && (

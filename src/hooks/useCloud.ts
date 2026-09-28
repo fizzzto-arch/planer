@@ -1,11 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Cloud, CloudUser } from '../lib/cloud'
+import type { Cloud, CloudUser } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
 import { firebaseConfig } from '../lib/firebaseConfig'
 import { decideSync, type SyncSnapshot } from '../lib/sync'
 import type { PlanApi } from './usePlan'
 
-const RETRY_AFTER_MS = 15_000
+export const RETRY_AFTER_MS = 15_000
+
+// Tryb testowy: udawana chmura zamiast Firebase. Tylko w wersji deweloperskiej -
+// w wersji na GitHub Pages ten kod w ogóle nie trafia do paczki.
+const useMock = import.meta.env.DEV && new URLSearchParams(window.location.search).has('mock')
+
+function loadCloud(): Promise<Cloud> | null {
+  if (useMock) return import('../lib/cloudMock').then((m) => m.getMockCloud())
+  const config = firebaseConfig
+  if (!config) return null
+  return import('../lib/cloud').then((m) => m.getCloud(config))
+}
 
 export type CloudState =
   | { kind: 'disabled' } // brak konfiguracji Firebase
@@ -15,21 +26,22 @@ export type CloudState =
 
 export function useCloud(plan: PlanApi) {
   const [cloud, setCloud] = useState<Cloud | null>(null)
-  const [state, setState] = useState<CloudState>(firebaseConfig ? { kind: 'loading' } : { kind: 'disabled' })
+  const [state, setState] = useState<CloudState>(
+    firebaseConfig || useMock ? { kind: 'loading' } : { kind: 'disabled' },
+  )
   // Dane konta zapamiętane razem z uid - po wylogowaniu same przestają pasować.
   const [cloudData, setCloudData] = useState<{ uid: string; icalUrl: string | null } | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   // 1. Ładujemy Firebase w tle i słuchamy, kto jest zalogowany.
   useEffect(() => {
-    const config = firebaseConfig
-    if (!config) return
+    const loading = loadCloud()
+    if (!loading) return
     let unsubscribe = () => {}
     let cancelled = false
-    import('../lib/cloud')
-      .then(({ getCloud }) => {
+    loading
+      .then((c) => {
         if (cancelled) return
-        const c = getCloud(config)
         setCloud(c)
         unsubscribe = c.watchUser((user) => setState(user ? { kind: 'signedIn', user } : { kind: 'signedOut' }))
       })
@@ -117,6 +129,9 @@ export function useCloud(plan: PlanApi) {
 
   return {
     state,
+    // Połączenie i konto dla dodatków (useExtras); null, gdy nikt nie jest zalogowany.
+    client: uid ? cloud : null,
+    uid,
     syncError,
     // Na koncie jest plan, którego ta przeglądarka jeszcze nie ma (trwa pobieranie).
     isAdopting: state.kind === 'signedIn' && !!cloudUrl && cloudUrl !== localUrl,

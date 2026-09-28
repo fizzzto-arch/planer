@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
 interface Props<T extends string> {
-  tabs: { id: T; label: string }[]
+  tabs: { id: T; label: string; icon?: ReactNode }[] // z ikoną: sama ikona, etykieta dla czytników ekranu
   value: T
   onChange: (id: T) => void
 }
@@ -42,11 +42,13 @@ export function Tabs<T extends string>({ tabs, value, onChange }: Props<T>) {
         <button
           key={tab.id}
           type="button"
-          className={`tab${value === tab.id ? ' is-active' : ''}`}
+          className={`tab${value === tab.id ? ' is-active' : ''}${tab.icon ? ' is-icon' : ''}`}
           aria-current={value === tab.id ? 'page' : undefined}
+          aria-label={tab.icon ? tab.label : undefined}
+          title={tab.icon ? tab.label : undefined}
           onClick={() => onChange(tab.id)}
         >
-          {tab.label}
+          {tab.icon ?? tab.label}
         </button>
       ))}
     </nav>

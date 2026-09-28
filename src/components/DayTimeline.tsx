@@ -1,17 +1,18 @@
 import { Fragment, type CSSProperties } from 'react'
 import { formatDuration, isSameDay, minutesBetween } from '../lib/dates'
-import { shortBuilding, type Meeting } from '../lib/usos'
+import type { PlanMeeting } from '../lib/edits'
+import { shortBuilding } from '../lib/usos'
 import { MeetingCard } from './MeetingCard'
 
 // Przerwa krótsza niż to jest zwykłym przejściem między salami, a nie okienkiem.
 const MIN_GAP_MIN = 30
 
 interface Props {
-  meetings: Meeting[] // zajęcia jednego dnia, posortowane
+  meetings: PlanMeeting[] // zajęcia jednego dnia, posortowane
   now: Date
 }
 
-function transitionNote(prev: Meeting, next: Meeting): string | null {
+function transitionNote(prev: PlanMeeting, next: PlanMeeting): string | null {
   const gap = minutesBetween(prev.end, next.start)
   const notes: string[] = []
   if (gap < 0) notes.push('Zajęcia nakładają się!')

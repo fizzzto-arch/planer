@@ -7,7 +7,7 @@ export default defineConfig({
   // Względne ścieżki: strona działa pod dowolnym adresem (np. nick.github.io/planer/)
   base: './',
   build: {
-    // Firebase (~160 kB po kompresji) ładuje się osobno, w tle, po wyświetleniu planu.
-    chunkSizeWarningLimit: 600,
+    // Firebase (~180 kB po kompresji, z pamięcią offline) ładuje się osobno, w tle, po wyświetleniu planu.
+    chunkSizeWarningLimit: 700,
   },
 })

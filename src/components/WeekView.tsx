@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek } from '../lib/dates'
-import type { Meeting } from '../lib/usos'
+import type { PlanMeeting } from '../lib/edits'
 import { DayTimeline } from './DayTimeline'
 import { WeekGrid } from './WeekGrid'
 
 interface Props {
-  meetings: Meeting[]
+  meetings: PlanMeeting[]
   now: Date
 }
 

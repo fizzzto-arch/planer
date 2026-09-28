@@ -1,9 +1,10 @@
 import { addDays, formatDay, isSameDay } from '../lib/dates'
-import type { Meeting } from '../lib/usos'
+import type { PlanMeeting } from '../lib/edits'
 import { DayTimeline } from './DayTimeline'
+import { UpcomingDeadlines } from './UpcomingDeadlines'
 
 interface Props {
-  meetings: Meeting[]
+  meetings: PlanMeeting[]
   now: Date
 }
 
@@ -15,6 +16,7 @@ export function TodayView({ meetings, now }: Props) {
     return (
       <section>
         <h2 className="day-title">{formatDay(now)}</h2>
+        <UpcomingDeadlines now={now} />
         <DayTimeline meetings={today} now={now} />
       </section>
     )
@@ -27,6 +29,7 @@ export function TodayView({ meetings, now }: Props) {
   return (
     <section>
       <h2 className="day-title">{formatDay(now)}</h2>
+      <UpcomingDeadlines now={now} />
       <div className="empty-state">
         {today.length === 0 ? 'Dziś nie masz zajęć.' : 'Na dziś to już wszystko.'}
       </div>

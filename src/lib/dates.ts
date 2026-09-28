@@ -72,3 +72,42 @@ export function formatUpdatedAt(d: Date, now: Date): string {
   if (isSameDay(d, addDays(now, -1))) return `wczoraj ${formatTime(d)}`
   return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')} ${formatTime(d)}`
 }
+
+// ---------- Daty zapisywane w chmurze jako napisy lokalne ----------
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+// Date -> "2026-10-05"
+export function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+// "2026-10-05" -> Date (północ czasu lokalnego); null dla złego formatu
+export function parseDateKey(key: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key)
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null
+}
+
+// Date -> "08:15"
+export function toTimeKey(d: Date): string {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+export function isTimeKey(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
+}
+
+// Dzień z pierwszego argumentu + godzina "HH:MM"
+export function withTime(day: Date, time: string): Date {
+  const [h, m] = time.split(':').map(Number)
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m)
+}
+
+// Liczba dni kalendarzowych od a do b (odporna na zmianę czasu letniego)
+export function daysBetween(a: Date, b: Date): number {
+  const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())
+  const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())
+  return Math.round((utcB - utcA) / 86_400_000)
+}
