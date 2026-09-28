@@ -1649,59 +1649,58 @@ label.setting-row {
   margin-top: 0;
 }
 
-.preview-days {
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.preview-list {
-  list-style: none;
-  margin: 0 0 6px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.preview-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border-left: 4px solid var(--c);
-  background: color-mix(in srgb, var(--c) 12%, var(--surface));
-}
-
-.preview-item.is-changed {
-  box-shadow: 0 0 0 2px var(--warn);
-}
-
-.preview-time {
-  flex-shrink: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.preview-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.preview-meta {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
 .icon-button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* ---------- Optymalizator: poprawki układu, alpha, szeroki podgląd ---------- */
+
+/* Nagłówek karty z przyciskiem: przycisk nie wchodzi na wskaźniki pod spodem */
+.optimizer .section-head {
+  margin-bottom: 12px;
+}
+
+.optimizer .section-head .panel-title,
+.optimizer .section-head .candidate-title {
+  margin: 0;
+}
+
+.alpha-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+.dialog.dialog-wide {
+  width: min(1100px, calc(100vw - 32px));
+}
+
+.preview-grid {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.grid-event.is-highlight {
+  box-shadow: 0 0 0 2px var(--warn);
+  z-index: 1;
+}
+
+.grid-event.is-readonly {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .grid-event.is-readonly:hover {
+    filter: none;
+  }
 }

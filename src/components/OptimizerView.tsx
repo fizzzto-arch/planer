@@ -75,7 +75,9 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
       </button>
 
       <header className="course-header opt-header">
-        <h2>Dobierz grupy</h2>
+        <h2>
+          Dobierz grupy <span className="alpha-badge">alpha</span>
+        </h2>
         <p className="muted">
           Porównuję plany wszystkich grup Twoich przedmiotów z USOS i szukam układu, który najlepiej pasuje do Twoich
           kryteriów. Zmianę grupy trzeba potem załatwić w USOS albo w dziekanacie - Planer tylko podpowiada.

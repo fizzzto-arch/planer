@@ -15,6 +15,8 @@ interface Props {
   days: Date[]
   meetings: PlanMeeting[] // zajęcia z tego tygodnia
   now: Date
+  readOnly?: boolean // podgląd (np. propozycja optymalizatora): kliknięcie nic nie otwiera
+  highlightIds?: Set<string> // zajęcia do wyróżnienia (np. nowe grupy)
 }
 
 function minuteOfDay(d: Date): number {
@@ -55,7 +57,7 @@ function layoutLanes(dayMeetings: PlanMeeting[]): Map<string, { lane: number; la
   return out
 }
 
-export function WeekGrid({ days, meetings, now }: Props) {
+export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }: Props) {
   const { openCourse, deadlinesFor, displayName } = usePlanUi()
   const firstHour = Math.min(
     DEFAULT_FIRST_HOUR,
@@ -109,7 +111,9 @@ export function WeekGrid({ days, meetings, now }: Props) {
               if (m.end <= now) classes.push('is-past')
               if (m.cancelled) classes.push('is-cancelled')
               if (m.custom) classes.push('is-custom')
-              const deadlines = deadlinesFor(m)
+              if (highlightIds?.has(m.id)) classes.push('is-highlight')
+              if (readOnly) classes.push('is-readonly')
+              const deadlines = readOnly ? [] : deadlinesFor(m)
               const tooltip = [
                 m.courseName,
                 `${formatTime(m.start)}–${formatTime(m.end)}`,
@@ -126,7 +130,8 @@ export function WeekGrid({ days, meetings, now }: Props) {
                   key={m.id}
                   className={classes.join(' ')}
                   title={tooltip}
-                  onClick={() => openCourse(m.courseName)}
+                  onClick={readOnly ? undefined : () => openCourse(m.courseName)}
+                  tabIndex={readOnly ? -1 : undefined}
                   style={{
                     '--i': i,
                     top: (minuteOfDay(m.start) - firstMin) * PX_PER_MIN,

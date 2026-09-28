@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
+import { useMediaQuery } from '../hooks/useMediaQuery'
+import { PHONE_QUERY } from '../lib/prefs'
 import { formatTypes, summarizeCourses } from '../lib/courses'
 import { formatShortDay, formatTime } from '../lib/dates'
 import { upcomingDeadlines } from '../lib/deadlines'
@@ -17,26 +19,32 @@ interface Props {
 }
 
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, openCourse, openOptimizer, editDeadline, displayName } = usePlanUi()
+  const { extras, openCourse, openOptimizer, isAdmin, editDeadline, displayName } = usePlanUi()
+  const isPhone = useMediaQuery(PHONE_QUERY)
   const courses = summarizeCourses(meetings, now)
   const deadlines = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD) : []
 
   return (
     <section>
-      <button type="button" className="optimizer-entry" onClick={openOptimizer}>
-        <span className="optimizer-entry-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6" />
+      {/* Optymalizator: wersja alpha - tylko administrator i tylko na komputerze. */}
+      {isAdmin && !isPhone && (
+        <button type="button" className="optimizer-entry" onClick={openOptimizer}>
+          <span className="optimizer-entry-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6" />
+            </svg>
+          </span>
+          <span className="optimizer-entry-text">
+            <strong>
+              Dobierz grupy <span className="alpha-badge">alpha</span>
+            </strong>
+            <span>Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni (widoczne tylko dla administratora)</span>
+          </span>
+          <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 6 6 6-6 6" />
           </svg>
-        </span>
-        <span className="optimizer-entry-text">
-          <strong>Dobierz grupy</strong>
-          <span>Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni</span>
-        </span>
-        <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m9 6 6 6-6 6" />
-        </svg>
-      </button>
+        </button>
+      )}
 
       <div className="section-head">
         <h2 className="day-title">Nadchodzące terminy</h2>

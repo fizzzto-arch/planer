@@ -4,11 +4,12 @@ interface Props {
   title: string
   onClose: () => void
   children: ReactNode
+  wide?: boolean // szerokie okno (np. podgląd tygodnia w siatce)
 }
 
 // Okno dialogowe na natywnym <dialog>: Esc i kliknięcie obok zamykają, fokus zostaje w środku.
 // Renderuj je tylko wtedy, gdy ma być otwarte.
-export function Dialog({ title, onClose, children }: Props) {
+export function Dialog({ title, onClose, children, wide = false }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -20,7 +21,7 @@ export function Dialog({ title, onClose, children }: Props) {
   return (
     <dialog
       ref={ref}
-      className="dialog"
+      className={wide ? 'dialog dialog-wide' : 'dialog'}
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => {

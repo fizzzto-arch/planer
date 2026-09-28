@@ -175,6 +175,7 @@ function App() {
       materials,
       openCourse,
       openOptimizer,
+      isAdmin: cloud.isAdmin,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
         const customId = customMeetingId(m.id)
@@ -195,7 +196,7 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, openOptimizer, deadlinesByDay, extras.customMeetings, prefs],
+    [extrasApi, materials, openCourse, openOptimizer, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
@@ -280,7 +281,8 @@ function App() {
         {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
         <div key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view} className="view-enter">
           <ErrorBoundary>
-            {page?.kind === 'optimizer' ? (
+            {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
+            {page?.kind === 'optimizer' && cloud.isAdmin ? (
               <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
             ) : course ? (
               <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
