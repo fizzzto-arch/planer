@@ -17,9 +17,13 @@ import {
   type MeetingOverride,
   type SeriesEdit,
 } from '../lib/extras'
+import { parseTypeColors, type TypeColors } from '../lib/typeColors'
 import { RETRY_AFTER_MS } from './useCloud'
 
-const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings']
+const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings']
+
+// Dokument w kolekcji "settings" z kolorami typów zajęć.
+const COLORS_DOC = 'colors'
 
 type RawCollections = Partial<Record<CollectionName, CloudDoc[]>>
 
@@ -40,6 +44,7 @@ function toExtras(raw: RawCollections): Extras {
     meetingEdits: new Map((raw.meetingEdits ?? []).map((d) => [d.id, parseMeetingEdit(d.id, d.data)])),
     seriesEdits: new Map((raw.seriesEdits ?? []).map((d) => [d.id, parseSeriesEdit(d.id, d.data)])),
     customMeetings: (raw.customMeetings ?? []).flatMap((d) => parseCustomMeeting(d.id, d.data) ?? []),
+    typeColors: parseTypeColors(raw.settings?.find((d) => d.id === COLORS_DOC)?.data ?? {}),
   }
 }
 
@@ -165,6 +170,16 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  const saveTypeColors = useCallback(
+    (colors: TypeColors) =>
+      write((c, u) =>
+        Object.keys(colors).length === 0
+          ? c.deleteItem(u, 'settings', COLORS_DOC)
+          : c.setItem(u, 'settings', COLORS_DOC, colors),
+      ),
+    [write],
+  )
+
   if (!client || !uid) return null
 
   return {
@@ -179,6 +194,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     saveSeriesEdit,
     saveCustomMeeting,
     deleteCustomMeeting,
+    saveTypeColors,
   }
 }
 

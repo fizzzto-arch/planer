@@ -8,15 +8,18 @@
   --accent-text: #ffffff;
   --danger: #c93434;
   --now: #e5484d;
+  --ok: #1f9d6b;
+  --warn: #d9822b;
 
-  /* Kolory typów zajęć */
-  --c-wyk: #3b6fd8;
-  --c-cwi: #1f9d6b;
-  --c-lab: #d9822b;
-  --c-pro: #8a56d6;
-  --c-sem: #0f9aa8;
-  --c-lek: #d6457e;
-  --c-wf: #6b8e23;
+  /* Kolory typów zajęć - jak w USOS (wykład niebieski, ćwiczenia pomarańczowe,
+     laboratorium zielone, projekt żółty). Użytkownik może je zmienić w ustawieniach. */
+  --c-wyk: #4f7fd1;
+  --c-cwi: #ee9a35;
+  --c-lab: #82ad35;
+  --c-pro: #d9b61c;
+  --c-sem: #16a2a8;
+  --c-lek: #9b6ad6;
+  --c-wf: #e05a5a;
   --c-inne: #7a7a85;
 
   color-scheme: light dark;
@@ -35,14 +38,16 @@
     --accent-text: #0e1320;
     --danger: #f06a6a;
     --now: #ff6b70;
+    --ok: #3cc48f;
+    --warn: #f0a050;
 
-    --c-wyk: #6d97f0;
-    --c-cwi: #3cc48f;
-    --c-lab: #f0a050;
-    --c-pro: #b08af0;
+    --c-wyk: #7ea6ee;
+    --c-cwi: #f5b25e;
+    --c-lab: #a6cf55;
+    --c-pro: #ebd046;
     --c-sem: #3cc6d4;
-    --c-lek: #f07aa8;
-    --c-wf: #9cc255;
+    --c-lek: #b690ef;
+    --c-wf: #f07a7a;
     --c-inne: #9a9aa3;
   }
 }
@@ -401,7 +406,7 @@ a {
 }
 
 .type-badge {
-  color: var(--c);
+  color: color-mix(in srgb, var(--c) 70%, var(--text)); /* czytelny także dla żółtego */
   font-weight: 700;
 }
 
@@ -409,7 +414,7 @@ a {
   margin-top: 6px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--c);
+  color: color-mix(in srgb, var(--c) 70%, var(--text)); /* czytelny także dla żółtego */
 }
 
 .card-details {
@@ -514,9 +519,10 @@ a {
   padding: 3px 6px;
   overflow: hidden;
   border-radius: 6px;
-  border: 1px solid var(--surface);
+  /* pastelowe tło i obramowanie w kolorze typu, jak bloki w USOS */
+  border: 1px solid color-mix(in srgb, var(--c) 60%, var(--surface));
   border-left: 3px solid var(--c);
-  background: color-mix(in srgb, var(--c) 18%, var(--surface));
+  background: color-mix(in srgb, var(--c) 22%, var(--surface));
   font-size: 0.78rem;
   line-height: 1.25;
 }
@@ -838,7 +844,7 @@ a {
 
 .success {
   margin: 12px 0 0;
-  color: var(--c-cwi);
+  color: var(--ok);
   font-weight: 600;
 }
 
@@ -859,8 +865,8 @@ a {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--c-cwi);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-cwi) 25%, transparent);
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
 }
 
 .sync-badge.is-error .sync-dot {

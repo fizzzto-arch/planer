@@ -10,7 +10,7 @@ export interface CloudData {
 }
 
 // Kolekcje z dodatkami użytkownika: users/{uid}/{nazwa}/{id}
-export type CollectionName = 'courses' | 'deadlines' | 'meetingEdits' | 'seriesEdits' | 'customMeetings'
+export type CollectionName = 'courses' | 'deadlines' | 'meetingEdits' | 'seriesEdits' | 'customMeetings' | 'settings'
 
 export interface CloudDoc {
   id: string

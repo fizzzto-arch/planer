@@ -3,17 +3,20 @@ import type { CloudApi } from '../hooks/useCloud'
 import type { PlanApi } from '../hooks/usePlan'
 import { formatShortDay, formatUpdatedAt } from '../lib/dates'
 import { plural } from '../lib/plural'
+import type { TypeColorsApi } from '../hooks/useTypeColors'
 import { AccountPanel } from './AccountPanel'
+import { ColorsPanel } from './ColorsPanel'
 import { SourceForm } from './SourceForm'
 
 interface Props {
   plan: PlanApi
   cloud: CloudApi
+  typeColors: TypeColorsApi
   now: Date
   onSourceChanged: () => void
 }
 
-export function SettingsView({ plan, cloud, now, onSourceChanged }: Props) {
+export function SettingsView({ plan, cloud, typeColors, now, onSourceChanged }: Props) {
   const [changing, setChanging] = useState(false)
   const { source, meetings, updatedAt } = plan
   const courseCount = new Set(meetings.map((m) => m.courseName)).size
@@ -87,6 +90,8 @@ export function SettingsView({ plan, cloud, now, onSourceChanged }: Props) {
           </div>
         )}
       </div>
+
+      <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
 
       <div className="panel">
         <p className="hint">

@@ -14,6 +14,7 @@ import { WeekView } from './components/WeekView'
 import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
 import { useExtras } from './hooks/useExtras'
+import { useTypeColors } from './hooks/useTypeColors'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
@@ -87,6 +88,7 @@ function App() {
   const plan = usePlan()
   const cloud = useCloud(plan)
   const extrasApi = useExtras(cloud.client, cloud.uid)
+  const typeColors = useTypeColors(extrasApi)
   const now = useNow()
   const [view, setView] = useState<View>('today')
   const [course, setCourse] = useState<string | null>(readCourseFromHistory)
@@ -202,7 +204,7 @@ function App() {
 
   return (
     <PlanUiContext.Provider value={ui}>
-      <main className="app">
+      <main className="app" style={typeColors.style}>
         <header className="topbar">
           <h1 className="brand">Planer</h1>
           <Tabs
@@ -227,7 +229,13 @@ function App() {
                 {view === 'week' && <WeekView meetings={meetings} now={now} />}
                 {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
                 {view === 'settings' && (
-                  <SettingsView plan={plan} cloud={cloud} now={now} onSourceChanged={() => setView('today')} />
+                  <SettingsView
+                    plan={plan}
+                    cloud={cloud}
+                    typeColors={typeColors}
+                    now={now}
+                    onSourceChanged={() => setView('today')}
+                  />
                 )}
               </>
             )}
