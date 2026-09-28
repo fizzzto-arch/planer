@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDay, formatDuration, formatTime, minutesBetween, toDateKey, toTimeKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
@@ -32,6 +33,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
   const isNow = m.start <= now && now < m.end
   const building = shortBuilding(m.building)
   const deadlines = deadlinesFor(m)
+  const [noteOpen, setNoteOpen] = useState(false)
 
   let hint: string | null = null
   if (m.cancelled) hint = 'Odwołane'
@@ -52,7 +54,22 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           <span className="card-time-end">{formatTime(m.end)}</span>
         </div>
         <div className="card-main">
-          <div className="card-title">{displayName(m.courseName)}</div>
+          {showCourseLink ? (
+            // Nazwa przedmiotu prowadzi prosto na jego stronę (bez rozwijania karty).
+            <button
+              type="button"
+              className="card-title card-title-link"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                openCourse(m.courseName)
+              }}
+            >
+              {displayName(m.courseName)}
+            </button>
+          ) : (
+            <div className="card-title">{displayName(m.courseName)}</div>
+          )}
           <div className="card-meta">
             <span className="type-badge">{typeLabel(m.type)}</span>
             {m.groupNumber !== null && <span>gr. {m.groupNumber}</span>}
@@ -103,31 +120,47 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           </div>
         )}
 
-        {extras && (
-          <NoteField
-            id={`meeting-note-${m.id}`}
-            value={m.note}
-            rows={2}
-            placeholder="Notatka do tych zajęć, np. przynieść kalkulator"
-            onSave={(text) => extras.saveMeetingEdit(m.id, { note: text })}
-          />
+        {/* Notatka tylko, gdy coś w niej jest albo użytkownik chce ją dodać. Po wejściu w pole
+            zostaje widoczna, nawet gdy ktoś wszystko skasuje (inaczej zniknęłaby w trakcie pisania). */}
+        {extras && (m.note || noteOpen) && (
+          <div onFocusCapture={() => setNoteOpen(true)}>
+            <NoteField
+              id={`meeting-note-${m.id}`}
+              value={m.note}
+              rows={2}
+              autoFocus={noteOpen && !m.note}
+              placeholder="np. przynieść kalkulator"
+              onSave={(text) => extras.saveMeetingEdit(m.id, { note: text })}
+            />
+          </div>
         )}
 
         <div className="card-actions">
-          {extras && (
-            <button type="button" className="button small secondary" onClick={() => editMeeting(m)}>
-              {m.custom ? 'Edytuj' : 'Zmień / odwołaj'}
+          {extras && !m.note && !noteOpen && (
+            <button type="button" className="button small secondary" onClick={() => setNoteOpen(true)}>
+              + Notatka
             </button>
           )}
           {extras && (
             <button
               type="button"
               className="button small secondary"
+              title={m.custom ? 'Edytuj własne zajęcia' : 'Zmień salę lub godzinę albo odwołaj zajęcia'}
+              onClick={() => editMeeting(m)}
+            >
+              {m.custom ? 'Edytuj' : 'Zmień'}
+            </button>
+          )}
+          {extras && (
+            <button
+              type="button"
+              className="button small secondary"
+              title="Dodaj kolokwium, egzamin albo inny termin na te zajęcia"
               onClick={() =>
                 editDeadline({ courseName: m.courseName, date: toDateKey(m.start), time: toTimeKey(m.start) })
               }
             >
-              + Kolokwium / termin
+              + Termin
             </button>
           )}
           {showCourseLink && (

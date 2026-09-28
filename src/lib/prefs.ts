@@ -85,6 +85,9 @@ export function saveLocalPrefs(prefs: Prefs): void {
   }
 }
 
+// Kolory tła motywów (te same co --bg w index.css).
+const THEME_BACKGROUND = { light: '#f4f4f6', dark: '#121215' } as const
+
 export function resolveTheme(theme: ThemeMode, systemDark: boolean): 'light' | 'dark' {
   return theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
 }
@@ -93,7 +96,10 @@ export function resolveTheme(theme: ThemeMode, systemDark: boolean): 'light' | '
 // (także w oknach dialogowych rysowanych nad stroną).
 export function applyPrefsToDocument(prefs: Prefs, systemDark: boolean): void {
   const root = document.documentElement
-  root.dataset.theme = resolveTheme(prefs.theme, systemDark)
+  const theme = resolveTheme(prefs.theme, systemDark)
+  root.dataset.theme = theme
+  // Tło paska stanu i "przeciągania" strony na iPhonie - kolor tła wybranego motywu.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_BACKGROUND[theme])
   root.dataset.motion = prefs.animations
   root.dataset.textSize = prefs.textSize
   root.classList.toggle('compact', prefs.compact)

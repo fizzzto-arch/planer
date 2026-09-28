@@ -7,12 +7,13 @@ interface Props {
   placeholder: string
   rows?: number
   label?: string
+  autoFocus?: boolean
 }
 
 const SAVE_DELAY_MS = 600
 
 // Pole notatki zapisujące się samo chwilę po skończeniu pisania.
-export function NoteField({ id, value, onSave, placeholder, rows = 3, label }: Props) {
+export function NoteField({ id, value, onSave, placeholder, rows = 3, label, autoFocus = false }: Props) {
   // null = brak lokalnych zmian, pokazujemy wersję z konta (np. zmienioną na innym urządzeniu)
   const [draft, setDraft] = useState<string | null>(null)
   const [focused, setFocused] = useState(false)
@@ -56,6 +57,7 @@ export function NoteField({ id, value, onSave, placeholder, rows = 3, label }: P
         id={id}
         className="text-input note-input"
         rows={rows}
+        autoFocus={autoFocus}
         placeholder={placeholder}
         value={draft ?? value}
         onFocus={() => setFocused(true)}
