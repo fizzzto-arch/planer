@@ -5,6 +5,8 @@ import { firebaseConfig } from '../lib/firebaseConfig'
 import { decideSync, type SyncSnapshot } from '../lib/sync'
 import type { PlanApi } from './usePlan'
 
+const RETRY_AFTER_MS = 15_000
+
 export type CloudState =
   | { kind: 'disabled' } // brak konfiguracji Firebase
   | { kind: 'loading' }
@@ -43,18 +45,29 @@ export function useCloud(plan: PlanApi) {
   }, [])
 
   // 2. Po zalogowaniu na bieżąco śledzimy dane konta (zmiany z innych urządzeń).
+  // Po błędzie Firebase kończy nasłuch - zwiększenie tego licznika zakłada go od nowa.
+  const [retry, setRetry] = useState(0)
   const uid = state.kind === 'signedIn' ? state.user.uid : null
   useEffect(() => {
     if (!cloud || !uid) return
-    return cloud.watchData(
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    const unsubscribe = cloud.watchData(
       uid,
       (data) => {
         setCloudData({ uid, icalUrl: data.icalUrl })
         setSyncError(null)
       },
-      setSyncError,
+      (message) => {
+        setSyncError(message)
+        // Np. reguły dostępu właśnie się zmieniają - spróbujemy ponownie za chwilę.
+        retryTimer = setTimeout(() => setRetry((n) => n + 1), RETRY_AFTER_MS)
+      },
     )
-  }, [cloud, uid])
+    return () => {
+      clearTimeout(retryTimer)
+      unsubscribe()
+    }
+  }, [cloud, uid, retry])
   const cloudUrl = uid && cloudData?.uid === uid ? cloudData.icalUrl : undefined
 
   // 3. Uzgadniamy link w tej przeglądarce z linkiem na koncie.
