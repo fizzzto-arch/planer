@@ -4,6 +4,17 @@ import type { NewMaterial } from './materials'
 export interface CloudUser {
   uid: string
   email: string | null
+  emailVerified: boolean
+}
+
+// Dostęp do Planera zatwierdza administrator.
+export type AccessStatus = 'pending' | 'approved' | 'rejected'
+
+export interface AccessRequest {
+  uid: string
+  email: string
+  status: AccessStatus
+  requestedAt: number | null
 }
 
 export interface CloudData {
@@ -26,6 +37,15 @@ export interface Cloud {
   signUp(email: string, password: string): Promise<void>
   signOut(): Promise<void>
   resetPassword(email: string): Promise<void>
+  // Potwierdzenie e-maila linkiem (wysyła Firebase); po kliknięciu refreshUser odświeża stan.
+  sendVerificationEmail(): Promise<void>
+  refreshUser(): Promise<void>
+
+  // Dostęp: własna prośba (każdy) i zatwierdzanie (tylko administrator).
+  watchAccess(uid: string, onStatus: (status: AccessStatus | null) => void, onError: (message: string) => void): Unsubscribe
+  requestAccess(uid: string, email: string): Promise<void>
+  watchAccessRequests(onRequests: (requests: AccessRequest[]) => void, onError: (message: string) => void): Unsubscribe
+  setAccessStatus(uid: string, status: AccessStatus): Promise<void>
 
   watchData(uid: string, onData: (data: CloudData) => void, onError: (message: string) => void): Unsubscribe
   saveIcalUrl(uid: string, url: string): Promise<void>

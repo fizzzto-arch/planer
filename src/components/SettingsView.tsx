@@ -3,10 +3,12 @@ import type { CloudApi } from '../hooks/useCloud'
 import type { PlanApi } from '../hooks/usePlan'
 import { formatShortDay, formatUpdatedAt } from '../lib/dates'
 import { plural } from '../lib/plural'
+import type { AccessRequestsApi } from '../hooks/useAccessRequests'
 import type { ExtrasApi } from '../hooks/useExtras'
 import type { PrefsApi } from '../hooks/usePrefs'
 import type { TypeColorsApi } from '../hooks/useTypeColors'
 import { AccountPanel } from './AccountPanel'
+import { AdminPanel } from './AdminPanel'
 import { BackupPanel } from './BackupPanel'
 import { ColorsPanel } from './ColorsPanel'
 import { AliasesPanel, AppearancePanel, PlanPrefsPanel } from './PreferencesPanels'
@@ -19,6 +21,7 @@ interface Props {
   typeColors: TypeColorsApi
   prefsApi: PrefsApi
   courseNames: string[]
+  admin: AccessRequestsApi | null // panel zatwierdzania kont; null = nie-administrator
   now: Date
   onSourceChanged: () => void
 }
@@ -30,6 +33,7 @@ export function SettingsView({
   typeColors,
   prefsApi,
   courseNames,
+  admin,
   now,
   onSourceChanged,
 }: Props) {
@@ -53,6 +57,7 @@ export function SettingsView({
   return (
     <section>
       <AccountPanel cloud={cloud} />
+      {admin && <AdminPanel admin={admin} now={now} />}
       <AppearancePanel prefsApi={prefsApi} signedIn={signedIn} />
       <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
       <PlanPrefsPanel prefsApi={prefsApi} />

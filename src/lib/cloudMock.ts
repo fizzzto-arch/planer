@@ -1,9 +1,17 @@
 // Udawana chmura do testów w przeglądarce (tylko wersja deweloperska, adres z "?mock").
 // Zachowuje się jak zalogowane konto; dane trzyma w localStorage tej przeglądarki.
-import type { Cloud, CloudDoc, CloudUser, CollectionName } from './cloudTypes'
+// Tryby: ?mock - administrator; ?mock=unverified - niepotwierdzony e-mail;
+// ?mock=pending - konto czeka na zatwierdzenie.
+import type { AccessRequest, AccessStatus, Cloud, CloudDoc, CloudUser, CollectionName } from './cloudTypes'
 
 const STORAGE_KEY = 'planer.mock-cloud'
-const MOCK_USER: CloudUser = { uid: 'mock-user', email: 'test@planer.local' }
+const MOCK_ADMIN_EMAIL = 'test@planer.local' // useCloud traktuje go jako administratora
+
+const mode = new URLSearchParams(window.location.search).get('mock')
+const MOCK_USER: CloudUser =
+  mode === 'unverified' || mode === 'pending'
+    ? { uid: 'mock-student', email: 'student@planer.local', emailVerified: mode === 'pending' }
+    : { uid: 'mock-user', email: MOCK_ADMIN_EMAIL, emailVerified: true }
 
 type Store = Record<string, Record<string, Record<string, unknown>>> // kolekcja -> id -> dane
 
@@ -44,6 +52,14 @@ function createMockCloud(): Cloud {
     userListeners.forEach((cb) => cb(user))
   }
 
+  // Prośby o dostęp - przykładowe dane do panelu administratora (tylko w pamięci karty).
+  const access = new Map<string, AccessRequest>([
+    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@pw.edu.pl', status: 'pending', requestedAt: Date.now() - 3_600_000 }],
+    ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000 }],
+  ])
+  const accessListeners = new Set<() => void>()
+  const emitAccess = () => setTimeout(() => accessListeners.forEach((cb) => cb()), 0)
+
   return {
     watchUser(onChange) {
       userListeners.add(onChange)
@@ -54,6 +70,33 @@ function createMockCloud(): Cloud {
     signUp: async () => setUser(MOCK_USER),
     signOut: async () => setUser(null),
     resetPassword: async () => {},
+    sendVerificationEmail: async () => {},
+    // Udajemy, że użytkownik kliknął link w mailu przy pierwszym sprawdzeniu.
+    refreshUser: async () => {
+      if (user && !user.emailVerified) setUser({ ...user, emailVerified: true })
+    },
+
+    watchAccess(uid, onStatus) {
+      const emitOwn = () => onStatus(access.get(uid)?.status ?? null)
+      accessListeners.add(emitOwn)
+      setTimeout(emitOwn, 0)
+      return () => accessListeners.delete(emitOwn)
+    },
+    async requestAccess(uid, email) {
+      access.set(uid, { uid, email, status: 'pending', requestedAt: Date.now() })
+      emitAccess()
+    },
+    watchAccessRequests(onRequests) {
+      const emitAll = () => onRequests([...access.values()])
+      accessListeners.add(emitAll)
+      setTimeout(emitAll, 0)
+      return () => accessListeners.delete(emitAll)
+    },
+    async setAccessStatus(uid, status: AccessStatus) {
+      const current = access.get(uid)
+      if (current) access.set(uid, { ...current, status })
+      emitAccess()
+    },
 
     watchData(_uid, onData) {
       setTimeout(() => onData({ icalUrl: null }), 0)

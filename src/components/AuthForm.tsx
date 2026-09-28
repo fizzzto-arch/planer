@@ -88,6 +88,12 @@ export function AuthForm({ cloud }: Props) {
         autoComplete={isRegister ? 'new-password' : 'current-password'}
       />
 
+      {isRegister && (
+        <p className="hint">
+          Po rejestracji potwierdzisz e-mail linkiem, a administrator Planera zatwierdzi konto.
+        </p>
+      )}
+
       <div className="button-row">
         <button type="submit" className="button" disabled={busy}>
           {busy ? 'Chwila…' : isRegister ? 'Załóż konto' : 'Zaloguj się'}

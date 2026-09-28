@@ -4,7 +4,8 @@ import { FirebaseError, getApp, getApps, initializeApp, type FirebaseOptions } f
 import {
   createUserWithEmailAndPassword,
   getAuth,
-  onAuthStateChanged,
+  onIdTokenChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -24,7 +25,7 @@ import {
   setDoc,
   type Firestore,
 } from 'firebase/firestore'
-import type { Cloud } from './cloudTypes'
+import type { AccessStatus, Cloud } from './cloudTypes'
 import { chunkId } from './materials'
 
 export type { Cloud, CloudUser, CloudData } from './cloudTypes'
@@ -50,12 +51,21 @@ function describeError(e: unknown): string {
   if (e instanceof FirebaseError) {
     if (AUTH_ERRORS[e.code]) return AUTH_ERRORS[e.code]
     if (e.code === 'permission-denied') {
-      return 'Twój e-mail nie jest jeszcze na liście osób z dostępem. Poproś administratora Planera o dopisanie. Do tego czasu plan działa tylko na tym urządzeniu.'
+      return 'Brak dostępu do danych konta. Jeśli konto czeka na zatwierdzenie, poczekaj na administratora Planera.'
     }
     if (e.code === 'unavailable') return 'Brak połączenia z serwerem synchronizacji.'
     return `Błąd synchronizacji (${e.code}).`
   }
   return 'Coś poszło nie tak.'
+}
+
+function parseAccessStatus(value: unknown): AccessStatus | null {
+  return value === 'pending' || value === 'approved' || value === 'rejected' ? value : null
+}
+
+// Po kliknięciu linku w mailu Firebase pokazuje przycisk powrotu do Planera.
+function verificationSettings() {
+  return { url: window.location.origin + window.location.pathname }
 }
 
 async function wrap(task: () => Promise<unknown>): Promise<void> {
@@ -87,14 +97,75 @@ function createCloud(config: FirebaseOptions): Cloud {
   const db = openFirestore(app)
 
   return {
+    // onIdTokenChanged (a nie onAuthStateChanged) - odzywa się też po odświeżeniu tokenu,
+    // czyli wtedy, gdy e-mail właśnie został potwierdzony.
     watchUser(onChange) {
-      return onAuthStateChanged(auth, (u) => onChange(u ? { uid: u.uid, email: u.email } : null))
+      return onIdTokenChanged(auth, (u) =>
+        onChange(u ? { uid: u.uid, email: u.email, emailVerified: u.emailVerified } : null),
+      )
     },
 
     signIn: (email, password) => wrap(() => signInWithEmailAndPassword(auth, email, password)),
-    signUp: (email, password) => wrap(() => createUserWithEmailAndPassword(auth, email, password)),
+    // Po rejestracji od razu wysyłamy link potwierdzający e-mail.
+    signUp: (email, password) =>
+      wrap(async () => {
+        const { user } = await createUserWithEmailAndPassword(auth, email, password)
+        await sendEmailVerification(user, verificationSettings())
+      }),
     signOut: () => signOut(auth),
     resetPassword: (email) => wrap(() => sendPasswordResetEmail(auth, email)),
+
+    sendVerificationEmail: () =>
+      wrap(async () => {
+        if (auth.currentUser) await sendEmailVerification(auth.currentUser, verificationSettings())
+      }),
+
+    // Pobiera świeży stan konta i nowy token (w nim serwer zapisuje "e-mail potwierdzony").
+    refreshUser: () =>
+      wrap(async () => {
+        const user = auth.currentUser
+        if (!user) return
+        await user.reload()
+        await user.getIdToken(true)
+      }),
+
+    watchAccess(uid, onStatus, onError) {
+      return onSnapshot(
+        doc(db, 'access', uid),
+        (snap) => onStatus(parseAccessStatus(snap.data()?.status)),
+        (e) => onError(describeError(e)),
+      )
+    },
+
+    requestAccess: (uid, email) =>
+      wrap(() => setDoc(doc(db, 'access', uid), { email, status: 'pending', requestedAt: serverTimestamp() })),
+
+    watchAccessRequests(onRequests, onError) {
+      return onSnapshot(
+        collection(db, 'access'),
+        (snap) =>
+          onRequests(
+            snap.docs.flatMap((d) => {
+              const data = d.data()
+              const status = parseAccessStatus(data.status)
+              if (!status) return []
+              const requested = data.requestedAt as { toMillis?: () => number } | undefined
+              return [
+                {
+                  uid: d.id,
+                  email: typeof data.email === 'string' ? data.email : '?',
+                  status,
+                  requestedAt: typeof requested?.toMillis === 'function' ? requested.toMillis() : null,
+                },
+              ]
+            }),
+          ),
+        (e) => onError(describeError(e)),
+      )
+    },
+
+    setAccessStatus: (uid, status) =>
+      wrap(() => setDoc(doc(db, 'access', uid), { status, decidedAt: serverTimestamp() }, { merge: true })),
 
     watchData(uid, onData, onError) {
       return onSnapshot(

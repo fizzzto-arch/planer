@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Cloud, CloudUser } from '../lib/cloudTypes'
+import type { AccessStatus, Cloud, CloudUser } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
-import { firebaseConfig } from '../lib/firebaseConfig'
+import { ADMIN_EMAILS, firebaseConfig } from '../lib/firebaseConfig'
 import { decideSync, type SyncSnapshot } from '../lib/sync'
 import type { PlanApi } from './usePlan'
 
@@ -18,11 +18,20 @@ function loadCloud(): Promise<Cloud> | null {
   return import('../lib/cloud').then((m) => m.getCloud(config))
 }
 
+function isAdminEmail(email: string | null): boolean {
+  if (!email) return false
+  const normalized = email.toLowerCase()
+  return ADMIN_EMAILS.includes(normalized) || (useMock && normalized === 'test@planer.local')
+}
+
 export type CloudState =
   | { kind: 'disabled' } // brak konfiguracji Firebase
   | { kind: 'loading' }
   | { kind: 'signedOut' }
   | { kind: 'signedIn'; user: CloudUser }
+
+// Droga nowego konta: potwierdzenie e-maila -> prośba o dostęp -> zatwierdzenie przez administratora.
+export type AccessState = 'none' | 'unverified' | 'checking' | 'pending' | 'rejected' | 'approved'
 
 export function useCloud(plan: PlanApi) {
   const [cloud, setCloud] = useState<Cloud | null>(null)
@@ -31,6 +40,7 @@ export function useCloud(plan: PlanApi) {
   )
   // Dane konta zapamiętane razem z uid - po wylogowaniu same przestają pasować.
   const [cloudData, setCloudData] = useState<{ uid: string; icalUrl: string | null } | null>(null)
+  const [accessData, setAccessData] = useState<{ uid: string; status: AccessStatus | null } | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   // 1. Ładujemy Firebase w tle i słuchamy, kto jest zalogowany.
@@ -56,10 +66,52 @@ export function useCloud(plan: PlanApi) {
     }
   }, [])
 
-  // 2. Po zalogowaniu na bieżąco śledzimy dane konta (zmiany z innych urządzeń).
+  const user = state.kind === 'signedIn' ? state.user : null
+  const userUid = user?.uid ?? null
+  const userEmail = user?.email ?? null
+  const emailVerified = user?.emailVerified ?? false
+  const isAdmin = isAdminEmail(userEmail)
+
+  // 2. Status dostępu (tylko dla potwierdzonych e-maili; administrator ma dostęp zawsze).
+  const [accessRetry, setAccessRetry] = useState(0)
+  useEffect(() => {
+    if (!cloud || !userUid || isAdmin || !emailVerified) return
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    const unsubscribe = cloud.watchAccess(
+      userUid,
+      (status) => setAccessData({ uid: userUid, status }),
+      (message) => {
+        setSyncError(message)
+        retryTimer = setTimeout(() => setAccessRetry((n) => n + 1), RETRY_AFTER_MS)
+      },
+    )
+    return () => {
+      clearTimeout(retryTimer)
+      unsubscribe()
+    }
+  }, [cloud, userUid, isAdmin, emailVerified, accessRetry])
+
+  const accessStatus = accessData && accessData.uid === userUid ? accessData.status : undefined
+
+  // Brak prośby o dostęp (świeżo potwierdzony e-mail) - wysyłamy ją sami.
+  useEffect(() => {
+    if (!cloud || !userUid || !userEmail || isAdmin || !emailVerified || accessStatus !== null) return
+    cloud.requestAccess(userUid, userEmail).catch((e) => setSyncError(errorMessage(e)))
+  }, [cloud, userUid, userEmail, isAdmin, emailVerified, accessStatus])
+
+  let access: AccessState
+  if (!user) access = 'none'
+  else if (isAdmin) access = 'approved'
+  else if (!emailVerified) access = 'unverified'
+  else if (accessStatus === undefined) access = 'checking'
+  else access = accessStatus ?? 'pending'
+
+  // Synchronizacja i dodatki tylko dla zatwierdzonych kont.
+  const uid = access === 'approved' ? userUid : null
+
+  // 3. Na bieżąco śledzimy dane konta (zmiany z innych urządzeń).
   // Po błędzie Firebase kończy nasłuch - zwiększenie tego licznika zakłada go od nowa.
   const [retry, setRetry] = useState(0)
-  const uid = state.kind === 'signedIn' ? state.user.uid : null
   useEffect(() => {
     if (!cloud || !uid) return
     let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -82,7 +134,7 @@ export function useCloud(plan: PlanApi) {
   }, [cloud, uid, retry])
   const cloudUrl = uid && cloudData?.uid === uid ? cloudData.icalUrl : undefined
 
-  // 3. Uzgadniamy link w tej przeglądarce z linkiem na koncie.
+  // 4. Uzgadniamy link w tej przeglądarce z linkiem na koncie.
   const localUrl = plan.source?.kind === 'url' ? plan.source.url : null
   const { connectUrl } = plan
   const previous = useRef<SyncSnapshot>({ cloudUrl: undefined, localUrl })
@@ -99,29 +151,22 @@ export function useCloud(plan: PlanApi) {
     }
   }, [cloud, uid, cloudUrl, localUrl, connectUrl])
 
+  const requireCloud = useCallback(() => {
+    if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
+    return cloud
+  }, [cloud])
+
   const signIn = useCallback(
-    async (email: string, password: string) => {
-      if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
-      await cloud.signIn(email, password)
-    },
-    [cloud],
+    (email: string, password: string) => requireCloud().signIn(email, password),
+    [requireCloud],
   )
-
   const signUp = useCallback(
-    async (email: string, password: string) => {
-      if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
-      await cloud.signUp(email, password)
-    },
-    [cloud],
+    (email: string, password: string) => requireCloud().signUp(email, password),
+    [requireCloud],
   )
-
-  const resetPassword = useCallback(
-    async (email: string) => {
-      if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
-      await cloud.resetPassword(email)
-    },
-    [cloud],
-  )
+  const resetPassword = useCallback((email: string) => requireCloud().resetPassword(email), [requireCloud])
+  const sendVerificationEmail = useCallback(() => requireCloud().sendVerificationEmail(), [requireCloud])
+  const refreshUser = useCallback(() => requireCloud().refreshUser(), [requireCloud])
 
   const signOut = useCallback(async () => {
     await cloud?.signOut()
@@ -129,15 +174,21 @@ export function useCloud(plan: PlanApi) {
 
   return {
     state,
-    // Połączenie i konto dla dodatków (useExtras); null, gdy nikt nie jest zalogowany.
+    access,
+    isAdmin,
+    // Połączenie i konto dla dodatków (useExtras); null, dopóki konto nie ma dostępu.
     client: uid ? cloud : null,
     uid,
+    // Panel zatwierdzania kont - tylko dla administratora.
+    adminClient: isAdmin ? cloud : null,
     syncError,
     // Na koncie jest plan, którego ta przeglądarka jeszcze nie ma (trwa pobieranie).
-    isAdopting: state.kind === 'signedIn' && !!cloudUrl && cloudUrl !== localUrl,
+    isAdopting: !!uid && !!cloudUrl && cloudUrl !== localUrl,
     signIn,
     signUp,
     resetPassword,
+    sendVerificationEmail,
+    refreshUser,
     signOut,
   }
 }

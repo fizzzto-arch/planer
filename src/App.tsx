@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AccessGate } from './components/AccessGate'
 import { AuthForm } from './components/AuthForm'
 import { CoursesView } from './components/CoursesView'
 import { CourseView } from './components/CourseView'
@@ -13,6 +14,7 @@ import { TodayView } from './components/TodayView'
 import { WeekView } from './components/WeekView'
 import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
+import { useAccessRequests } from './hooks/useAccessRequests'
 import { useExtras } from './hooks/useExtras'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
@@ -28,7 +30,17 @@ type View = 'today' | 'week' | 'courses' | 'settings'
 
 const DEADLINE_SLACK_MIN = 15
 
-function GearIcon() {
+// Zębatka ustawień; kropka = ktoś czeka na zatwierdzenie konta (tylko administrator).
+function GearIcon({ alert = false }: { alert?: boolean }) {
+  return (
+    <span className="tab-icon-wrap">
+      <GearSvg />
+      {alert && <span className="tab-alert" />}
+    </span>
+  )
+}
+
+function GearSvg() {
   return (
     <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="3" />
@@ -37,12 +49,18 @@ function GearIcon() {
   )
 }
 
-const TABS: { id: View; label: string; icon?: ReactNode }[] = [
-  { id: 'today', label: 'Dziś' },
-  { id: 'week', label: 'Tydzień' },
-  { id: 'courses', label: 'Przedmioty' },
-  { id: 'settings', label: 'Ustawienia', icon: <GearIcon /> },
-]
+function tabs(settingsAlert: boolean): { id: View; label: string; icon?: ReactNode }[] {
+  return [
+    { id: 'today', label: 'Dziś' },
+    { id: 'week', label: 'Tydzień' },
+    { id: 'courses', label: 'Przedmioty' },
+    {
+      id: 'settings',
+      label: settingsAlert ? 'Ustawienia (nowe konta czekają na zatwierdzenie)' : 'Ustawienia',
+      icon: <GearIcon alert={settingsAlert} />,
+    },
+  ]
+}
 
 function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extrasError: string | null }) {
   const { source, status, updatedAt } = plan
@@ -92,6 +110,7 @@ function App() {
   const cloud = useCloud(plan)
   const extrasApi = useExtras(cloud.client, cloud.uid)
   const typeColors = useTypeColors(extrasApi)
+  const admin = useAccessRequests(cloud.adminClient)
   const materials = useSharedMaterials(
     cloud.client,
     cloud.uid,
@@ -170,6 +189,11 @@ function App() {
     [meetings],
   )
 
+  // Zalogowane konto bez dostępu: potwierdzenie e-maila / czeka na zatwierdzenie / odrzucone.
+  if (cloud.state.kind === 'signedIn' && cloud.access !== 'approved') {
+    return <AccessGate cloud={cloud} />
+  }
+
   if (!plan.source) {
     const signedOut = cloud.state.kind === 'signedOut'
     return (
@@ -229,7 +253,7 @@ function App() {
         <header className="topbar">
           <h1 className="brand">Planer</h1>
           <Tabs
-            tabs={TABS}
+            tabs={tabs((admin?.pendingCount ?? 0) > 0)}
             value={view}
             onChange={(next) => {
               if (course) closeCourse()
@@ -257,6 +281,7 @@ function App() {
                     typeColors={typeColors}
                     prefsApi={prefsApi}
                     courseNames={courseNames}
+                    admin={admin}
                     now={now}
                     onSourceChanged={() => setView('today')}
                   />
