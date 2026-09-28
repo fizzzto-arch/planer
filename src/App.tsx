@@ -181,8 +181,16 @@ function App() {
         ) : (
           <>
             {cloud.syncError && (
-              <p className="error panel view-enter" role="alert">
+              <p className="error panel error-panel view-enter" role="alert">
                 {cloud.syncError}
+              </p>
+            )}
+            {cloud.state.kind === 'signedIn' && (
+              <p className="account-line view-enter">
+                Zalogowano jako <strong>{cloud.state.user.email}</strong> ·{' '}
+                <button type="button" className="link-button" onClick={() => void cloud.signOut()}>
+                  Wyloguj
+                </button>
               </p>
             )}
             {signedOut && (

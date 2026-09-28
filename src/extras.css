@@ -953,3 +953,16 @@ button.grid-event {
 .upload-progress progress::-moz-progress-bar {
   background: var(--accent);
 }
+
+/* ---------- Ekran startowy: błąd i konto ---------- */
+
+/* .error zeruje marginesy - w roli panelu potrzebuje odstępu od kolejnego panelu */
+.panel.error-panel {
+  margin: 0 0 16px;
+}
+
+.account-line {
+  margin: -4px 0 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
