@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import type { CustomMeeting, Deadline } from '../lib/extras'
 import type { PlanMeeting } from '../lib/edits'
 import type { ExtrasApi } from './useExtras'
+import type { SharedMaterialsApi } from './useSharedMaterials'
 
 // Termin do edycji: bez id = nowy (pola mogą być wstępnie wypełnione).
 export type DeadlineDraft = Partial<Deadline>
@@ -12,6 +13,7 @@ export type CustomMeetingDraft = Partial<CustomMeeting>
 // Wspólne dla wszystkich widoków: dodatki i nawigacja.
 export interface PlanUi {
   extras: ExtrasApi | null // null = niezalogowany
+  materials: SharedMaterialsApi | null // wspólne pliki przedmiotów; null = niezalogowany
   openCourse: (courseName: string) => void
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych

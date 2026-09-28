@@ -87,8 +87,10 @@ export async function deleteFile(id: string): Promise<void> {
   await run('readwrite', (store) => store.delete(id))
 }
 
-// "1,4 MB"
+// "0 kB", "120 kB", "1,4 MB", "900 MB"
 export function formatSize(bytes: number): string {
+  if (bytes === 0) return '0 kB'
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} kB`
-  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+  const mb = bytes / (1024 * 1024)
+  return `${mb >= 100 ? Math.round(mb) : mb.toFixed(1).replace('.', ',')} MB`
 }

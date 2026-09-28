@@ -3,6 +3,8 @@ import { usePlanUi } from '../hooks/planUi'
 import { useLocalFiles } from '../hooks/useLocalFiles'
 import { courseKey, isSafeUrl, type CourseLink } from '../lib/extras'
 import { formatSize } from '../lib/localFiles'
+import { QUOTA_BYTES } from '../lib/materials'
+import type { SharedMaterialsApi } from '../hooks/useSharedMaterials'
 
 interface Props {
   courseName: string
@@ -131,12 +133,169 @@ function Links({ courseName }: Props) {
   )
 }
 
-function Files({ courseName }: Props) {
-  const { files, busy, error, add, remove, share, canShare } = useLocalFiles(courseKey(courseName))
+function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12 M7 8l5-5 5 5 M5 13v7h14v-7" />
+    </svg>
+  )
+}
+
+// Arkusz "Udostępnij" z plikami działa głównie na telefonach.
+const CAN_SHARE_FILES =
+  typeof navigator.canShare === 'function' &&
+  navigator.canShare({ files: [new File([''], 'test.pdf', { type: 'application/pdf' })] })
+
+function formatDate(ms: number): string {
+  const d = new Date(ms)
+  return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+type WithMaterials = Props & { materials: SharedMaterialsApi }
+
+// Pliki wspólne dla wszystkich z listy dostępu, którzy mają ten przedmiot.
+function SharedFiles({ courseName, materials }: WithMaterials) {
+  const key = courseKey(courseName)
+  const files = materials.forCourse(key)
+  const uploading = materials.uploading?.courseKey === key ? materials.uploading : null
   const input = useRef<HTMLInputElement>(null)
+
+  async function uploadAll(list: FileList) {
+    for (const file of Array.from(list)) await materials.upload(key, courseName, file)
+  }
 
   return (
     <>
+      {files.length === 0 && !uploading && (
+        <p className="muted small">
+          Brak plików. Wgrany plik zobaczą wszyscy z Twojej grupy, którzy mają ten przedmiot.
+        </p>
+      )}
+      {files.length > 0 && (
+        <ul className="material-list">
+          {files.map((file) => {
+            const url = materials.urls[file.id]
+            const progress = materials.downloading[file.id]
+            const mine = file.uploadedBy === materials.uid
+            const meta = [
+              formatSize(file.size),
+              mine ? 'Ty' : file.uploaderName,
+              formatDate(file.createdAt),
+              file.complete ? null : 'wysyłanie przerwane',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+            return (
+              <li key={file.id} className={`material-item${file.complete ? '' : ' is-broken'}`}>
+                <FileIcon />
+                {url ? (
+                  <a className="material-name" href={url} target="_blank" rel="noreferrer">
+                    {file.name}
+                    <span className="material-meta">{meta} · pobrany, kliknij, aby otworzyć</span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className="material-name"
+                    disabled={progress !== undefined || !file.complete}
+                    onClick={() => void materials.open(file)}
+                  >
+                    {file.name}
+                    <span className="material-meta">
+                      {progress !== undefined ? `Pobieranie… ${Math.round(progress * 100)}%` : meta}
+                    </span>
+                  </button>
+                )}
+                {url && CAN_SHARE_FILES && (
+                  <button
+                    type="button"
+                    className="material-action"
+                    aria-label={`Udostępnij lub zapisz ${file.name}`}
+                    title="Udostępnij / zapisz w Plikach"
+                    onClick={() => void materials.share(file)}
+                  >
+                    <ShareIcon />
+                  </button>
+                )}
+                {mine && (
+                  <button
+                    type="button"
+                    className="material-delete"
+                    aria-label={`Usuń ${file.name}`}
+                    onClick={() => {
+                      if (window.confirm(`Usunąć „${file.name}” dla wszystkich?`)) void materials.remove(file)
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {uploading && (
+        <div className="upload-progress" role="status">
+          <span>
+            Wysyłanie „{uploading.name}”… {Math.round((uploading.done / uploading.total) * 100)}%
+          </span>
+          <progress value={uploading.done} max={uploading.total} />
+        </div>
+      )}
+
+      <input
+        ref={input}
+        type="file"
+        multiple
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.length) void uploadAll(e.target.files)
+          e.target.value = ''
+        }}
+      />
+      <div className="material-footer">
+        <button
+          type="button"
+          className="button small secondary"
+          disabled={!!materials.uploading}
+          onClick={() => input.current?.click()}
+        >
+          + Wgraj plik (PDF)
+        </button>
+        <span className="muted small">
+          Zajęte {formatSize(materials.usedBytes)} z {formatSize(QUOTA_BYTES)}
+        </span>
+      </div>
+      {materials.error && (
+        <p className="error" role="alert">
+          {materials.error}
+        </p>
+      )}
+    </>
+  )
+}
+
+// Pliki tylko w tej przeglądarce. Po zalogowaniu widoczne tylko, jeśli jakieś zostały -
+// z przyciskiem przeniesienia do wspólnych.
+function LocalFiles({ courseName, materials }: Props & { materials: SharedMaterialsApi | null }) {
+  const key = courseKey(courseName)
+  const { files, busy, error, add, remove, share, canShare, toFile } = useLocalFiles(key)
+  const input = useRef<HTMLInputElement>(null)
+  if (materials && files.length === 0) return null
+
+  async function moveToShared(id: string) {
+    const file = toFile(id)
+    if (!file || !materials) return
+    if (await materials.upload(key, courseName, file)) await remove(id)
+  }
+
+  return (
+    <div className="material-group">
+      <h4 className="material-heading">{materials ? 'Tylko na tym urządzeniu' : 'Pliki na tym urządzeniu'}</h4>
+      {!materials && (
+        <p className="muted small">Zaloguj się, żeby dzielić się plikami z grupą i mieć je na każdym urządzeniu.</p>
+      )}
       {files.length > 0 && (
         <ul className="material-list">
           {files.map((file) => (
@@ -146,6 +305,16 @@ function Files({ courseName }: Props) {
                 {file.name}
                 <span className="material-meta">{formatSize(file.size)} · tylko na tym urządzeniu</span>
               </a>
+              {materials && (
+                <button
+                  type="button"
+                  className="button small"
+                  disabled={!!materials.uploading}
+                  onClick={() => void moveToShared(file.id)}
+                >
+                  Udostępnij grupie
+                </button>
+              )}
               {canShare && (
                 <button
                   type="button"
@@ -154,9 +323,7 @@ function Files({ courseName }: Props) {
                   title="Udostępnij / zapisz w Plikach"
                   onClick={() => void share(file.id)}
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 3v12 M7 8l5-5 5 5 M5 13v7h14v-7" />
-                  </svg>
+                  <ShareIcon />
                 </button>
               )}
               <button
@@ -173,29 +340,40 @@ function Files({ courseName }: Props) {
           ))}
         </ul>
       )}
-      <input
-        ref={input}
-        type="file"
-        multiple
-        hidden
-        onChange={(e) => {
-          if (e.target.files?.length) void add(e.target.files)
-          e.target.value = ''
-        }}
-      />
-      <button type="button" className="button small secondary" disabled={busy} onClick={() => input.current?.click()}>
-        {busy ? 'Zapisuję…' : '+ Wgraj plik (PDF)'}
-      </button>
+      {!materials && (
+        <>
+          <input
+            ref={input}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              if (e.target.files?.length) void add(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <button
+            type="button"
+            className="button small secondary"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+          >
+            {busy ? 'Zapisuję…' : '+ Wgraj plik (PDF)'}
+          </button>
+        </>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
-    </>
+    </div>
   )
 }
 
 export function MaterialsSection({ courseName }: Props) {
+  const { materials } = usePlanUi()
+
   return (
     <div className="panel">
       <h3 className="panel-title">Wykłady i materiały</h3>
@@ -203,10 +381,13 @@ export function MaterialsSection({ courseName }: Props) {
         <h4 className="material-heading">Linki</h4>
         <Links courseName={courseName} />
       </div>
-      <div className="material-group">
-        <h4 className="material-heading">Pliki na tym urządzeniu</h4>
-        <Files courseName={courseName} />
-      </div>
+      {materials && (
+        <div className="material-group">
+          <h4 className="material-heading">Pliki wspólne dla grupy</h4>
+          <SharedFiles courseName={courseName} materials={materials} />
+        </div>
+      )}
+      <LocalFiles courseName={courseName} materials={materials} />
     </div>
   )
 }

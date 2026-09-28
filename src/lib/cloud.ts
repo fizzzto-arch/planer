@@ -10,9 +10,11 @@ import {
   signOut,
 } from 'firebase/auth'
 import {
+  Bytes,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getFirestore,
   initializeFirestore,
   onSnapshot,
@@ -23,6 +25,7 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 import type { Cloud } from './cloudTypes'
+import { chunkId } from './materials'
 
 export type { Cloud, CloudUser, CloudData } from './cloudTypes'
 
@@ -121,7 +124,55 @@ function createCloud(config: FirebaseOptions): Cloud {
     deleteItem: (uid, name, id) => wrap(() => deleteDoc(doc(db, 'users', uid, name, id))),
 
     newId: () => doc(collection(db, '_')).id,
+
+    watchMaterials(onDocs, onError) {
+      return onSnapshot(
+        collection(db, 'materials'),
+        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+        (e) => onError(describeError(e)),
+      )
+    },
+
+    // Kolejność ma znaczenie dla reguł: najpierw metadane (właściciel), potem kawałki,
+    // na końcu znacznik "complete" - niedokończone wysyłanie nie pokaże się innym.
+    uploadMaterial: (meta, chunks, onProgress) =>
+      wrap(async () => {
+        const ref = doc(collection(db, 'materials'))
+        await setDoc(ref, { ...meta, chunkCount: chunks.length, complete: false, createdAt: serverTimestamp() })
+        for (let i = 0; i < chunks.length; i++) {
+          await setDoc(doc(db, 'materials', ref.id, 'chunks', chunkId(i)), { data: Bytes.fromUint8Array(chunks[i]) })
+          onProgress(i + 1)
+        }
+        await setDoc(ref, { complete: true }, { merge: true })
+      }),
+
+    async downloadMaterial(id, chunkCount, onProgress) {
+      const chunks: Uint8Array[] = []
+      try {
+        for (let i = 0; i < chunkCount; i++) {
+          const snap = await getDoc(doc(db, 'materials', id, 'chunks', chunkId(i)))
+          const data = snap.data()?.data
+          if (!(data instanceof Bytes)) throw new Error('Plik jest niekompletny.')
+          chunks.push(data.toUint8Array())
+          onProgress(i + 1)
+        }
+      } catch (e) {
+        throw new Error(e instanceof FirebaseError ? describeError(e) : errorText(e))
+      }
+      return chunks
+    },
+
+    // Kawałki przed metadanymi - reguły sprawdzają właściciela w metadanych.
+    deleteMaterial: (id, chunkCount) =>
+      wrap(async () => {
+        for (let i = 0; i < chunkCount; i++) await deleteDoc(doc(db, 'materials', id, 'chunks', chunkId(i)))
+        await deleteDoc(doc(db, 'materials', id))
+      }),
   }
+}
+
+function errorText(e: unknown): string {
+  return e instanceof Error ? e.message : 'Coś poszło nie tak.'
 }
 
 let instance: Cloud | null = null

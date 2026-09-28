@@ -14,6 +14,7 @@ import { WeekView } from './components/WeekView'
 import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
 import { useExtras } from './hooks/useExtras'
+import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
@@ -89,6 +90,11 @@ function App() {
   const cloud = useCloud(plan)
   const extrasApi = useExtras(cloud.client, cloud.uid)
   const typeColors = useTypeColors(extrasApi)
+  const materials = useSharedMaterials(
+    cloud.client,
+    cloud.uid,
+    cloud.state.kind === 'signedIn' ? cloud.state.user.email : null,
+  )
   const now = useNow()
   const [view, setView] = useState<View>('today')
   const [course, setCourse] = useState<string | null>(readCourseFromHistory)
@@ -130,6 +136,7 @@ function App() {
   const ui = useMemo<PlanUi>(
     () => ({
       extras: extrasApi,
+      materials,
       openCourse,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
@@ -149,7 +156,7 @@ function App() {
         return sameDay.filter((d) => !d.time || (toMin(d.time) >= start && toMin(d.time) < end))
       },
     }),
-    [extrasApi, openCourse, deadlinesByDay, extras.customMeetings],
+    [extrasApi, materials, openCourse, deadlinesByDay, extras.customMeetings],
   )
 
   const courseNames = useMemo(

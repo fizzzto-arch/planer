@@ -34,6 +34,11 @@ function createMockCloud(): Cloud {
     setTimeout(() => collectionListeners.get(name)?.forEach((cb) => cb(docsOf(name))), 0)
   }
 
+  const materials = new Map<string, { data: Record<string, unknown>; chunks: Uint8Array[] }>()
+  const materialListeners = new Set<(docs: CloudDoc[]) => void>()
+  const materialDocs = (): CloudDoc[] => [...materials.entries()].map(([id, m]) => ({ id, data: { ...m.data } }))
+  const emitMaterials = () => setTimeout(() => materialListeners.forEach((cb) => cb(materialDocs())), 0)
+
   const setUser = (next: CloudUser | null) => {
     user = next
     userListeners.forEach((cb) => cb(user))
@@ -74,6 +79,38 @@ function createMockCloud(): Cloud {
       emit(name)
     },
     newId: () => Math.random().toString(36).slice(2, 12),
+
+    // Wspólne materiały - tylko w pamięci karty (pliki są za duże na localStorage).
+    watchMaterials(onDocs) {
+      materialListeners.add(onDocs)
+      setTimeout(() => onDocs(materialDocs()), 0)
+      return () => materialListeners.delete(onDocs)
+    },
+    async uploadMaterial(meta, chunks, onProgress) {
+      const id = Math.random().toString(36).slice(2, 12)
+      materials.set(id, { data: { ...meta, chunkCount: chunks.length, complete: false, createdAt: Date.now() }, chunks: [] })
+      emitMaterials()
+      for (let i = 0; i < chunks.length; i++) {
+        await new Promise((r) => setTimeout(r, 150)) // udawany czas wysyłania
+        materials.get(id)!.chunks.push(chunks[i].slice())
+        onProgress(i + 1)
+      }
+      materials.get(id)!.data.complete = true
+      emitMaterials()
+    },
+    async downloadMaterial(id, chunkCount, onProgress) {
+      const entry = materials.get(id)
+      if (!entry || entry.chunks.length < chunkCount) throw new Error('Plik jest niekompletny.')
+      for (let i = 0; i < chunkCount; i++) {
+        await new Promise((r) => setTimeout(r, 100))
+        onProgress(i + 1)
+      }
+      return entry.chunks
+    },
+    async deleteMaterial(id) {
+      materials.delete(id)
+      emitMaterials()
+    },
   }
 }
 

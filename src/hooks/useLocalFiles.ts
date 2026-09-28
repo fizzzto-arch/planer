@@ -77,5 +77,14 @@ export function useLocalFiles(courseKey: string) {
     typeof navigator.canShare === 'function' &&
     navigator.canShare({ files: [new File([''], 'test.pdf', { type: 'application/pdf' })] })
 
-  return { files, busy, error, add, remove, share, canShare }
+  // Plik gotowy do przeniesienia do wspólnych materiałów.
+  const toFile = useCallback(
+    (id: string) => {
+      const file = stored.find((f) => f.id === id)
+      return file ? new File([file.blob], file.name, { type: file.type }) : null
+    },
+    [stored],
+  )
+
+  return { files, busy, error, add, remove, share, canShare, toFile }
 }
