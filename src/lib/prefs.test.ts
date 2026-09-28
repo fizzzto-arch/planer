@@ -20,7 +20,7 @@ describe('ustawienia', () => {
   })
 
   it('pokazuje skrót, jeśli jest', () => {
-    const prefs = { courseAliases: { 'Grafika komputerowa': 'GK' } }
+    const prefs = { courseAliases: { 'Grafika komputerowa': 'GK' }, useAliases: true }
     expect(displayName('Grafika komputerowa', prefs)).toBe('GK')
     expect(displayName('Radiologia', prefs)).toBe('Radiologia')
   })
@@ -51,5 +51,22 @@ describe('podpowiedź skrótu', () => {
     expect(suggestAlias('Rachunek prawdopodobieństwa i statystyka')).toBe('RPS')
     expect(suggestAlias('Grafika komputerowa')).toBe('GK')
     expect(suggestAlias('Radiologia')).toBe('Radiologia')
+  })
+})
+
+describe('rozmiar tekstu i skróty', () => {
+  it('starszy wspólny rozmiar tekstu przechodzi na telefon i komputer', () => {
+    const p = parsePrefs({ textSize: 'large' })
+    expect(p.textSizePhone).toBe('large')
+    expect(p.textSizeDesktop).toBe('large')
+    const q = parsePrefs({ textSize: 'large', textSizePhone: 'small' })
+    expect(q.textSizePhone).toBe('small')
+    expect(q.textSizeDesktop).toBe('large')
+  })
+
+  it('wyłączone skróty = pełne nazwy, choć skróty zostają zapisane', () => {
+    const prefs = { courseAliases: { 'Grafika komputerowa': 'GK' }, useAliases: false }
+    expect(displayName('Grafika komputerowa', prefs)).toBe('Grafika komputerowa')
+    expect(displayName('Grafika komputerowa', { ...prefs, useAliases: true })).toBe('GK')
   })
 })

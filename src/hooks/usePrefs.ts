@@ -1,5 +1,12 @@
 import { useCallback, useEffect } from 'react'
-import { DEFAULT_PREFS, applyPrefsToDocument, loadLocalPrefs, saveLocalPrefs, type Prefs } from '../lib/prefs'
+import {
+  DEFAULT_PREFS,
+  PHONE_QUERY,
+  applyPrefsToDocument,
+  loadLocalPrefs,
+  saveLocalPrefs,
+  type Prefs,
+} from '../lib/prefs'
 import { useMediaQuery } from './useMediaQuery'
 import { useSyncedValue } from './useSyncedValue'
 import type { ExtrasApi } from './useExtras'
@@ -13,6 +20,7 @@ const loadPrefs = () => loadLocalPrefs() ?? DEFAULT_PREFS
 // niezalogowany - tylko w przeglądarce.
 export function usePrefs(extras: ExtrasApi | null) {
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
+  const isPhone = useMediaQuery(PHONE_QUERY)
   const [prefs, setPrefs] = useSyncedValue<Prefs>({
     account: extras?.ready ? extras.extras.prefs : null,
     loadLocal: loadPrefs,
@@ -22,12 +30,12 @@ export function usePrefs(extras: ExtrasApi | null) {
   })
 
   useEffect(() => {
-    applyPrefsToDocument(prefs, systemDark)
-  }, [prefs, systemDark])
+    applyPrefsToDocument(prefs, systemDark, isPhone)
+  }, [prefs, systemDark, isPhone])
 
   const update = useCallback((patch: Partial<Prefs>) => setPrefs({ ...prefs, ...patch }), [prefs, setPrefs])
 
-  return { prefs, update }
+  return { prefs, update, isPhone }
 }
 
 export type PrefsApi = ReturnType<typeof usePrefs>

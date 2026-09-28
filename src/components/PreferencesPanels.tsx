@@ -1,11 +1,17 @@
 import type { PrefsApi } from '../hooks/usePrefs'
-import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias } from '../lib/prefs'
+import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias, type TextSize } from '../lib/prefs'
 import { ChoiceSetting, SwitchSetting } from './SettingControls'
 
 interface Props {
   prefsApi: PrefsApi
   signedIn: boolean
 }
+
+const TEXT_SIZES: { value: TextSize; label: string }[] = [
+  { value: 'small', label: 'Mały' },
+  { value: 'normal', label: 'Normalny' },
+  { value: 'large', label: 'Duży' },
+]
 
 function SyncNote({ signedIn }: { signedIn: boolean }) {
   return (
@@ -45,14 +51,18 @@ export function AppearancePanel({ prefsApi, signedIn }: Props) {
         onChange={(animations) => update({ animations })}
       />
       <ChoiceSetting
-        label="Rozmiar tekstu"
-        value={prefs.textSize}
-        options={[
-          { value: 'small', label: 'Mały' },
-          { value: 'normal', label: 'Normalny' },
-          { value: 'large', label: 'Duży' },
-        ]}
-        onChange={(textSize) => update({ textSize })}
+        label="Rozmiar tekstu – telefon"
+        hint={prefsApi.isPhone ? 'To urządzenie korzysta z tego ustawienia.' : undefined}
+        value={prefs.textSizePhone}
+        options={TEXT_SIZES}
+        onChange={(textSizePhone) => update({ textSizePhone })}
+      />
+      <ChoiceSetting
+        label="Rozmiar tekstu – komputer"
+        hint={prefsApi.isPhone ? undefined : 'To urządzenie korzysta z tego ustawienia.'}
+        value={prefs.textSizeDesktop}
+        options={TEXT_SIZES}
+        onChange={(textSizeDesktop) => update({ textSizeDesktop })}
       />
       <SwitchSetting
         label="Widok kompaktowy"
@@ -122,7 +132,13 @@ export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> 
     <div className="panel">
       <h3 className="panel-title">Skróty nazw przedmiotów</h3>
       <p className="hint">Skrót zastępuje długą nazwę w planie. Puste pole = pełna nazwa.</p>
-      <ul className="alias-list">
+      <SwitchSetting
+        label="Pokazuj skróty"
+        hint="Wyłączone = wszędzie pełne nazwy. Wpisane skróty zostają zapisane."
+        checked={prefs.useAliases}
+        onChange={(useAliases) => update({ useAliases })}
+      />
+      <ul className={`alias-list${prefs.useAliases ? '' : ' is-disabled'}`}>
         {courseNames.map((name) => {
           const suggestion = suggestAlias(name)
           return (

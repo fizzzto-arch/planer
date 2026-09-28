@@ -111,7 +111,10 @@
         var themeColor = document.querySelector('meta[name="theme-color"]')
         if (themeColor) themeColor.setAttribute('content', root.dataset.theme === 'dark' ? '#121215' : '#f4f4f6')
         root.dataset.motion = prefs.animations === 'off' || prefs.animations === 'system' ? prefs.animations : 'on'
-        root.dataset.textSize = prefs.textSize === 'small' || prefs.textSize === 'large' ? prefs.textSize : 'normal'
+        // Rozmiar tekstu osobno dla telefonu i komputera (granica jak PHONE_QUERY w prefs.ts).
+        var phone = window.matchMedia('(max-width: 700px)').matches
+        var size = (phone ? prefs.textSizePhone : prefs.textSizeDesktop) || prefs.textSize
+        root.dataset.textSize = size === 'small' || size === 'large' ? size : 'normal'
         if (prefs.compact === true) root.classList.add('compact')
       })()
     </script>

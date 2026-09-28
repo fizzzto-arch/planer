@@ -9,27 +9,36 @@ export interface Prefs {
   animations: AnimationsMode
   theme: ThemeMode
   compact: boolean
-  textSize: TextSize
+  textSizePhone: TextSize // rozmiar tekstu osobno na telefonie i komputerze
+  textSizeDesktop: TextSize
   startView: StartView
   showWeekNumber: boolean
   gapMinutes: number // od ilu minut przerwa to "okienko"
   alwaysWeekend: boolean // siatka tygodnia zawsze z sobotą i niedzielą
   upcomingDays: number // zasięg paska "Nadchodzące terminy"
   courseAliases: Record<string, string> // pełna nazwa przedmiotu -> skrót
+  useAliases: boolean // pokazuj skróty zamiast pełnych nazw (skróty zostają zapisane)
 }
 
 export const DEFAULT_PREFS: Prefs = {
   animations: 'on',
   theme: 'system',
   compact: false,
-  textSize: 'normal',
+  textSizePhone: 'normal',
+  textSizeDesktop: 'normal',
   startView: 'today',
   showWeekNumber: true,
   gapMinutes: 30,
   alwaysWeekend: false,
   upcomingDays: 14,
   courseAliases: {},
+  useAliases: true,
 }
+
+const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
+
+// Wąski ekran = telefon (ta sama granica w skrypcie startowym w index.html).
+export const PHONE_QUERY = '(max-width: 700px)'
 
 export const GAP_OPTIONS = [15, 30, 45, 60]
 export const UPCOMING_OPTIONS = [7, 14, 30]
@@ -58,13 +67,16 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     animations: oneOf(raw.animations, ['on', 'off', 'system'], DEFAULT_PREFS.animations),
     theme: oneOf(raw.theme, ['system', 'light', 'dark'], DEFAULT_PREFS.theme),
     compact: bool(raw.compact, DEFAULT_PREFS.compact),
-    textSize: oneOf(raw.textSize, ['small', 'normal', 'large'], DEFAULT_PREFS.textSize),
+    // Starsza wersja miała jeden rozmiar dla wszystkich urządzeń - służy za wartość startową.
+    textSizePhone: oneOf(raw.textSizePhone ?? raw.textSize, SIZES, DEFAULT_PREFS.textSizePhone),
+    textSizeDesktop: oneOf(raw.textSizeDesktop ?? raw.textSize, SIZES, DEFAULT_PREFS.textSizeDesktop),
     startView: oneOf(raw.startView, ['today', 'week', 'courses'], DEFAULT_PREFS.startView),
     showWeekNumber: bool(raw.showWeekNumber, DEFAULT_PREFS.showWeekNumber),
     gapMinutes: numberFrom(raw.gapMinutes, GAP_OPTIONS, DEFAULT_PREFS.gapMinutes),
     alwaysWeekend: bool(raw.alwaysWeekend, DEFAULT_PREFS.alwaysWeekend),
     upcomingDays: numberFrom(raw.upcomingDays, UPCOMING_OPTIONS, DEFAULT_PREFS.upcomingDays),
     courseAliases: aliases,
+    useAliases: bool(raw.useAliases, DEFAULT_PREFS.useAliases),
   }
 }
 
@@ -94,18 +106,19 @@ export function resolveTheme(theme: ThemeMode, systemDark: boolean): 'light' | '
 
 // Wygląd sterowany atrybutami na <html>, żeby CSS mógł z nich korzystać wszędzie
 // (także w oknach dialogowych rysowanych nad stroną).
-export function applyPrefsToDocument(prefs: Prefs, systemDark: boolean): void {
+export function applyPrefsToDocument(prefs: Prefs, systemDark: boolean, isPhone: boolean): void {
   const root = document.documentElement
   const theme = resolveTheme(prefs.theme, systemDark)
   root.dataset.theme = theme
   // Tło paska stanu i "przeciągania" strony na iPhonie - kolor tła wybranego motywu.
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_BACKGROUND[theme])
   root.dataset.motion = prefs.animations
-  root.dataset.textSize = prefs.textSize
+  root.dataset.textSize = isPhone ? prefs.textSizePhone : prefs.textSizeDesktop
   root.classList.toggle('compact', prefs.compact)
 }
 
-export function displayName(courseName: string, prefs: Pick<Prefs, 'courseAliases'>): string {
+export function displayName(courseName: string, prefs: Pick<Prefs, 'courseAliases' | 'useAliases'>): string {
+  if (!prefs.useAliases) return courseName
   return prefs.courseAliases[courseName]?.trim() || courseName
 }
 
