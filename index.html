@@ -35,6 +35,67 @@
     <meta name="theme-color" content="#f4f4f6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#121215" media="(prefers-color-scheme: dark)" />
 
+    <!-- Ekran startowy iPhone'a (zanim strona się wczyta): logo zamiast białego ekranu.
+         Jeden obrazek na rozmiar ekranu, jasny i ciemny. iOS zapamiętuje go przy dodaniu do ekranu początkowego. -->
+    <link rel="apple-touch-startup-image" href="./splash/splash-750x1334-light.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-750x1334-dark.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-828x1792-light.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-828x1792-dark.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1125x2436-light.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1125x2436-dark.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1242x2688-light.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1242x2688-dark.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1170x2532-light.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1170x2532-dark.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1284x2778-light.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1284x2778-dark.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1179x2556-light.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1179x2556-dark.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1290x2796-light.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1290x2796-dark.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1206x2622-light.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1206x2622-dark.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1320x2868-light.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" />
+    <link rel="apple-touch-startup-image" href="./splash/splash-1320x2868-dark.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" />
+
+    <!-- Logo w kolorze motywu od pierwszej chwili, zanim wczyta się aplikacja
+         (te same proporcje co ekran startowy iPhone'a - przejście jest płynne). -->
+    <style>
+      html {
+        background: #f4f4f6;
+      }
+      html[data-theme='dark'] {
+        background: #121215;
+      }
+      .boot {
+        --s: min(26vw, 120px);
+        position: fixed;
+        inset: 0;
+        color: #1c1c1f;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      html[data-theme='dark'] .boot {
+        color: #ececef;
+      }
+      .boot img {
+        position: absolute;
+        left: calc(50% - var(--s) / 2);
+        top: calc(50% - var(--s) * 0.75);
+        width: var(--s);
+        height: var(--s);
+        border-radius: 22.37%;
+      }
+      .boot span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(50% + var(--s) * 0.41);
+        font-size: calc(var(--s) * 0.2);
+        font-weight: 600;
+        text-align: center;
+      }
+    </style>
+
     <!-- Motyw i rozmiar tekstu z ustawień, zanim strona się narysuje (bez błysku jasnego ekranu).
          Pełną obsługę (zmiany w trakcie) robi usePrefs. -->
     <script>
@@ -53,7 +114,13 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Zawartość znika sama, gdy aplikacja się uruchomi (React podmienia #root). -->
+    <div id="root">
+      <div class="boot" aria-label="Ładowanie Planera">
+        <img src="./icons/icon-512.png" alt="" />
+        <span>Planer</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

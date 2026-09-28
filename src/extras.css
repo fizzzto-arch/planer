@@ -1298,3 +1298,14 @@ label.setting-row {
   display: flex;
   gap: 6px;
 }
+
+/* ---------- iPhone: bez przybliżania przy dotknięciu pola ---------- */
+/* Safari na iOS powiększa stronę, gdy tekst w polu jest mniejszy niż 16 px
+   (np. przy ustawieniu "mały tekst"). Przybliżanie dwoma palcami dalej działa. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
+}

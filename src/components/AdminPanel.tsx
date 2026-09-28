@@ -65,8 +65,13 @@ export function AdminPanel({ admin, now }: Props) {
         Nowe konta pojawiają się tu po potwierdzeniu e-maila. Dostęp do synchronizacji i wspólnych materiałów mają
         tylko zatwierdzone.
       </p>
-      {!admin.loaded ? (
-        <p className="muted">Ładowanie…</p>
+      {admin.error ? (
+        <p className="error">{admin.error}</p>
+      ) : !admin.loaded ? (
+        <p className="muted loading-line">
+          <span className="spinner" aria-hidden="true" />
+          Ładowanie…
+        </p>
       ) : sorted.length === 0 ? (
         <p className="muted">Nikt jeszcze nie prosił o dostęp.</p>
       ) : (
@@ -76,7 +81,6 @@ export function AdminPanel({ admin, now }: Props) {
           ))}
         </ul>
       )}
-      {admin.error && <p className="error">{admin.error}</p>}
     </div>
   )
 }

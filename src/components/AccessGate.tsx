@@ -132,7 +132,11 @@ export function AccessGate({ cloud }: Props) {
           </>
         )}
 
-        {cloud.syncError && cloud.access !== 'unverified' && <p className="error">{cloud.syncError}</p>}
+        {/* Błąd pokazujemy tylko, gdy utknęło sprawdzanie dostępu - na ekranie oczekiwania
+            czerwony tekst sugerowałby problem, choć wszystko przebiega normalnie. */}
+        {cloud.syncError && cloud.access === 'checking' && (
+          <p className="hint">Nie udało się sprawdzić dostępu - spróbuję ponownie za chwilę.</p>
+        )}
 
         <p className="gate-footer">
           Zalogowano jako <strong>{email}</strong> ·{' '}
