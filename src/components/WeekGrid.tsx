@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { formatShortDay, formatTime, isSameDay } from '../lib/dates'
 import { shortBuilding, typeLabel, typeSlug, type Meeting } from '../lib/usos'
 
@@ -89,7 +90,7 @@ export function WeekGrid({ days, meetings, now }: Props) {
             className={`grid-col${isToday ? ' is-today' : ''}`}
             style={{ height: totalMin * PX_PER_MIN, backgroundSize: `100% ${60 * PX_PER_MIN}px` }}
           >
-            {dayMeetings.map((m) => {
+            {dayMeetings.map((m, i) => {
               const { lane, lanes: laneCount } = lanes.get(m.id) ?? { lane: 0, lanes: 1 }
               const building = shortBuilding(m.building)
               const details = [
@@ -109,11 +110,12 @@ export function WeekGrid({ days, meetings, now }: Props) {
                   className={classes.join(' ')}
                   title={`${m.courseName}\n${formatTime(m.start)}–${formatTime(m.end)}\n${details.join(' · ')}`}
                   style={{
+                    '--i': i,
                     top: (minuteOfDay(m.start) - firstMin) * PX_PER_MIN,
                     height: Math.max(durationMin, 20) * PX_PER_MIN,
                     left: `${(lane / laneCount) * 100}%`,
                     width: `${100 / laneCount}%`,
-                  }}
+                  } as CSSProperties}
                 >
                   <div className="grid-event-title">{m.courseName}</div>
                   <div className="grid-event-meta">

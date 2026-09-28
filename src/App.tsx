@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SettingsView } from './components/SettingsView'
 import { SourceForm } from './components/SourceForm'
+import { Tabs } from './components/Tabs'
 import { TodayView } from './components/TodayView'
 import { WeekView } from './components/WeekView'
 import { useNow } from './hooks/useNow'
@@ -36,6 +37,13 @@ function SyncStatus({ plan, now }: { plan: PlanApi; now: Date }) {
         onClick={() => void plan.refresh()}
         disabled={status.kind === 'loading'}
       >
+        <svg
+          className={`inline-icon refresh-icon${status.kind === 'loading' ? ' is-spinning' : ''}`}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" />
+        </svg>
         Odśwież
       </button>
     </p>
@@ -53,7 +61,7 @@ function App() {
         <header className="topbar">
           <h1 className="brand">Planer</h1>
         </header>
-        <section className="panel">
+        <section className="panel view-enter">
           <h2 className="day-title">Dodaj swój plan z USOS</h2>
           <p className="muted">
             Wystarczy raz wkleić link. Potem plan będzie aktualizował się sam, także w kolejnych
@@ -69,27 +77,18 @@ function App() {
     <main className="app">
       <header className="topbar">
         <h1 className="brand">Planer</h1>
-        <nav className="tabs" aria-label="Widok">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`tab${view === tab.id ? ' is-active' : ''}`}
-              aria-current={view === tab.id ? 'page' : undefined}
-              onClick={() => setView(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        <Tabs tabs={TABS} value={view} onChange={setView} />
       </header>
       <SyncStatus plan={plan} now={now} />
 
-      {view === 'today' && <TodayView meetings={plan.meetings} now={now} />}
-      {view === 'week' && <WeekView meetings={plan.meetings} now={now} />}
-      {view === 'settings' && (
-        <SettingsView plan={plan} now={now} onSourceChanged={() => setView('today')} />
-      )}
+      {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
+      <div key={view} className="view-enter">
+        {view === 'today' && <TodayView meetings={plan.meetings} now={now} />}
+        {view === 'week' && <WeekView meetings={plan.meetings} now={now} />}
+        {view === 'settings' && (
+          <SettingsView plan={plan} now={now} onSourceChanged={() => setView('today')} />
+        )}
+      </div>
     </main>
   )
 }

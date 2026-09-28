@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, type CSSProperties } from 'react'
 import { formatDuration, isSameDay, minutesBetween } from '../lib/dates'
 import { shortBuilding, type Meeting } from '../lib/usos'
 import { MeetingCard } from './MeetingCard'
@@ -29,14 +29,22 @@ function transitionNote(prev: Meeting, next: Meeting): string | null {
 export function DayTimeline({ meetings, now }: Props) {
   const nextId = meetings.find((m) => m.start > now && isSameDay(m.start, now) && !m.cancelled)?.id
 
+  // Kolejny numer elementu - karty pojawiają się kaskadowo, jedna po drugiej.
+  let order = 0
+  const stagger = () => ({ '--i': order++ }) as CSSProperties
+
   return (
     <ol className="timeline">
       {meetings.map((m, i) => {
         const note = i > 0 ? transitionNote(meetings[i - 1], m) : null
         return (
           <Fragment key={m.id}>
-            {note && <li className="gap-note">{note}</li>}
-            <li>
+            {note && (
+              <li className="gap-note" style={stagger()}>
+                {note}
+              </li>
+            )}
+            <li style={stagger()}>
               <MeetingCard meeting={m} now={now} isNext={m.id === nextId} />
             </li>
           </Fragment>

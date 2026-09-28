@@ -44,6 +44,9 @@ export function MeetingCard({ meeting: m, now, isNext = false }: Props) {
           </div>
           {hint && <div className="card-hint">{hint}</div>}
         </div>
+        <svg className="card-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
       </summary>
       <div className="card-details">
         {m.building && <div>{m.building}</div>}

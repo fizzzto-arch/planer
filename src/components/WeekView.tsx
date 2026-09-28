@@ -12,7 +12,15 @@ interface Props {
 
 export function WeekView({ meetings, now }: Props) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(now))
+  // Z której strony ma wjechać nowy tydzień.
+  const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
+
+  function goTo(target: Date) {
+    if (target.getTime() === weekStart.getTime()) return
+    setDirection(target > weekStart ? 'next' : 'prev')
+    setWeekStart(target)
+  }
 
   const weekEnd = addDays(weekStart, 7)
   const weekMeetings = meetings.filter((m) => m.start >= weekStart && m.start < weekEnd)
@@ -27,7 +35,7 @@ export function WeekView({ meetings, now }: Props) {
           type="button"
           className="icon-button"
           aria-label="Poprzedni tydzień"
-          onClick={() => setWeekStart(addDays(weekStart, -7))}
+          onClick={() => goTo(addDays(weekStart, -7))}
         >
           ‹
         </button>
@@ -36,7 +44,7 @@ export function WeekView({ meetings, now }: Props) {
           {isCurrentWeek ? (
             <span className="muted">ten tydzień</span>
           ) : (
-            <button type="button" className="link-button" onClick={() => setWeekStart(startOfWeek(now))}>
+            <button type="button" className="link-button" onClick={() => goTo(startOfWeek(now))}>
               wróć do tego tygodnia
             </button>
           )}
@@ -45,35 +53,37 @@ export function WeekView({ meetings, now }: Props) {
           type="button"
           className="icon-button"
           aria-label="Następny tydzień"
-          onClick={() => setWeekStart(addDays(weekStart, 7))}
+          onClick={() => goTo(addDays(weekStart, 7))}
         >
           ›
         </button>
       </div>
 
-      {weekMeetings.length === 0 ? (
-        <div className="empty-state">W tym tygodniu nie ma zajęć.</div>
-      ) : wide ? (
-        <WeekGrid days={days} meetings={weekMeetings} now={now} />
-      ) : (
-        days.map((day) => {
-          const dayMeetings = weekMeetings.filter((m) => isSameDay(m.start, day))
-          const isToday = isSameDay(day, now)
-          return (
-            <div key={day.getTime()} className="week-day">
-              <h3 className="day-title">
-                {formatDay(day)}
-                {isToday && <span className="today-pill">dziś</span>}
-              </h3>
-              {dayMeetings.length > 0 ? (
-                <DayTimeline meetings={dayMeetings} now={now} />
-              ) : (
-                <p className="muted">Wolne</p>
-              )}
-            </div>
-          )
-        })
-      )}
+      <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
+        {weekMeetings.length === 0 ? (
+          <div className="empty-state">W tym tygodniu nie ma zajęć.</div>
+        ) : wide ? (
+          <WeekGrid days={days} meetings={weekMeetings} now={now} />
+        ) : (
+          days.map((day) => {
+            const dayMeetings = weekMeetings.filter((m) => isSameDay(m.start, day))
+            const isToday = isSameDay(day, now)
+            return (
+              <div key={day.getTime()} className="week-day">
+                <h3 className="day-title">
+                  {formatDay(day)}
+                  {isToday && <span className="today-pill">dziś</span>}
+                </h3>
+                {dayMeetings.length > 0 ? (
+                  <DayTimeline meetings={dayMeetings} now={now} />
+                ) : (
+                  <p className="muted">Wolne</p>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
     </section>
   )
 }
