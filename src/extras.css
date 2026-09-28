@@ -723,3 +723,129 @@ button.grid-event {
     var(--surface) 12px
   );
 }
+
+/* ---------- Etap 5c: wykłady i materiały ---------- */
+
+.material-group + .material-group {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.material-heading {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.material-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.material-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 6px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  animation: rise-in 240ms ease-out both;
+}
+
+.material-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.material-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.material-name:hover {
+  color: var(--accent);
+}
+
+.material-meta {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.material-action,
+.material-delete {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.material-action svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.material-action:hover {
+  color: var(--accent);
+}
+
+.material-delete:hover {
+  color: var(--danger);
+}
+
+.material-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- Awaria widoku ---------- */
+
+.crash {
+  max-width: 720px;
+  margin: 16px auto;
+}
+
+.crash-details {
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  color: var(--muted);
+}

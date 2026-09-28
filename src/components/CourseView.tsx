@@ -6,6 +6,7 @@ import type { PlanMeeting } from '../lib/edits'
 import { courseKey } from '../lib/extras'
 import { typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
+import { MaterialsSection } from './MaterialsSection'
 import { MeetingCard } from './MeetingCard'
 import { NoteField } from './NoteField'
 
@@ -109,6 +110,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
           </div>
         </>
       )}
+
+      <MaterialsSection courseName={courseName} />
 
       <div className="section-head">
         <h3 className="section-title">Zajęcia</h3>

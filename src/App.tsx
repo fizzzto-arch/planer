@@ -4,6 +4,7 @@ import { CoursesView } from './components/CoursesView'
 import { CourseView } from './components/CourseView'
 import { CustomMeetingEditor } from './components/CustomMeetingEditor'
 import { DeadlineEditor } from './components/DeadlineEditor'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { MeetingEditor } from './components/MeetingEditor'
 import { SettingsView } from './components/SettingsView'
 import { SourceForm } from './components/SourceForm'
@@ -217,18 +218,20 @@ function App() {
 
         {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
         <div key={course ? `course:${course}` : view} className="view-enter">
-          {course ? (
-            <CourseView courseName={course} meetings={meetings} now={now} onBack={closeCourse} />
-          ) : (
-            <>
-              {view === 'today' && <TodayView meetings={meetings} now={now} />}
-              {view === 'week' && <WeekView meetings={meetings} now={now} />}
-              {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
-              {view === 'settings' && (
-                <SettingsView plan={plan} cloud={cloud} now={now} onSourceChanged={() => setView('today')} />
-              )}
-            </>
-          )}
+          <ErrorBoundary>
+            {course ? (
+              <CourseView courseName={course} meetings={meetings} now={now} onBack={closeCourse} />
+            ) : (
+              <>
+                {view === 'today' && <TodayView meetings={meetings} now={now} />}
+                {view === 'week' && <WeekView meetings={meetings} now={now} />}
+                {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
+                {view === 'settings' && (
+                  <SettingsView plan={plan} cloud={cloud} now={now} onSourceChanged={() => setView('today')} />
+                )}
+              </>
+            )}
+          </ErrorBoundary>
         </div>
 
         {deadlineDraft && extrasApi && (
