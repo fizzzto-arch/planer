@@ -29,8 +29,14 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 export function typeLabel(type: string): string {
-  return TYPE_LABELS[type] ?? type
+  return TYPE_LABELS[type] ?? (type === 'INNE' ? 'Inne' : type)
 }
+
+// Typy do wyboru przy dodawaniu własnych zajęć.
+export const MEETING_TYPES: { id: string; label: string }[] = [
+  ...Object.entries(TYPE_LABELS).map(([id, label]) => ({ id, label })),
+  { id: 'INNE', label: 'Inne' },
+]
 
 // Klasa CSS koloru; nieznane typy dostają kolor neutralny.
 export function typeSlug(type: string): string {

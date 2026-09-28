@@ -36,7 +36,7 @@ function MeetingsByDay({ meetings, now }: { meetings: PlanMeeting[]; now: Date }
 }
 
 export function CourseView({ courseName, meetings, now, onBack }: Props) {
-  const { extras, editDeadline } = usePlanUi()
+  const { extras, editDeadline, addCustomMeeting } = usePlanUi()
   const courseMeetings = meetings.filter((m) => m.courseName === courseName)
   const summary = summarizeCourses(courseMeetings, now)[0]
   const upcoming = courseMeetings.filter((m) => m.end > now)
@@ -110,7 +110,14 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
         </>
       )}
 
-      <h3 className="section-title">Zajęcia</h3>
+      <div className="section-head">
+        <h3 className="section-title">Zajęcia</h3>
+        {extras && (
+          <button type="button" className="button small secondary" onClick={() => addCustomMeeting({ courseName })}>
+            + Dodaj zajęcia
+          </button>
+        )}
+      </div>
       {upcoming.length === 0 ? (
         <p className="muted">Brak nadchodzących zajęć.</p>
       ) : (

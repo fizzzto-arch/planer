@@ -2,19 +2,21 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { AuthForm } from './components/AuthForm'
 import { CoursesView } from './components/CoursesView'
 import { CourseView } from './components/CourseView'
+import { CustomMeetingEditor } from './components/CustomMeetingEditor'
 import { DeadlineEditor } from './components/DeadlineEditor'
+import { MeetingEditor } from './components/MeetingEditor'
 import { SettingsView } from './components/SettingsView'
 import { SourceForm } from './components/SourceForm'
 import { Tabs } from './components/Tabs'
 import { TodayView } from './components/TodayView'
 import { WeekView } from './components/WeekView'
-import { PlanUiContext, type DeadlineDraft, type PlanUi } from './hooks/planUi'
+import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
 import { useExtras } from './hooks/useExtras'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
-import { applyEdits, type PlanMeeting } from './lib/edits'
+import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 
 type View = 'today' | 'week' | 'courses' | 'settings'
@@ -88,6 +90,8 @@ function App() {
   const [view, setView] = useState<View>('today')
   const [course, setCourse] = useState<string | null>(readCourseFromHistory)
   const [deadlineDraft, setDeadlineDraft] = useState<DeadlineDraft | null>(null)
+  const [editingMeeting, setEditingMeeting] = useState<PlanMeeting | null>(null)
+  const [customDraft, setCustomDraft] = useState<CustomMeetingDraft | null>(null)
 
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
   const meetings = useMemo(() => applyEdits(plan.meetings, extras), [plan.meetings, extras])
@@ -125,6 +129,13 @@ function App() {
       extras: extrasApi,
       openCourse,
       editDeadline: setDeadlineDraft,
+      editMeeting: (m: PlanMeeting) => {
+        const customId = customMeetingId(m.id)
+        // Własne zajęcia edytujemy w całości (wszystkie powtórzenia), zajęcia z USOS - przez zmianę.
+        if (customId) setCustomDraft(extras.customMeetings.find((c) => c.id === customId) ?? null)
+        else setEditingMeeting(m)
+      },
+      addCustomMeeting: setCustomDraft,
       deadlinesFor: (m: PlanMeeting) => {
         const sameDay = deadlinesByDay.get(`${toDateKey(m.start)}|${m.courseName}`) ?? []
         // Termin z godziną należy tylko do zajęć, które wtedy trwają (np. kolokwium na ćwiczeniach,
@@ -135,7 +146,7 @@ function App() {
         return sameDay.filter((d) => !d.time || (toMin(d.time) >= start && toMin(d.time) < end))
       },
     }),
-    [extrasApi, openCourse, deadlinesByDay],
+    [extrasApi, openCourse, deadlinesByDay, extras.customMeetings],
   )
 
   const courseNames = useMemo(
@@ -227,6 +238,17 @@ function App() {
             onSave={extrasApi.saveDeadline}
             onDelete={extrasApi.deleteDeadline}
             onClose={() => setDeadlineDraft(null)}
+          />
+        )}
+        {editingMeeting && extrasApi && (
+          <MeetingEditor meeting={editingMeeting} extras={extrasApi} onClose={() => setEditingMeeting(null)} />
+        )}
+        {customDraft && extrasApi && (
+          <CustomMeetingEditor
+            draft={customDraft}
+            courseNames={courseNames}
+            extras={extrasApi}
+            onClose={() => setCustomDraft(null)}
           />
         )}
       </main>

@@ -682,3 +682,44 @@ button.grid-event {
     animation: none;
   }
 }
+
+/* ---------- Etap 5b: edycja planu ---------- */
+
+.week-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 10px;
+}
+
+.dialog-subtitle {
+  margin: -6px 0 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.card-original {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--c-lab) 12%, transparent);
+  color: var(--text);
+}
+
+.card.is-cancelled {
+  opacity: 0.7;
+}
+
+.card.is-cancelled .card-hint {
+  color: var(--danger);
+}
+
+.grid-event.is-cancelled {
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--c) 10%, var(--surface)),
+    color-mix(in srgb, var(--c) 10%, var(--surface)) 6px,
+    var(--surface) 6px,
+    var(--surface) 12px
+  );
+}

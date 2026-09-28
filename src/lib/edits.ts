@@ -1,6 +1,6 @@
 // Nakładanie ręcznych zmian i własnych zajęć na plan z USOS.
 import { addDays, parseDateKey, startOfDay, toDateKey, toTimeKey, withTime } from './dates'
-import { seriesKey, type Extras, type MeetingOverride } from './extras'
+import { seriesKey, type Extras, type MeetingOverride, type SeriesEdit } from './extras'
 import type { Meeting } from './usos'
 
 export interface PlanMeeting extends Meeting {
@@ -99,4 +99,45 @@ export function applyEdits(
 export function customMeetingId(meetingId: string): string | null {
   if (!meetingId.startsWith(CUSTOM_ID_PREFIX)) return null
   return meetingId.slice(CUSTOM_ID_PREFIX.length).split(':')[0] || null
+}
+
+// ---------- Budowanie zmian z formularza ----------
+
+export interface MeetingFormValues {
+  date: string
+  startTime: string
+  endTime: string
+  room: string
+  cancelled: boolean
+}
+
+// Zajęcia ze zmianą serii, ale bez zmiany pojedynczej - punkt odniesienia dla formularza.
+export function seriesBase(original: Meeting, extras: Pick<Extras, 'seriesEdits'>): Meeting {
+  return applyEdits([original], { seriesEdits: extras.seriesEdits, meetingEdits: new Map(), customMeetings: [] })[0]
+}
+
+// Zapisujemy tylko pola różne od punktu odniesienia, żeby reszta dalej szła za USOS-em.
+export function buildOverride(base: Meeting, values: MeetingFormValues): MeetingOverride | null {
+  const override: MeetingOverride = {}
+  if (values.date !== toDateKey(base.start)) override.date = values.date
+  if (values.startTime !== toTimeKey(base.start)) override.startTime = values.startTime
+  if (values.endTime !== toTimeKey(base.end)) override.endTime = values.endTime
+  const room = values.room.trim()
+  if (room && room !== (base.room ?? '')) override.room = room
+  if (values.cancelled !== base.cancelled) override.cancelled = values.cancelled
+  return Object.keys(override).length > 0 ? override : null
+}
+
+export function buildSeriesEdit(
+  id: string,
+  original: Meeting,
+  values: Pick<MeetingFormValues, 'startTime' | 'endTime' | 'room'>,
+): SeriesEdit {
+  const room = values.room.trim()
+  return {
+    id,
+    room: room && room !== (original.room ?? '') ? room : null,
+    startTime: values.startTime !== toTimeKey(original.start) ? values.startTime : null,
+    endTime: values.endTime !== toTimeKey(original.end) ? values.endTime : null,
+  }
 }

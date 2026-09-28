@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { usePlanUi } from '../hooks/planUi'
 import { useMediaQuery } from '../hooks/useMediaQuery'
-import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek } from '../lib/dates'
+import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { DayTimeline } from './DayTimeline'
 import { WeekGrid } from './WeekGrid'
@@ -15,6 +16,7 @@ export function WeekView({ meetings, now }: Props) {
   // Z której strony ma wjechać nowy tydzień.
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
+  const { extras, addCustomMeeting } = usePlanUi()
 
   function goTo(target: Date) {
     if (target.getTime() === weekStart.getTime()) return
@@ -58,6 +60,18 @@ export function WeekView({ meetings, now }: Props) {
           ›
         </button>
       </div>
+
+      {extras && (
+        <div className="week-actions">
+          <button
+            type="button"
+            className="button small secondary"
+            onClick={() => addCustomMeeting({ date: toDateKey(isCurrentWeek ? now : weekStart) })}
+          >
+            + Dodaj zajęcia
+          </button>
+        </div>
+      )}
 
       <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
         {weekMeetings.length === 0 ? (

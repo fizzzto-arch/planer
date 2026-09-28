@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyEdits, customMeetingId } from './edits'
+import { applyEdits, buildOverride, buildSeriesEdit, customMeetingId, seriesBase } from './edits'
 import { EMPTY_EXTRAS, type Extras } from './extras'
 import type { Meeting } from './usos'
 
@@ -102,5 +102,45 @@ describe('applyEdits', () => {
       ],
     })
     expect(applyEdits([], edits)).toHaveLength(1)
+  })
+})
+
+describe('budowanie zmian z formularza', () => {
+  const values = (m: Meeting) => ({
+    date: '2026-10-09',
+    startTime: '14:15',
+    endTime: '17:00',
+    room: m.room ?? '',
+    cancelled: false,
+  })
+
+  it('bez zmian w formularzu nie zapisuje niczego', () => {
+    const m = lab('a', 9)
+    expect(buildOverride(m, values(m))).toBeNull()
+  })
+
+  it('zapisuje tylko zmienione pola', () => {
+    const m = lab('a', 9)
+    expect(buildOverride(m, { ...values(m), room: '161', cancelled: true })).toEqual({ room: '161', cancelled: true })
+    expect(buildOverride(m, { ...values(m), date: '2026-10-10' })).toEqual({ date: '2026-10-10' })
+  })
+
+  it('punktem odniesienia dla pojedynczej zmiany jest plan po zmianie serii', () => {
+    const m = lab('a', 9)
+    const seriesEdits = new Map([['543976-102', { id: '543976-102', room: '200', startTime: null, endTime: null }]])
+    const base = seriesBase(m, { seriesEdits })
+    expect(base.room).toBe('200')
+    // Powrót do sali z USOS w jednych zajęciach mimo zmiany serii - trzeba to zapisać.
+    expect(buildOverride(base, { ...values(m), room: '416' })).toEqual({ room: '416' })
+  })
+
+  it('zmiana serii zapisuje różnice względem USOS', () => {
+    const m = lab('a', 9)
+    expect(buildSeriesEdit('k', m, { startTime: '14:15', endTime: '16:45', room: '416' })).toEqual({
+      id: 'k',
+      room: null,
+      startTime: null,
+      endTime: '16:45',
+    })
   })
 })

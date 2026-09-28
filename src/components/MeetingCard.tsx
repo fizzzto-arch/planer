@@ -1,5 +1,5 @@
 import { usePlanUi } from '../hooks/planUi'
-import { formatDuration, formatTime, minutesBetween, toDateKey, toTimeKey } from '../lib/dates'
+import { formatDay, formatDuration, formatTime, minutesBetween, toDateKey, toTimeKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel } from '../lib/extras'
 import { shortBuilding, typeLabel, typeSlug } from '../lib/usos'
@@ -27,7 +27,7 @@ function NoteIcon() {
 }
 
 export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = true }: Props) {
-  const { extras, openCourse, editDeadline, deadlinesFor } = usePlanUi()
+  const { extras, openCourse, editDeadline, editMeeting, deadlinesFor } = usePlanUi()
   const isPast = m.end <= now
   const isNow = m.start <= now && now < m.end
   const building = shortBuilding(m.building)
@@ -96,6 +96,13 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           </a>
         )}
 
+        {m.edited && m.original && (
+          <div className="card-original">
+            W USOS: {formatDay(m.original.start)}, {formatTime(m.original.start)}–{formatTime(m.original.end)}
+            {m.original.room && `, s. ${m.original.room}`}
+          </div>
+        )}
+
         {extras && (
           <NoteField
             id={`meeting-note-${m.id}`}
@@ -107,6 +114,11 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
         )}
 
         <div className="card-actions">
+          {extras && (
+            <button type="button" className="button small secondary" onClick={() => editMeeting(m)}>
+              {m.custom ? 'Edytuj' : 'Zmień / odwołaj'}
+            </button>
+          )}
           {extras && (
             <button
               type="button"
