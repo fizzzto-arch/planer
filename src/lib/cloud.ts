@@ -29,6 +29,8 @@ const AUTH_ERRORS: Record<string, string> = {
   'auth/user-disabled': 'To konto zostało zablokowane.',
   'auth/too-many-requests': 'Za dużo prób. Spróbuj ponownie za kilka minut.',
   'auth/network-request-failed': 'Brak połączenia z internetem.',
+  'auth/operation-not-allowed': 'Logowanie e-mailem nie jest jeszcze włączone w Firebase.',
+  'auth/configuration-not-found': 'Logowanie nie jest jeszcze skonfigurowane w Firebase.',
 }
 
 function describeError(e: unknown): string {
