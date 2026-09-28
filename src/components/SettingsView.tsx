@@ -1,30 +1,42 @@
 import { useState } from 'react'
+import type { CloudApi } from '../hooks/useCloud'
 import type { PlanApi } from '../hooks/usePlan'
 import { formatShortDay, formatUpdatedAt } from '../lib/dates'
 import { plural } from '../lib/plural'
+import { AccountPanel } from './AccountPanel'
 import { SourceForm } from './SourceForm'
 
 interface Props {
   plan: PlanApi
+  cloud: CloudApi
   now: Date
   onSourceChanged: () => void
 }
 
-export function SettingsView({ plan, now, onSourceChanged }: Props) {
+export function SettingsView({ plan, cloud, now, onSourceChanged }: Props) {
   const [changing, setChanging] = useState(false)
   const { source, meetings, updatedAt } = plan
   const courseCount = new Set(meetings.map((m) => m.courseName)).size
   const first = meetings[0]
   const last = meetings[meetings.length - 1]
+  const signedIn = cloud.state.kind === 'signedIn'
 
-  function handleReset() {
-    if (window.confirm('Usunąć plan i zapisany link z tej przeglądarki?')) plan.reset()
+  async function handleReset() {
+    const question = signedIn
+      ? 'Wylogować się i usunąć plan z tej przeglądarki? Plan zapisany na koncie zostaje.'
+      : 'Usunąć plan i zapisany link z tej przeglądarki?'
+    if (!window.confirm(question)) return
+    // Najpierw wylogowanie - inaczej synchronizacja od razu pobrałaby plan z powrotem.
+    if (signedIn) await cloud.signOut()
+    plan.reset()
   }
 
   return (
     <section>
-      <h2 className="day-title">Źródło planu</h2>
+      <AccountPanel cloud={cloud} />
+
       <div className="panel">
+        <h3 className="panel-title">Źródło planu</h3>
         <dl className="facts">
           <dt>Źródło</dt>
           <dd>{source?.kind === 'url' ? 'Link iCal z USOS (klucz ukryty)' : `Plik ${source?.name ?? ''}`}</dd>
@@ -78,11 +90,12 @@ export function SettingsView({ plan, now, onSourceChanged }: Props) {
 
       <div className="panel">
         <p className="hint">
-          Plan i link są zapisane tylko w tej przeglądarce. Synchronizacja między telefonem a
-          komputerem pojawi się w kolejnym etapie.
+          {signedIn
+            ? 'Plan jest zapisany w tej przeglądarce i na Twoim koncie.'
+            : 'Plan i link są zapisane tylko w tej przeglądarce.'}
         </p>
-        <button type="button" className="button danger" onClick={handleReset}>
-          Usuń dane z tej przeglądarki
+        <button type="button" className="button danger" onClick={() => void handleReset()}>
+          {signedIn ? 'Wyloguj i usuń dane z tej przeglądarki' : 'Usuń dane z tej przeglądarki'}
         </button>
       </div>
     </section>

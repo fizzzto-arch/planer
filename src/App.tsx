@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { LoginForm } from './components/LoginForm'
 import { SettingsView } from './components/SettingsView'
 import { SourceForm } from './components/SourceForm'
 import { Tabs } from './components/Tabs'
 import { TodayView } from './components/TodayView'
 import { WeekView } from './components/WeekView'
+import { useCloud } from './hooks/useCloud'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt } from './lib/dates'
@@ -52,23 +54,49 @@ function SyncStatus({ plan, now }: { plan: PlanApi; now: Date }) {
 
 function App() {
   const plan = usePlan()
+  const cloud = useCloud(plan)
   const now = useNow()
   const [view, setView] = useState<View>('today')
 
   if (!plan.source) {
+    const signedOut = cloud.state.kind === 'signedOut'
     return (
       <main className="app">
         <header className="topbar">
           <h1 className="brand">Planer</h1>
         </header>
-        <section className="panel view-enter">
-          <h2 className="day-title">Dodaj swój plan z USOS</h2>
-          <p className="muted">
-            Wystarczy raz wkleić link. Potem plan będzie aktualizował się sam, także w kolejnych
-            semestrach.
-          </p>
-          <SourceForm plan={plan} onDone={() => setView('today')} />
-        </section>
+        {cloud.isAdopting && !cloud.syncError ? (
+          <section className="panel view-enter">
+            <p className="muted loading-line">
+              <span className="spinner" aria-hidden="true" />
+              Pobieram plan z Twojego konta…
+            </p>
+          </section>
+        ) : (
+          <>
+            {cloud.syncError && (
+              <p className="error panel view-enter" role="alert">
+                {cloud.syncError}
+              </p>
+            )}
+            {signedOut && (
+              <section className="panel view-enter">
+                <h2 className="day-title">Masz konto w Planerze?</h2>
+                <p className="muted">Zaloguj się, a Twój plan pobierze się sam.</p>
+                <LoginForm cloud={cloud} />
+              </section>
+            )}
+            <section className="panel view-enter">
+              <h2 className="day-title">{signedOut ? 'Albo dodaj plan bez konta' : 'Dodaj swój plan z USOS'}</h2>
+              <p className="muted">
+                Wystarczy raz wkleić link. Potem plan będzie aktualizował się sam, także w kolejnych
+                semestrach.
+                {cloud.state.kind === 'signedIn' && ' Zapiszemy go też na Twoim koncie.'}
+              </p>
+              <SourceForm plan={plan} onDone={() => setView('today')} />
+            </section>
+          </>
+        )}
       </main>
     )
   }
@@ -86,7 +114,7 @@ function App() {
         {view === 'today' && <TodayView meetings={plan.meetings} now={now} />}
         {view === 'week' && <WeekView meetings={plan.meetings} now={now} />}
         {view === 'settings' && (
-          <SettingsView plan={plan} now={now} onSourceChanged={() => setView('today')} />
+          <SettingsView plan={plan} cloud={cloud} now={now} onSourceChanged={() => setView('today')} />
         )}
       </div>
     </main>

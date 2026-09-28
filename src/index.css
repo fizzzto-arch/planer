@@ -788,3 +788,98 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Konto i logowanie ---------- */
+
+.panel-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+
+.panel > .hint:first-of-type {
+  margin-top: 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  max-width: 360px;
+}
+
+.login-form .field-label {
+  margin-top: 10px;
+}
+
+.login-form .button-row {
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.text-input:focus,
+.input-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.success {
+  margin: 12px 0 0;
+  color: var(--c-cwi);
+  font-weight: 600;
+}
+
+.sync-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.sync-badge.is-error {
+  color: var(--danger);
+}
+
+.sync-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-cwi);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-cwi) 25%, transparent);
+}
+
+.sync-badge.is-error .sync-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}

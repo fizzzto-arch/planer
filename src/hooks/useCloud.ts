@@ -1,0 +1,108 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Cloud, CloudUser } from '../lib/cloud'
+import { errorMessage } from '../lib/errors'
+import { firebaseConfig } from '../lib/firebaseConfig'
+import { decideSync, type SyncSnapshot } from '../lib/sync'
+import type { PlanApi } from './usePlan'
+
+export type CloudState =
+  | { kind: 'disabled' } // brak konfiguracji Firebase
+  | { kind: 'loading' }
+  | { kind: 'signedOut' }
+  | { kind: 'signedIn'; user: CloudUser }
+
+export function useCloud(plan: PlanApi) {
+  const [cloud, setCloud] = useState<Cloud | null>(null)
+  const [state, setState] = useState<CloudState>(firebaseConfig ? { kind: 'loading' } : { kind: 'disabled' })
+  // Dane konta zapamiętane razem z uid - po wylogowaniu same przestają pasować.
+  const [cloudData, setCloudData] = useState<{ uid: string; icalUrl: string | null } | null>(null)
+  const [syncError, setSyncError] = useState<string | null>(null)
+
+  // 1. Ładujemy Firebase w tle i słuchamy, kto jest zalogowany.
+  useEffect(() => {
+    const config = firebaseConfig
+    if (!config) return
+    let unsubscribe = () => {}
+    let cancelled = false
+    import('../lib/cloud')
+      .then(({ getCloud }) => {
+        if (cancelled) return
+        const c = getCloud(config)
+        setCloud(c)
+        unsubscribe = c.watchUser((user) => setState(user ? { kind: 'signedIn', user } : { kind: 'signedOut' }))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setState({ kind: 'signedOut' })
+        setSyncError('Nie udało się załadować logowania. Sprawdź internet.')
+      })
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
+
+  // 2. Po zalogowaniu na bieżąco śledzimy dane konta (zmiany z innych urządzeń).
+  const uid = state.kind === 'signedIn' ? state.user.uid : null
+  useEffect(() => {
+    if (!cloud || !uid) return
+    return cloud.watchData(
+      uid,
+      (data) => {
+        setCloudData({ uid, icalUrl: data.icalUrl })
+        setSyncError(null)
+      },
+      setSyncError,
+    )
+  }, [cloud, uid])
+  const cloudUrl = uid && cloudData?.uid === uid ? cloudData.icalUrl : undefined
+
+  // 3. Uzgadniamy link w tej przeglądarce z linkiem na koncie.
+  const localUrl = plan.source?.kind === 'url' ? plan.source.url : null
+  const { connectUrl } = plan
+  const previous = useRef<SyncSnapshot>({ cloudUrl: undefined, localUrl })
+  useEffect(() => {
+    const next: SyncSnapshot = { cloudUrl, localUrl }
+    const action = cloud && uid ? decideSync(previous.current, next) : { kind: 'none' as const }
+    previous.current = next
+    if (!cloud || !uid) return
+
+    if (action.kind === 'adopt') {
+      connectUrl(action.url).catch((e) => setSyncError(`Nie udało się pobrać planu z konta: ${errorMessage(e)}`))
+    } else if (action.kind === 'upload') {
+      cloud.saveIcalUrl(uid, action.url).catch((e) => setSyncError(errorMessage(e)))
+    }
+  }, [cloud, uid, cloudUrl, localUrl, connectUrl])
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
+      await cloud.signIn(email, password)
+    },
+    [cloud],
+  )
+
+  const resetPassword = useCallback(
+    async (email: string) => {
+      if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
+      await cloud.resetPassword(email)
+    },
+    [cloud],
+  )
+
+  const signOut = useCallback(async () => {
+    await cloud?.signOut()
+  }, [cloud])
+
+  return {
+    state,
+    syncError,
+    // Na koncie jest plan, którego ta przeglądarka jeszcze nie ma (trwa pobieranie).
+    isAdopting: state.kind === 'signedIn' && !!cloudUrl && cloudUrl !== localUrl,
+    signIn,
+    resetPassword,
+    signOut,
+  }
+}
+
+export type CloudApi = ReturnType<typeof useCloud>
