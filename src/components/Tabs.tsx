@@ -114,7 +114,11 @@ export function Tabs<T extends string>({ tabs, value, onChange, controlRef }: Pr
         // Chwytamy tylko niebieski suwak, czyli aktywną zakładkę.
         if (!(e.target instanceof Element) || !e.target.closest('.tab.is-active')) return
         drag.current = { startX: e.clientX, moved: false, position: activeIndex }
-        e.currentTarget.setPointerCapture(e.pointerId)
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId) // palec może zjechać z paska, a suwak dalej za nim idzie
+        } catch {
+          // dotyk już się skończył (bardzo szybkie stuknięcie) - bez przechwycenia, zwykłe kliknięcie
+        }
       }}
       onPointerMove={(e) => {
         const d = drag.current
