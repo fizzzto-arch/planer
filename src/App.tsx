@@ -7,6 +7,7 @@ import { CustomMeetingEditor } from './components/CustomMeetingEditor'
 import { DeadlineEditor } from './components/DeadlineEditor'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { HelpView } from './components/HelpView'
+import { Welcome } from './components/Welcome'
 import { MeetingEditor } from './components/MeetingEditor'
 import { OptimizerView } from './components/OptimizerView'
 import { SettingsView } from './components/SettingsView'
@@ -410,10 +411,8 @@ function App() {
   if (!plan.source) {
     const signedOut = cloud.state.kind === 'signedOut'
     return (
-      <main className="app">
-        <header className="topbar">
-          <h1 className="brand">Planer</h1>
-        </header>
+      <main className="app landing">
+        <Welcome />
         {cloud.isAdopting && !cloud.syncError ? (
           <section className="panel view-enter">
             <p className="muted loading-line">
@@ -436,13 +435,21 @@ function App() {
                 </button>
               </p>
             )}
-            {signedOut && (
+            {/* Karta konta jest od razu - w trakcie łączenia z kręciołkiem, żeby nic nie skakało. */}
+            {(signedOut || cloud.state.kind === 'loading') && (
               <section className="panel view-enter">
                 <h2 className="day-title">Konto w Planerze</h2>
                 <p className="muted">
                   Zaloguj się albo załóż konto, a plan będzie na wszystkich Twoich urządzeniach.
                 </p>
-                <AuthForm cloud={cloud} />
+                {signedOut ? (
+                  <AuthForm cloud={cloud} />
+                ) : (
+                  <p className="muted loading-line auth-loading">
+                    <span className="spinner" aria-hidden="true" />
+                    Łączenie…
+                  </p>
+                )}
               </section>
             )}
             <section className="panel view-enter">

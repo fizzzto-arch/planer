@@ -64,6 +64,23 @@ export function AuthForm({ cloud }: Props) {
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
+      {/* Logowanie / rejestracja jak przełącznik w iOS - od razu widać, że są dwie drogi. */}
+      <div className="segmented auth-mode" role="tablist" aria-label="Logowanie albo rejestracja">
+        {(['login', 'register'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            className={`segment${mode === m ? ' is-active' : ''}`}
+            onClick={() => switchMode(m)}
+            disabled={busy}
+          >
+            {m === 'login' ? 'Logowanie' : 'Nowe konto'}
+          </button>
+        ))}
+      </div>
+
       <label className="field-label" htmlFor="auth-email">
         E-mail
       </label>
@@ -125,17 +142,6 @@ export function AuthForm({ cloud }: Props) {
       )}
       {info && <p className="success">{info}</p>}
 
-      <p className="auth-switch">
-        {isRegister ? 'Masz już konto? ' : 'Nie masz konta? '}
-        <button
-          type="button"
-          className="link-button"
-          onClick={() => switchMode(isRegister ? 'login' : 'register')}
-          disabled={busy}
-        >
-          {isRegister ? 'Zaloguj się' : 'Zarejestruj się'}
-        </button>
-      </p>
     </form>
   )
 }

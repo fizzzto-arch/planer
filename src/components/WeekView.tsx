@@ -95,16 +95,14 @@ export function WeekView({ meetings, now }: Props) {
             const dayMeetings = weekMeetings.filter((m) => isSameDay(m.start, day))
             const isToday = isSameDay(day, now)
             return (
-              <div key={day.getTime()} className="week-day">
+              // Wolny dzień w jednej linii - tydzień z jednym dniem zajęć nie wymaga przewijania.
+              <div key={day.getTime()} className={dayMeetings.length > 0 ? 'week-day' : 'week-day is-free'}>
                 <h3 className="day-title">
                   {formatDay(day)}
                   {isToday && <span className="today-pill">dziś</span>}
+                  {dayMeetings.length === 0 && <span className="free-label">wolne</span>}
                 </h3>
-                {dayMeetings.length > 0 ? (
-                  <DayTimeline meetings={dayMeetings} now={now} />
-                ) : (
-                  <p className="muted">Wolne</p>
-                )}
+                {dayMeetings.length > 0 && <DayTimeline meetings={dayMeetings} now={now} />}
               </div>
             )
           })

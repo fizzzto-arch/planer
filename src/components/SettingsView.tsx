@@ -59,26 +59,12 @@ export function SettingsView({
 
   return (
     <section>
-      <button type="button" className="panel help-entry" onClick={openHelp}>
-        <span className="help-entry-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z" />
-          </svg>
-        </span>
-        <span className="help-entry-text">
-          <strong>Pomoc i prywatność</strong>
-          <span>Co Planer zapisuje, kto to widzi i najczęstsze pytania</span>
-        </span>
-        <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m9 6 6 6-6 6" />
-        </svg>
-      </button>
       <AccountPanel cloud={cloud} />
       {admin && <AdminPanel admin={admin} now={now} />}
       <RemindersPanel extras={extras} prefsApi={prefsApi} />
       <AppearancePanel prefsApi={prefsApi} signedIn={signedIn} />
-      <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
       <PlanPrefsPanel prefsApi={prefsApi} />
+      <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
       <AliasesPanel prefsApi={prefsApi} courseNames={courseNames} />
 
       <div className="panel">
@@ -136,6 +122,21 @@ export function SettingsView({
 
       <BackupPanel extras={extras} />
 
+      <button type="button" className="panel help-entry" onClick={openHelp}>
+        <span className="help-entry-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z" />
+          </svg>
+        </span>
+        <span className="help-entry-text">
+          <strong>Pomoc i prywatność</strong>
+          <span>Co Planer zapisuje, kto to widzi i najczęstsze pytania</span>
+        </span>
+        <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      </button>
+
       <div className="panel">
         <p className="hint">
           {signedIn
@@ -146,6 +147,10 @@ export function SettingsView({
           {signedIn ? 'Wyloguj i usuń dane z tej przeglądarki' : 'Usuń dane z tej przeglądarki'}
         </button>
       </div>
+
+      <p className="app-version">
+        Planer · wersja {__APP_VERSION__}
+      </p>
     </section>
   )
 }

@@ -2231,3 +2231,120 @@ label.setting-row {
   background: var(--ok);
   color: #fff;
 }
+
+/* ---------- Ekran startowy: powitanie ---------- */
+
+.welcome {
+  padding: 20px 4px 8px;
+  text-align: center;
+}
+
+.welcome-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 15px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.14);
+}
+
+.welcome-title {
+  margin: 14px 0 4px;
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+}
+
+.welcome-lead {
+  margin: 0 auto;
+  max-width: 420px;
+  color: var(--muted);
+}
+
+.welcome-features {
+  list-style: none;
+  margin: 22px auto 8px;
+  padding: 0;
+  max-width: 460px;
+  display: grid;
+  gap: 14px;
+  text-align: left;
+}
+
+.welcome-features li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.welcome-features li > span:last-child {
+  display: grid;
+  gap: 2px;
+  font-size: 0.92rem;
+}
+
+@media (min-width: 900px) {
+  .welcome-features {
+    max-width: none;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Karty pod powitaniem - wąsko i na środku, jak ekran logowania w aplikacji. */
+.landing .panel {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.landing .gate-footer {
+  text-align: center;
+}
+
+.auth-loading {
+  min-height: 120px;
+}
+
+/* Logowanie / nowe konto */
+.segmented.auth-mode {
+  flex-wrap: nowrap;
+  margin-bottom: 4px;
+}
+
+/* ---------- Pasek zakładek na telefonie: na całą szerokość, jak przełącznik w iOS ---------- */
+
+@media (max-width: 700px) {
+  .topbar .tabs {
+    width: 100%;
+  }
+
+  .topbar .tab {
+    flex: 1;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .topbar .tab.is-icon {
+    flex: 0 0 auto;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* ---------- Tydzień na telefonie: wolny dzień w jednej linii ---------- */
+
+.week-day.is-free .day-title {
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.free-label {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.app-version {
+  margin: 20px 0 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
