@@ -9,8 +9,6 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { HelpView } from './components/HelpView'
 import { Welcome } from './components/Welcome'
 import { MeetingEditor } from './components/MeetingEditor'
-import { OptimizerView } from './components/OptimizerView'
-import { SettingsView } from './components/SettingsView'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { UpdateBanner } from './components/UpdateBanner'
 import { SourceForm } from './components/SourceForm'
@@ -36,6 +34,16 @@ type View = 'today' | 'week' | 'courses' | 'settings'
 
 // Eksport (rysowanie zdjęcia, PDF, Excel) ładuje się dopiero po wejściu w "Eksportuj plan".
 const ExportView = lazy(() => import('./components/ExportView').then((m) => ({ default: m.ExportView })))
+// Ustawienia i optymalizator też dopiero po wejściu - pierwsze otwarcie Planera jest lżejsze.
+const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
+const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
+
+const LOADING = (
+  <p className="muted loading-line">
+    <span className="spinner" aria-hidden="true" />
+    Ładowanie…
+  </p>
+)
 
 // Kolejność zakładek - przesunięcie palcem w lewo idzie do następnej.
 const VIEW_ORDER: View[] = ['today', 'week', 'courses', 'settings']
@@ -522,13 +530,13 @@ function App() {
             className={ENTER_CLASS[enter]}
           >
             <ErrorBoundary>
-              {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
-              {page?.kind === 'optimizer' && cloud.isAdmin ? (
-                <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
-              ) : page?.kind === 'help' ? (
-                <HelpView onBack={closePage} />
-              ) : page?.kind === 'export' ? (
-                <Suspense fallback={<p className="muted loading-line"><span className="spinner" aria-hidden="true" />Ładowanie…</p>}>
+              <Suspense fallback={LOADING}>
+                {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
+                {page?.kind === 'optimizer' && cloud.isAdmin ? (
+                  <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+                ) : page?.kind === 'help' ? (
+                  <HelpView onBack={closePage} />
+                ) : page?.kind === 'export' ? (
                   <ExportView
                     meetings={meetings}
                     now={now}
@@ -536,12 +544,12 @@ function App() {
                     colors={typeColors.colors}
                     onBack={closePage}
                   />
-                </Suspense>
-              ) : course ? (
-                <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
-              ) : (
-                mainView
-              )}
+                ) : course ? (
+                  <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
+                ) : (
+                  mainView
+                )}
+              </Suspense>
             </ErrorBoundary>
           </div>
         </div>
@@ -550,7 +558,7 @@ function App() {
         {page && (
           <div ref={underWrapRef} className="swipe-under" aria-hidden="true">
             <div ref={underRef} className="swipe-under-inner">
-              {mainView}
+              <Suspense fallback={null}>{mainView}</Suspense>
             </div>
             <div ref={dimRef} className="swipe-dim" />
           </div>

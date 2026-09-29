@@ -2412,3 +2412,31 @@ label.setting-row {
     transform: translate(-50%, 16px);
   }
 }
+
+/* Wyniki WF/lektoratu na telefonie: plakietki i przycisk pod tekstem, od lewej */
+@media (max-width: 700px) {
+  .extra-fit-side {
+    justify-items: start;
+    width: 100%;
+  }
+
+  .extra-fit-tags {
+    justify-content: flex-start;
+  }
+}
+
+.help-report .button {
+  margin-top: 4px;
+}
+
+/* Gdy schowek nie działa - informacje do ręcznego skopiowania */
+.help-diagnostics {
+  margin: 10px 0 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: all;
+}

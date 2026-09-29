@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 interface Props {
   onBack: () => void
@@ -192,7 +192,50 @@ export function HelpView({ onBack }: Props) {
         <Question q="Ile to kosztuje?">Nic - Planer jest darmowy, bez reklam i płatnych funkcji.</Question>
       </div>
 
-      <p className="hint help-footer">Masz pytanie albo coś nie działa? Napisz do osoby, która dała Ci dostęp do Planera.</p>
+      <ReportProblem />
     </section>
+  )
+}
+
+// Informacje o urządzeniu do zgłoszenia problemu - bez danych osobowych, tylko wersja i sprzęt.
+function diagnostics(): string {
+  const standalone =
+    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches
+  const notifications = 'Notification' in window ? Notification.permission : 'brak'
+  return [
+    `Planer ${__APP_VERSION__}`,
+    `tryb: ${standalone ? 'aplikacja z ekranu początkowego' : 'przeglądarka'}`,
+    `ekran: ${window.innerWidth}×${window.innerHeight}`,
+    `powiadomienia: ${notifications}`,
+    `przeglądarka: ${navigator.userAgent}`,
+  ].join('\n')
+}
+
+function ReportProblem() {
+  const [copied, setCopied] = useState<boolean | null>(null)
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(diagnostics())
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div className="panel help-report">
+      <h3 className="panel-title">Coś nie działa?</h3>
+      <p className="hint">
+        Napisz do osoby, która dała Ci dostęp do Planera, co się stało i kiedy. Dołącz informacje o urządzeniu - bez
+        nich trudno powtórzyć problem. Nie zawierają żadnych Twoich danych, tylko wersję Planera i sprzęt.
+      </p>
+      <button type="button" className="button secondary" onClick={() => void copy()}>
+        Skopiuj informacje o urządzeniu
+      </button>
+      {copied === true && <p className="success">Skopiowano - wklej je w wiadomości.</p>}
+      {copied === false && <pre className="help-diagnostics">{diagnostics()}</pre>}
+    </div>
   )
 }
