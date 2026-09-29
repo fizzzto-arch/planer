@@ -58,6 +58,9 @@ function createMockCloud(): Cloud {
     ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000, optimizer: false }],
   ])
   const accessListeners = new Set<() => void>()
+  const feedbackStore = new Map<string, { data: Record<string, unknown>; files: Uint8Array[] }>()
+  const feedbackListeners = new Set<() => void>()
+  const emitFeedback = () => setTimeout(() => feedbackListeners.forEach((cb) => cb()), 0)
   const emitAccess = () => setTimeout(() => accessListeners.forEach((cb) => cb()), 0)
 
   return {
@@ -69,6 +72,50 @@ function createMockCloud(): Cloud {
     signIn: async () => setUser(MOCK_USER),
     signUp: async () => setUser(MOCK_USER),
     signOut: async () => setUser(null),
+    // Zgłoszenia - w pamięci karty (załączniki razem z treścią).
+    async submitFeedback(uid, email, feedback, files, onProgress) {
+      const id = Math.random().toString(36).slice(2, 10)
+      onProgress(0, files.length)
+      feedbackStore.set(id, {
+        data: {
+          ...feedback,
+          uid,
+          email,
+          status: 'new',
+          reply: '',
+          createdAt: Date.now(),
+          complete: true,
+          attachments: files.map((f) => ({ name: f.name, type: f.type, size: f.bytes.length, chunkCount: 1 })),
+        },
+        files: files.map((f) => f.bytes),
+      })
+      onProgress(files.length, files.length)
+      emitFeedback()
+    },
+    watchFeedback(uid, onDocs) {
+      const emit = () =>
+        onDocs(
+          [...feedbackStore.entries()]
+            .filter(([, f]) => uid === null || f.data.uid === uid)
+            .map(([id, f]) => ({ id, data: f.data })),
+        )
+      feedbackListeners.add(emit)
+      setTimeout(emit, 0)
+      return () => feedbackListeners.delete(emit)
+    },
+    async updateFeedback(id, patch) {
+      const f = feedbackStore.get(id)
+      if (f) f.data = { ...f.data, ...patch }
+      emitFeedback()
+    },
+    async downloadFeedbackFile(id, attachment) {
+      return [feedbackStore.get(id)?.files[attachment] ?? new Uint8Array(0)]
+    },
+    async deleteFeedback(id) {
+      feedbackStore.delete(id)
+      emitFeedback()
+    },
+
     deleteAccount: async () => {
       store = {}
       localStorage.removeItem(STORAGE_KEY)

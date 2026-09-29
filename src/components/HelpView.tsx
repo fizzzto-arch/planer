@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
+import { diagnostics } from '../lib/diagnostics'
 
 interface Props {
   onBack: () => void
+  onFeedback?: () => void // formularz zgłoszeń (tylko z dostępem do Planera)
 }
 
 const REPO_URL = 'https://github.com/fizzzto-arch/planer'
@@ -36,7 +38,7 @@ const icon = (d: string) => (
 )
 
 // Pomoc i prywatność: co Planer zapisuje, kto to widzi, jak to sprawdzić + najczęstsze pytania.
-export function HelpView({ onBack }: Props) {
+export function HelpView({ onBack, onFeedback }: Props) {
   return (
     <section className="help">
       <button type="button" className="back-button" onClick={onBack}>
@@ -59,7 +61,8 @@ export function HelpView({ onBack }: Props) {
         <ul className="help-facts">
           <Fact icon={icon('M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z')} title="Twoje dane widzisz tylko Ty">
             Notatki, terminy, zmiany w planie i ustawienia są przypisane do Twojego konta. Reguły bazy nie wpuszczają
-            do nich nikogo innego - także administratora Planera.
+            do nich nikogo innego - także administratora Planera. Wyjątek to zgłoszenia (uwagi, zrzuty ekranu), które
+            sam wysyłasz - te czyta administrator.
           </Fact>
           <Fact icon={icon('M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z')} title="Hasło zna tylko Google">
             Logowaniem zajmuje się Google Firebase. Hasło jest przechowywane w postaci zaszyfrowanej - nie widzi go nikt,
@@ -198,27 +201,12 @@ export function HelpView({ onBack }: Props) {
         <Question q="Ile to kosztuje?">Nic - Planer jest darmowy, bez reklam i płatnych funkcji.</Question>
       </div>
 
-      <ReportProblem />
+      <ReportProblem onFeedback={onFeedback} />
     </section>
   )
 }
 
-// Informacje o urządzeniu do zgłoszenia problemu - bez danych osobowych, tylko wersja i sprzęt.
-function diagnostics(): string {
-  const standalone =
-    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
-    window.matchMedia('(display-mode: standalone)').matches
-  const notifications = 'Notification' in window ? Notification.permission : 'brak'
-  return [
-    `Planer ${__APP_VERSION__}`,
-    `tryb: ${standalone ? 'aplikacja z ekranu początkowego' : 'przeglądarka'}`,
-    `ekran: ${window.innerWidth}×${window.innerHeight}`,
-    `powiadomienia: ${notifications}`,
-    `przeglądarka: ${navigator.userAgent}`,
-  ].join('\n')
-}
-
-function ReportProblem() {
+function ReportProblem({ onFeedback }: { onFeedback?: () => void }) {
   const [copied, setCopied] = useState<boolean | null>(null)
 
   async function copy() {
@@ -228,6 +216,21 @@ function ReportProblem() {
     } catch {
       setCopied(false)
     }
+  }
+
+  if (onFeedback) {
+    return (
+      <div className="panel help-report">
+        <h3 className="panel-title">Coś nie działa albo masz pomysł?</h3>
+        <p className="hint">
+          Wyślij zgłoszenie prosto z Planera - możesz dołączyć zrzut ekranu albo krótkie nagranie. Odpowiedź zobaczysz
+          przy swoim zgłoszeniu.
+        </p>
+        <button type="button" className="button" onClick={onFeedback}>
+          Napisz zgłoszenie
+        </button>
+      </div>
+    )
   }
 
   return (

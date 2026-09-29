@@ -26,6 +26,8 @@ export interface PlanUi {
   // eksport planu (zdjęcie, PDF, Excel, kalendarz); source = inny plan, np. propozycja z optymalizatora
   openExport: (weekStart: Date, source?: ExportSource) => void
   openHelp: () => void // pomoc i prywatność
+  openFeedback: () => void // uwagi i pomysły / skrzynka zgłoszeń
+  feedbackNew: number // nowe zgłoszenia (tylko w widoku administratora, inaczej 0)
   openSettings: () => void // zakładka Ustawienia (np. z "Pierwszych kroków")
   isAdmin: boolean // widok administratora (w podglądzie "jako zwykły użytkownik" - false)
   canOptimize: boolean // optymalizator: administrator albo osoba, której go przyznał

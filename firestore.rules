@@ -69,6 +69,52 @@ service cloud.firestore {
       }
     }
 
+    // Zgłoszenia od testerów: autor widzi swoje (i może wycofać nowe), administrator widzi wszystkie,
+    // odpowiada i zmienia status. Załączniki w kawałkach, jak materiały.
+    match /feedback/{id} {
+      function isAuthor() {
+        return signedIn() && resource.data.uid == request.auth.uid;
+      }
+      allow read: if isAdmin() || (hasAccess() && isAuthor());
+      allow create: if hasAccess()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'kind', 'good', 'bad', 'missing', 'text',
+             'diagnostics', 'status', 'reply', 'attachments', 'size', 'complete', 'createdAt'])
+        && request.resource.data.kind in ['bug', 'idea', 'opinion']
+        && request.resource.data.status == 'new'
+        && request.resource.data.reply == ''
+        && request.resource.data.complete == false
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.attachments is list
+        && request.resource.data.attachments.size() <= 4
+        && request.resource.data.size is int
+        && request.resource.data.size <= 41943040
+        && request.resource.data.good.size() <= 3000
+        && request.resource.data.bad.size() <= 3000
+        && request.resource.data.missing.size() <= 3000
+        && request.resource.data.text.size() <= 3000
+        && request.resource.data.diagnostics.size() <= 1000;
+      allow update: if isAdmin()
+        || (hasAccess() && isAuthor()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['complete'])
+            && request.resource.data.complete == true);
+      allow delete: if isAdmin() || (hasAccess() && isAuthor());
+
+      match /chunks/{chunkId} {
+        function parent() {
+          return get(/databases/$(database)/documents/feedback/$(id)).data;
+        }
+        allow read: if isAdmin() || (hasAccess() && parent().uid == request.auth.uid);
+        allow create: if hasAccess()
+          && parent().uid == request.auth.uid
+          && parent().complete == false
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() <= 921600;
+        allow delete: if isAdmin() || (hasAccess() && parent().uid == request.auth.uid);
+      }
+    }
+
     // Wszystko inne (dziennik wysłanych przypomnień, zapamiętany plan do wykrywania zmian w USOS)
     // - niedostępne ze strony, korzysta z tego tylko serwer przypomnień.
   }

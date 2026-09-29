@@ -18,6 +18,7 @@ import { WeekView } from './components/WeekView'
 import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type ExportSource, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
+import { useFeedback } from './hooks/useFeedback'
 import { useExtras } from './hooks/useExtras'
 import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
@@ -37,6 +38,7 @@ const ExportView = lazy(() => import('./components/ExportView').then((m) => ({ d
 // Ustawienia i optymalizator też dopiero po wejściu - pierwsze otwarcie Planera jest lżejsze.
 const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
 const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
+const FeedbackView = lazy(() => import('./components/FeedbackView').then((m) => ({ default: m.FeedbackView })))
 
 const LOADING = (
   <p className="muted loading-line">
@@ -99,7 +101,7 @@ function tabs(settingsAlert: boolean): { id: View; label: string; icon?: ReactNo
     { id: 'courses', label: 'Przedmioty' },
     {
       id: 'settings',
-      label: settingsAlert ? 'Ustawienia (nowe konta czekają na zatwierdzenie)' : 'Ustawienia',
+      label: settingsAlert ? 'Ustawienia (coś czeka na Twoją uwagę)' : 'Ustawienia',
       icon: <GearIcon alert={settingsAlert} />,
     },
   ]
@@ -149,14 +151,22 @@ type Page =
   | { kind: 'optimizer' }
   | { kind: 'export'; weekStart: number } // tydzień, z którego otwarto eksport
   | { kind: 'help' }
+  | { kind: 'feedback' } // uwagi i pomysły (administrator: skrzynka zgłoszeń)
   | null
 
 function readPageFromHistory(): Page {
-  const state = window.history.state as { course?: unknown; optimizer?: unknown; export?: unknown; help?: unknown } | null
+  const state = window.history.state as {
+    course?: unknown
+    optimizer?: unknown
+    export?: unknown
+    help?: unknown
+    feedback?: unknown
+  } | null
   if (typeof state?.course === 'string') return { kind: 'course', name: state.course }
   if (state?.optimizer === true) return { kind: 'optimizer' }
   if (typeof state?.export === 'number') return { kind: 'export', weekStart: state.export }
   if (state?.help === true) return { kind: 'help' }
+  if (state?.feedback === true) return { kind: 'feedback' }
   return null
 }
 
@@ -176,6 +186,12 @@ function App() {
     window.scrollTo({ top: 0 })
   }, [])
   const admin = useAccessRequests(adminView ? cloud.adminClient : null)
+  const feedback = useFeedback(
+    cloud.access === 'approved' ? cloud.client : null,
+    cloud.uid,
+    cloud.state.kind === 'signedIn' ? cloud.state.user.email : null,
+    adminView,
+  )
   const materials = useSharedMaterials(
     cloud.client,
     cloud.uid,
@@ -244,6 +260,14 @@ function App() {
     pageNow.current = { kind: 'help' }
     window.history.pushState({ help: true }, '')
     setPage({ kind: 'help' })
+    setEnter('rise')
+    window.scrollTo({ top: 0 })
+  }, [])
+
+  const openFeedback = useCallback(() => {
+    pageNow.current = { kind: 'feedback' }
+    window.history.pushState({ feedback: true }, '')
+    setPage({ kind: 'feedback' })
     setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
@@ -398,6 +422,8 @@ function App() {
       openOptimizer,
       openExport,
       openHelp,
+      openFeedback,
+      feedbackNew: feedback.newCount,
       openSettings: () => changeView('settings'),
       isAdmin: adminView,
       canOptimize,
@@ -421,7 +447,22 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, openOptimizer, openExport, openHelp, changeView, adminView, canOptimize, deadlinesByDay, extras.customMeetings, prefs],
+    [
+      extrasApi,
+      materials,
+      openCourse,
+      openOptimizer,
+      openExport,
+      openHelp,
+      openFeedback,
+      feedback.newCount,
+      changeView,
+      adminView,
+      canOptimize,
+      deadlinesByDay,
+      extras.customMeetings,
+      prefs,
+    ],
   )
 
   const courseNames = useMemo(
@@ -556,7 +597,7 @@ function App() {
         <header className="topbar">
           <h1 className="brand">Planer</h1>
           <Tabs
-            tabs={tabs((admin?.pendingCount ?? 0) > 0)}
+            tabs={tabs((admin?.pendingCount ?? 0) > 0 || feedback.newCount > 0)}
             value={view}
             onChange={changeView}
             controlRef={tabsControl}
@@ -577,7 +618,9 @@ function App() {
                 {page?.kind === 'optimizer' && canOptimize ? (
                   <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
                 ) : page?.kind === 'help' ? (
-                  <HelpView onBack={closePage} />
+                  <HelpView onBack={closePage} onFeedback={cloud.uid ? openFeedback : undefined} />
+                ) : page?.kind === 'feedback' && cloud.uid ? (
+                  <FeedbackView feedback={feedback} admin={adminView} onBack={closePage} />
                 ) : page?.kind === 'export' ? (
                   <ExportView
                     meetings={exportSource?.meetings ?? meetings}

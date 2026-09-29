@@ -1,4 +1,5 @@
 // Wspólny interfejs chmury - prawdziwej (Firebase, cloud.ts) i udawanej do testów (cloudMock.ts).
+import type { FeedbackAttachment, FeedbackFile, FeedbackStatus, NewFeedback } from './feedback'
 import type { NewMaterial } from './materials'
 
 export interface CloudUser {
@@ -85,4 +86,17 @@ export interface Cloud {
   deleteMaterial(id: string, chunkCount: number): Promise<void>
   // Usuwa konto i wszystkie dane użytkownika (wymaga hasła - potwierdzenie tożsamości).
   deleteAccount(password: string): Promise<void>
+
+  // Zgłoszenia testerów (feedback/{id}, załączniki w kawałkach).
+  submitFeedback(
+    uid: string,
+    email: string,
+    feedback: NewFeedback,
+    files: FeedbackFile[],
+    onProgress: (done: number, total: number) => void,
+  ): Promise<void>
+  watchFeedback(uid: string | null, onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe // null = wszystkie
+  updateFeedback(id: string, patch: { status?: FeedbackStatus; reply?: string }): Promise<void>
+  downloadFeedbackFile(id: string, attachment: number, chunkCount: number): Promise<Uint8Array[]>
+  deleteFeedback(id: string, attachments: FeedbackAttachment[]): Promise<void>
 }

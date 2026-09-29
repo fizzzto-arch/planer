@@ -4,6 +4,7 @@
 // Sekrety repozytorium (Settings → Secrets and variables → Actions):
 //   FIREBASE_SERVICE_ACCOUNT - klucz konta usługi Firebase (cały plik JSON),
 //   VAPID_PRIVATE_KEY - prywatny klucz powiadomień (publiczny jest w src/lib/pushConfig.ts).
+import { createHash } from 'node:crypto'
 import { cert, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getFirestore, type DocumentData, type DocumentReference } from 'firebase-admin/firestore'
@@ -102,24 +103,57 @@ for (const [uid, userDevices] of byUser) {
   }
 }
 
-// Nowe prośby o dostęp - powiadomienie dla administratorów (na ich urządzenia z przypomnieniami).
-const pending = await db.collection('access').where('status', '==', 'pending').get()
-if (!pending.empty) {
-  const adminUids = (
+// Powiadomienia dla administratorów (na ich urządzenia z przypomnieniami).
+let adminUidsCache: string[] | null = null
+async function notifyAdmins(notice: Notice) {
+  adminUidsCache ??= (
     await Promise.all(ADMIN_EMAILS.map((email) => getAuth().getUserByEmail(email).then((u) => u.uid, () => null)))
   ).filter((uid): uid is string => uid !== null)
-  for (const request of pending.docs) {
-    if (!(await firstTime(`access_${request.id}`, request.id))) continue
-    const email = String(request.get('email') ?? 'Ktoś')
-    for (const adminUid of adminUids) {
-      for (const device of byUser.get(adminUid) ?? []) {
-        await send(device.ref, device.data(), {
-          title: 'Nowe konto czeka na zatwierdzenie',
-          body: `${email} prosi o dostęp do Planera.`,
-          tag: `access-${request.id}`,
-        })
-      }
-    }
+  for (const adminUid of adminUidsCache) {
+    for (const device of byUser.get(adminUid) ?? []) await send(device.ref, device.data(), notice)
+  }
+}
+
+// Nowe prośby o dostęp.
+const pending = await db.collection('access').where('status', '==', 'pending').get()
+for (const request of pending.docs) {
+  if (!(await firstTime(`access_${request.id}`, request.id))) continue
+  const email = String(request.get('email') ?? 'Ktoś')
+  await notifyAdmins({
+    title: 'Nowe konto czeka na zatwierdzenie',
+    body: `${email} prosi o dostęp do Planera.`,
+    tag: `access-${request.id}`,
+  })
+}
+
+// Nowe zgłoszenia od testerów (tylko dokończone - z wszystkimi załącznikami).
+const newFeedback = await db.collection('feedback').where('status', '==', 'new').get()
+for (const f of newFeedback.docs) {
+  if (f.get('complete') !== true) continue
+  if (!(await firstTime(`feedback_${f.id}`, String(f.get('uid') ?? '')))) continue
+  const kind = f.get('kind') === 'bug' ? 'Błąd' : f.get('kind') === 'idea' ? 'Pomysł' : 'Opinia'
+  const text = [f.get('bad'), f.get('text'), f.get('missing'), f.get('good')].find((t) => typeof t === 'string' && t.trim())
+  await notifyAdmins({
+    title: `${kind} od ${String(f.get('email') ?? 'testera')}`,
+    body: String(text ?? '').slice(0, 140) || 'Nowe zgłoszenie w Planerze.',
+    tag: `feedback-${f.id}`,
+  })
+}
+
+// Odpowiedź administratora na zgłoszenie - powiadomienie dla autora (raz na każdą treść odpowiedzi).
+const replied = await db.collection('feedback').where('reply', '!=', '').get()
+for (const f of replied.docs) {
+  const uid = String(f.get('uid') ?? '')
+  const reply = String(f.get('reply'))
+  const devicesOfAuthor = byUser.get(uid) ?? []
+  if (devicesOfAuthor.length === 0) continue
+  if (!(await firstTime(`reply_${f.id}_${createHash('sha1').update(reply).digest('hex').slice(0, 10)}`, uid))) continue
+  for (const device of devicesOfAuthor) {
+    await send(device.ref, device.data(), {
+      title: 'Odpowiedź na Twoje zgłoszenie',
+      body: reply.slice(0, 140),
+      tag: `reply-${f.id}`,
+    })
   }
 }
 

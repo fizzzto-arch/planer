@@ -38,7 +38,8 @@ import type { AccessStatus, Cloud, CollectionName } from './cloudTypes'
 
 // Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
 const ACCOUNT_COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings', 'push']
-import { chunkId } from './materials'
+import { chunkCountFor, feedbackChunkId } from './feedback'
+import { chunkId, splitIntoChunks } from './materials'
 
 export type { Cloud, CloudUser, CloudData } from './cloudTypes'
 
@@ -265,6 +266,74 @@ function createCloud(config: FirebaseOptions): Cloud {
         await deleteDoc(doc(db, 'materials', id))
       }),
 
+    // Zgłoszenie: najpierw treść (reguły sprawdzają autora), potem kawałki załączników,
+    // na końcu "complete" - administrator widzi tylko dokończone.
+    submitFeedback: (uid, email, feedback, files, onProgress) =>
+      wrap(async () => {
+        const ref = doc(collection(db, 'feedback'))
+        const attachments = files.map((f) => ({
+          name: f.name,
+          type: f.type,
+          size: f.bytes.length,
+          chunkCount: chunkCountFor(f.bytes.length),
+        }))
+        await setDoc(ref, {
+          ...feedback,
+          uid,
+          email,
+          status: 'new',
+          reply: '',
+          attachments,
+          size: attachments.reduce((s, a) => s + a.size, 0),
+          complete: false,
+          createdAt: serverTimestamp(),
+        })
+        const total = attachments.reduce((s, a) => s + a.chunkCount, 0)
+        let done = 0
+        onProgress(done, total)
+        for (let a = 0; a < files.length; a++) {
+          const chunks = splitIntoChunks(files[a].bytes)
+          for (let i = 0; i < chunks.length; i++) {
+            await setDoc(doc(db, 'feedback', ref.id, 'chunks', feedbackChunkId(a, i)), { data: Bytes.fromUint8Array(chunks[i]) })
+            onProgress(++done, total)
+          }
+        }
+        await setDoc(ref, { complete: true }, { merge: true })
+      }),
+
+    watchFeedback(uid, onDocs, onError) {
+      const source = uid ? query(collection(db, 'feedback'), where('uid', '==', uid)) : collection(db, 'feedback')
+      return onSnapshot(
+        source,
+        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+        (e) => onError(describeError(e)),
+      )
+    },
+
+    updateFeedback: (id, patch) => wrap(() => setDoc(doc(db, 'feedback', id), patch, { merge: true })),
+
+    async downloadFeedbackFile(id, attachment, chunkCount) {
+      const chunks: Uint8Array[] = []
+      for (let i = 0; i < chunkCount; i++) {
+        const snap = await getDoc(doc(db, 'feedback', id, 'chunks', feedbackChunkId(attachment, i)))
+        const data = snap.data()?.data as Bytes | undefined
+        if (!data) throw new Error('Brakuje części załącznika.')
+        chunks.push(data.toUint8Array())
+      }
+      return chunks
+    },
+
+    // Kawałki przed zgłoszeniem - reguły sprawdzają autora w zgłoszeniu.
+    deleteFeedback: (id, attachments) =>
+      wrap(async () => {
+        for (let a = 0; a < attachments.length; a++) {
+          for (let i = 0; i < attachments[a].chunkCount; i++) {
+            await deleteDoc(doc(db, 'feedback', id, 'chunks', feedbackChunkId(a, i)))
+          }
+        }
+        await deleteDoc(doc(db, 'feedback', id))
+      }),
+
     // Kolejność ma znaczenie: dane usuwamy, póki reguły jeszcze wpuszczają (konto zatwierdzone),
     // potem prośbę o dostęp, a na końcu samo konto.
     deleteAccount: (password) =>
@@ -283,6 +352,17 @@ function createCloud(config: FirebaseOptions): Cloud {
           const chunks = await getDocs(collection(m.ref, 'chunks'))
           for (const c of chunks.docs) await deleteDoc(c.ref)
           await deleteDoc(m.ref)
+        }
+        // Zgłoszenia (mają e-mail autora). Bez reguł dla zgłoszeń w konsoli - pomijamy, konto i tak znika.
+        try {
+          const feedback = await getDocs(query(collection(db, 'feedback'), where('uid', '==', uid)))
+          for (const f of feedback.docs) {
+            const chunks = await getDocs(collection(f.ref, 'chunks'))
+            for (const c of chunks.docs) await deleteDoc(c.ref)
+            await deleteDoc(f.ref)
+          }
+        } catch {
+          // brak uprawnień - zostają do usunięcia przez administratora
         }
         // Starsze reguły nie pozwalały usunąć własnej prośby - wtedy zostaje (sam e-mail i status).
         await deleteDoc(doc(db, 'access', uid)).catch(() => undefined)

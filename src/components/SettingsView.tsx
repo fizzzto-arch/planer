@@ -42,7 +42,7 @@ export function SettingsView({
   onSourceChanged,
 }: Props) {
   const [changing, setChanging] = useState(false)
-  const { openHelp } = usePlanUi()
+  const { openHelp, openFeedback, feedbackNew, isAdmin } = usePlanUi()
   const { source, meetings, updatedAt } = plan
   const courseCount = new Set(meetings.map((m) => m.courseName)).size
   const first = meetings[0]
@@ -123,6 +123,30 @@ export function SettingsView({
       </div>
 
       <BackupPanel extras={extras} />
+
+      {signedIn && (
+        <button type="button" className="panel help-entry" onClick={openFeedback}>
+          <span className="help-entry-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 5h16v11H9l-5 4z" />
+            </svg>
+          </span>
+          <span className="help-entry-text">
+            <strong>
+              {isAdmin ? 'Zgłoszenia od testerów' : 'Zgłoś uwagę lub pomysł'}
+              {feedbackNew > 0 && <span className="feedback-count">{feedbackNew}</span>}
+            </strong>
+            <span>
+              {isAdmin
+                ? 'Co działa, co nie i czego brakuje - ze zdjęciami i nagraniami'
+                : 'Co działa, co nie, czego brakuje - możesz dołączyć zrzut ekranu lub nagranie'}
+            </span>
+          </span>
+          <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </button>
+      )}
 
       <button type="button" className="panel help-entry" onClick={openHelp}>
         <span className="help-entry-icon" aria-hidden="true">
