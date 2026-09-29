@@ -116,7 +116,14 @@ export function AccessGate({ cloud, onHelp }: Props) {
               E-mail <strong>{email}</strong> jest potwierdzony. Konto czeka teraz na zatwierdzenie przez
               administratora Planera.
             </p>
-            <p className="hint">Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.</p>
+            {cloud.accessRequestError ? (
+              <p className="hint">
+                Nie udało się jeszcze wysłać prośby do administratora ({cloud.accessRequestError}). Ponawiam
+                automatycznie - możesz też odświeżyć stronę.
+              </p>
+            ) : (
+              <p className="hint">Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.</p>
+            )}
           </>
         )}
 
