@@ -22,6 +22,7 @@ import {
   snapshotPlan,
   type WatchedMeeting,
 } from '../src/lib/planWatch.ts'
+import { isAutoReport } from '../src/lib/feedback.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
 
@@ -131,10 +132,17 @@ const newFeedback = await db.collection('feedback').where('status', '==', 'new')
 for (const f of newFeedback.docs) {
   if (f.get('complete') !== true) continue
   if (!(await firstTime(`feedback_${f.id}`, String(f.get('uid') ?? '')))) continue
-  const kind = f.get('kind') === 'bug' ? 'Błąd' : f.get('kind') === 'idea' ? 'Pomysł' : 'Opinia'
+  const email = String(f.get('email') ?? 'testera')
   const text = [f.get('bad'), f.get('text'), f.get('missing'), f.get('good')].find((t) => typeof t === 'string' && t.trim())
+  if (isAutoReport({ text: String(f.get('text') ?? '') })) {
+    // Treść: "Automatyczne zgłoszenie błędu (widok)\nTypeError: ..." - w powiadomieniu sam komunikat.
+    const message = String(f.get('text')).split('\n')[1] ?? ''
+    await notifyAdmins({ title: `Planer wywrócił się u ${email}`, body: message.slice(0, 140), tag: `feedback-${f.id}` })
+    continue
+  }
+  const kind = f.get('kind') === 'bug' ? 'Błąd' : f.get('kind') === 'idea' ? 'Pomysł' : 'Opinia'
   await notifyAdmins({
-    title: `${kind} od ${String(f.get('email') ?? 'testera')}`,
+    title: `${kind} od ${email}`,
     body: String(text ?? '').slice(0, 140) || 'Nowe zgłoszenie w Planerze.',
     tag: `feedback-${f.id}`,
   })

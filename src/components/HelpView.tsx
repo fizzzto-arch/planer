@@ -62,7 +62,8 @@ export function HelpView({ onBack, onFeedback }: Props) {
           <Fact icon={icon('M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z')} title="Twoje dane widzisz tylko Ty">
             Notatki, terminy, zmiany w planie i ustawienia są przypisane do Twojego konta. Reguły bazy nie wpuszczają
             do nich nikogo innego - także administratora Planera. Wyjątek to zgłoszenia (uwagi, zrzuty ekranu), które
-            sam wysyłasz - te czyta administrator.
+            sam wysyłasz - te czyta administrator. Gdy Planer się wywróci, sam wysyła mu techniczny opis błędu
+            (komunikat, wersja, telefon) - bez notatek, planu ani innych Twoich danych.
           </Fact>
           <Fact icon={icon('M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z')} title="Hasło zna tylko Google">
             Logowaniem zajmuje się Google Firebase. Hasło jest przechowywane w postaci zaszyfrowanej - nie widzi go nikt,

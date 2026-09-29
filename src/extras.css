@@ -2815,3 +2815,9 @@ label.setting-row {
 .feedback .panel > .segmented {
   margin-bottom: 10px;
 }
+
+.feedback-attachment-open {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}

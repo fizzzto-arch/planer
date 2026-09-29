@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Cloud, CloudDoc } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
-import { parseFeedback, type Feedback, type FeedbackFile, type FeedbackStatus, type NewFeedback } from '../lib/feedback'
+import { isAutoReport, parseFeedback, type Feedback, type FeedbackFile, type FeedbackStatus, type NewFeedback } from '../lib/feedback'
 import { joinChunks } from '../lib/materials'
 
 const toList = (docs: CloudDoc[]) =>
@@ -57,7 +57,8 @@ export function useFeedback(client: Cloud | null, uid: string | null, email: str
     [client],
   )
 
-  const ownList = useMemo(() => (own && own.uid === uid ? own.list : []), [own, uid])
+  // Automatyczne zgłoszenia błędów są dla administratora - autorowi nic by nie powiedziały.
+  const ownList = useMemo(() => (own && own.uid === uid ? own.list.filter((f) => !isAutoReport(f)) : []), [own, uid])
   // Administrator widzi tylko dokończone zgłoszenia (przerwane wysyłanie nie ma wszystkich załączników).
   const allList = useMemo(() => (all ?? []).filter((f) => f.complete), [all])
 

@@ -1,6 +1,6 @@
 // Zgłoszenia od testerów: co działa, co nie, czego brakuje - z opcjonalnymi zdjęciami i nagraniami.
 // Załączniki, jak wspólne PDF-y, dzielimy na kawałki w bazie (darmowy plan nie ma magazynu plików).
-import { CHUNK_BYTES, chunkId } from './materials'
+import { CHUNK_BYTES, chunkId } from './materials.ts'
 
 export type FeedbackKind = 'bug' | 'idea' | 'opinion'
 export type FeedbackStatus = 'new' | 'seen' | 'done'
@@ -16,6 +16,11 @@ export const FEEDBACK_STATUS_LABELS: Record<FeedbackStatus, string> = {
   seen: 'Przeczytane',
   done: 'Załatwione',
 }
+
+// Początek treści zgłoszenia wysłanego automatycznie po błędzie (lib/errorReport.ts).
+export const AUTO_PREFIX = 'Automatyczne zgłoszenie błędu'
+
+export const isAutoReport = (f: { text: string }) => f.text.startsWith(AUTO_PREFIX)
 
 export const MAX_ATTACHMENTS = 4
 export const MAX_VIDEO_BYTES = 30 * 1024 * 1024 // ok. 30 s nagrania ekranu

@@ -6,9 +6,12 @@ import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { wipeIfSessionEnded } from './lib/deviceMemory'
 import { registerServiceWorker } from './lib/push'
+import { listenForErrors } from './lib/errorReport'
 
 // Service worker tylko do powiadomień o terminach.
 registerServiceWorker()
+// Wyjątki spoza widoków (np. w obsłudze kliknięć) też trafiają do administratora.
+listenForErrors()
 
 // Najpierw sprzątanie po sesji "bez zapamiętania urządzenia" - zanim cokolwiek wczyta dane.
 void wipeIfSessionEnded().then(() =>

@@ -19,6 +19,7 @@ import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type Export
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
 import { useFeedback } from './hooks/useFeedback'
+import { setErrorSender } from './lib/errorReport'
 import { useExtras } from './hooks/useExtras'
 import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
@@ -192,6 +193,13 @@ function App() {
     cloud.state.kind === 'signedIn' ? cloud.state.user.email : null,
     adminView,
   )
+  // Automatyczne zgłoszenia błędów wysyła zalogowane konto z dostępem (reguły bazy wymagają dostępu).
+  const submitFeedback = feedback.submit
+  const canReport = cloud.uid !== null
+  useEffect(() => {
+    setErrorSender(canReport ? (report) => submitFeedback(report, [], () => {}) : null)
+    return () => setErrorSender(null)
+  }, [canReport, submitFeedback])
   const materials = useSharedMaterials(
     cloud.client,
     cloud.uid,

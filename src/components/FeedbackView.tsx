@@ -6,6 +6,7 @@ import {
   checkAttachments,
   FEEDBACK_KINDS,
   FEEDBACK_STATUS_LABELS,
+  isAutoReport,
   isEmptyFeedback,
   MAX_ATTACHMENTS,
   MAX_TEXT,
@@ -409,7 +410,7 @@ function InboxItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }
         }}
       >
         <span className="feedback-meta">
-          <strong>{kindLabel(item.kind)}</strong>
+          <strong>{isAutoReport(item) ? 'Błąd (automatyczny)' : kindLabel(item.kind)}</strong>
           <span className="muted">
             {item.email || 'bez e-maila'} · {formatWhen(item.createdAt)}
             {item.attachments.length > 0 && ` · załączniki: ${item.attachments.length}`}
@@ -475,6 +476,7 @@ function AttachmentView({ item, index, feedback }: { item: Feedback; index: numb
   const a = item.attachments[index]
   const [url, setUrl] = useState<string | null>(null)
   const [state, setState] = useState<'idle' | 'loading' | string>('idle')
+  const [unplayable, setUnplayable] = useState(false)
 
   useEffect(() => () => {
     if (url) URL.revokeObjectURL(url)
@@ -491,12 +493,30 @@ function AttachmentView({ item, index, feedback }: { item: Feedback; index: numb
   }
 
   if (url) {
-    return a.type.startsWith('video/') ? (
-      <video className="feedback-media" src={url} controls playsInline />
-    ) : (
-      <a href={url} target="_blank" rel="noreferrer">
-        <img className="feedback-media" src={url} alt={a.name} />
+    // Plik zawsze da się pobrać: nagrania z aparatu iPhone'a (HEVC) Chrome na Windowsie często nie odtworzy.
+    const download = (
+      <a className="link-button" href={url} download={a.name}>
+        Pobierz plik ({formatSize(a.size)})
       </a>
+    )
+    return (
+      <div className="feedback-attachment-open">
+        {a.type.startsWith('video/') ? (
+          unplayable ? (
+            <p className="hint">
+              Ta przeglądarka nie odtworzy tego nagrania (pewnie format HEVC z iPhone'a) - pobierz je i otwórz w
+              odtwarzaczu, np. VLC albo „Filmy i TV”.
+            </p>
+          ) : (
+            <video className="feedback-media" src={url} controls playsInline onError={() => setUnplayable(true)} />
+          )
+        ) : (
+          <a href={url} target="_blank" rel="noreferrer">
+            <img className="feedback-media" src={url} alt={a.name} />
+          </a>
+        )}
+        {download}
+      </div>
     )
   }
   return (

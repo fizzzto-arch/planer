@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -37,5 +38,10 @@ export default defineConfig({
   build: {
     // Firebase (~180 kB po kompresji, z pamięcią offline) ładuje się osobno, w tle, po wyświetleniu planu.
     chunkSizeWarningLimit: 700,
+  },
+  test: {
+    // Testy zawsze w polskiej strefie (z przejściem na czas zimowy) - także na serwerze GitHuba,
+    // który liczy w UTC i przepuściłby błędy zmiany czasu.
+    env: { TZ: 'Europe/Warsaw' },
   },
 })
