@@ -62,5 +62,16 @@ describe('plan w Excelu', () => {
     expect(sheet).toContain('Elektro')
     expect(sheet).toContain('Fizyka')
     expect(files.get('xl/workbook.xml')).toContain('name="Lista"')
+
+    // Każdy wiersz ma wysokość - podgląd na iPhonie rozciągał wiersz bez niej (legendę) na pół ekranu.
+    for (const xml of [sheet, files.get('xl/worksheets/sheet2.xml')!]) {
+      const rows = [...xml.matchAll(/<row [^>]*>/g)].map((m) => m[0])
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) expect(row).toMatch(/ht="\d+(\.\d+)?" customHeight="1"/)
+      expect(xml).toContain('<sheetFormatPr defaultRowHeight=')
+    }
+    // Legenda nad siatką (wiersz 3), bez szarej siatki arkusza.
+    expect(sheet).toMatch(/<row r="3"[^>]*>.*?Wykład/)
+    expect(sheet).toContain('showGridLines="0"')
   })
 })

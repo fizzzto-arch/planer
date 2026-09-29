@@ -9,6 +9,7 @@ export interface CellStyle {
   fill?: string
   border?: string // kolor cienkiej ramki dookoła
   borderTop?: string // tylko górna krawędź (np. linie godzin)
+  borderLeft?: string // tylko lewa krawędź (np. granica dnia)
   wrap?: boolean
   align?: 'left' | 'center' | 'right'
   valign?: 'top' | 'center'
@@ -28,7 +29,12 @@ export interface Sheet {
   freeze?: { rows: number; cols: number }
   autoFilter?: string
   landscape?: boolean // wydruk w poziomie, dopasowany do szerokości strony
+  hideGridLines?: boolean // bez szarej siatki arkusza - linie rysują ramki komórek
 }
+
+// Wysokość wierszy bez podanej. Zapisujemy ją przy każdym wierszu: podgląd na iPhonie
+// rozciąga wiersze bez wysokości na całe wolne miejsce ekranu.
+const DEFAULT_ROW_HEIGHT = 15
 
 export function colName(index: number): string {
   // 0 -> A, 25 -> Z, 26 -> AA
@@ -80,10 +86,10 @@ class Styles {
       : 0
     const side = (name: string, color?: string) => (color ? `<${name} style="thin"><color rgb="${argb(color)}"/></${name}>` : `<${name}/>`)
     const border =
-      s.border || s.borderTop
+      s.border || s.borderTop || s.borderLeft
         ? this.add(
             this.borders,
-            `<border>${side('left', s.border)}${side('right', s.border)}${side('top', s.border ?? s.borderTop)}${side('bottom', s.border)}<diagonal/></border>`,
+            `<border>${side('left', s.border ?? s.borderLeft)}${side('right', s.border)}${side('top', s.border ?? s.borderTop)}${side('bottom', s.border)}<diagonal/></border>`,
           )
         : 0
     const alignment =
@@ -133,7 +139,7 @@ function sheetXml(sheet: Sheet, styles: Styles): string {
   const rowXml = [...rows.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([row, cells]) => {
-      const height = sheet.rowHeights.get(row)
+      const height = sheet.rowHeights.get(row) ?? DEFAULT_ROW_HEIGHT
       const cellsXml = cells
         .sort((a, b) => a[0] - b[0])
         .map(([col, cell]) => {
@@ -144,13 +150,15 @@ function sheetXml(sheet: Sheet, styles: Styles): string {
           return `<c r="${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(cell.v)}</t></is></c>`
         })
         .join('')
-      return `<row r="${row}"${height ? ` ht="${height}" customHeight="1"` : ''}>${cellsXml}</row>`
+      return `<row r="${row}" ht="${height}" customHeight="1">${cellsXml}</row>`
     })
     .join('')
 
   const pane = sheet.freeze
-    ? `<sheetViews><sheetView workbookViewId="0"><pane${sheet.freeze.cols ? ` xSplit="${sheet.freeze.cols}"` : ''}${sheet.freeze.rows ? ` ySplit="${sheet.freeze.rows}"` : ''} topLeftCell="${ref(sheet.freeze.cols, sheet.freeze.rows + 1)}" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>`
+    ? `<pane${sheet.freeze.cols ? ` xSplit="${sheet.freeze.cols}"` : ''}${sheet.freeze.rows ? ` ySplit="${sheet.freeze.rows}"` : ''} topLeftCell="${ref(sheet.freeze.cols, sheet.freeze.rows + 1)}" activePane="bottomRight" state="frozen"/>`
     : ''
+  const view = `<sheetViews><sheetView workbookViewId="0"${sheet.hideGridLines ? ' showGridLines="0"' : ''}>${pane}</sheetView></sheetViews>`
+  const format = `<sheetFormatPr defaultRowHeight="${DEFAULT_ROW_HEIGHT}" customHeight="1"/>`
   const cols = sheet.colWidths.length
     ? `<cols>${sheet.colWidths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`
     : ''
@@ -163,7 +171,7 @@ function sheetXml(sheet: Sheet, styles: Styles): string {
     : '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>'
   const sheetPr = sheet.landscape ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : ''
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${sheetPr}${pane}${cols}<sheetData>${rowXml}</sheetData>${filter}${merges}${print}</worksheet>`
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${sheetPr}${view}${format}${cols}<sheetData>${rowXml}</sheetData>${filter}${merges}${print}</worksheet>`
 }
 
 export function buildXlsx(sheets: Sheet[]): Blob {

@@ -39,6 +39,12 @@ function planSheet(model: ExportModel): Sheet {
   set(0, 2, model.subtitle, { color: '#6b6b73' })
   merges.push(`${ref(0, 2)}:${ref(lastCol, 2)}`)
 
+  // Legenda typów nad siatką (pod siatką ginęła przy końcu arkusza).
+  model.types.forEach((t, i) =>
+    set(1 + i, 3, t.name, { fill: lighten(t.color), border: t.color, align: 'center', valign: 'center', size: 9 }),
+  )
+  rowHeights.set(3, 16)
+
   // Nagłówki dni.
   const headerRow = 4
   const header: CellStyle = { bold: true, fill: HEADER_FILL, align: 'center', valign: 'center', border: LINE }
@@ -51,7 +57,9 @@ function planSheet(model: ExportModel): Sheet {
   })
   rowHeights.set(headerRow, 20)
 
-  // Siatka 15-minutowa: godzina co 4 wiersze, cienka linia na początku każdej godziny.
+  // Siatka 15-minutowa: godzina co 4 wiersze, cienka linia na początku każdej godziny
+  // i pionowa na granicy dni (siatka arkusza jest wyłączona - byłaby linia co 15 minut).
+  const dayStart = new Set(dayCol)
   const firstRow = headerRow + 1
   const slots = (model.lastMinute - model.firstMinute) / SLOT_MIN
   for (let s = 0; s < slots; s++) {
@@ -66,7 +74,13 @@ function planSheet(model: ExportModel): Sheet {
       valign: 'top',
       ...(fullHour ? { borderTop: LINE } : {}),
     })
-    if (fullHour) for (let c = 1; c <= lastCol; c++) set(c, row, '', { borderTop: LINE })
+    for (let c = 1; c <= lastCol + 1; c++) {
+      const style: CellStyle = {
+        ...(fullHour && c <= lastCol ? { borderTop: LINE } : {}),
+        ...(dayStart.has(c) || c === lastCol + 1 ? { borderLeft: LINE } : {}),
+      }
+      if (Object.keys(style).length) set(c, row, '', style)
+    }
   }
 
   // Zajęcia: scalone komórki w kolorze typu.
@@ -94,12 +108,12 @@ function planSheet(model: ExportModel): Sheet {
     if (r2 > r1 || c2 > c1) merges.push(`${ref(c1, r1)}:${ref(c2, r2)}`)
   }
 
-  // Legenda i uwagi pod siatką.
+  // Linia zamykająca siatkę od dołu.
+  for (let c = 1; c <= lastCol; c++) set(c, firstRow + slots, '', { borderTop: LINE })
+  rowHeights.set(firstRow + slots, 8)
+
+  // Uwagi pod siatką.
   let row = firstRow + slots + 1
-  if (model.types.length) {
-    model.types.forEach((t, i) => set(1 + i, row, t.name, { fill: lighten(t.color), border: t.color, align: 'center', size: 9 }))
-    row += 2
-  }
   if (model.notes.length) {
     set(0, row, 'Uwagi', { bold: true })
     row++
@@ -111,8 +125,9 @@ function planSheet(model: ExportModel): Sheet {
     }
   }
 
-  const dayWidth = 26
-  const colWidths = [7, ...lanesPerDay.flatMap((lanes) => Array.from({ length: lanes }, () => Math.max(12, dayWidth / lanes)))]
+  // Szerokość na pełną nazwę przedmiotu ("Wspomagane komputerowo projektowanie") w 9 pt.
+  const dayWidth = 30
+  const colWidths = [7, ...lanesPerDay.flatMap((lanes) => Array.from({ length: lanes }, () => Math.max(13, dayWidth / lanes))), 2]
   return {
     name: 'Plan',
     cells,
@@ -121,6 +136,7 @@ function planSheet(model: ExportModel): Sheet {
     rowHeights,
     freeze: { rows: headerRow, cols: 1 },
     landscape: true,
+    hideGridLines: true,
   }
 }
 
