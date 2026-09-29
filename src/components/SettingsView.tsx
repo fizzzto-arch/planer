@@ -150,6 +150,8 @@ export function SettingsView({
 
       <p className="app-version">
         Planer · wersja {__APP_VERSION__}
+        {/* Administrator widzi funkcje w wersji alpha (np. optymalizator) - tu widać, że to konto je ma. */}
+        {admin && ' · administrator'}
       </p>
     </section>
   )
