@@ -12,6 +12,7 @@ import { AdminPanel } from './AdminPanel'
 import { BackupPanel } from './BackupPanel'
 import { ColorsPanel } from './ColorsPanel'
 import { AliasesPanel, AppearancePanel, PlanPrefsPanel } from './PreferencesPanels'
+import { RemindersPanel } from './RemindersPanel'
 import { SourceForm } from './SourceForm'
 
 interface Props {
@@ -58,6 +59,7 @@ export function SettingsView({
     <section>
       <AccountPanel cloud={cloud} />
       {admin && <AdminPanel admin={admin} now={now} />}
+      <RemindersPanel extras={extras} prefsApi={prefsApi} />
       <AppearancePanel prefsApi={prefsApi} signedIn={signedIn} />
       <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
       <PlanPrefsPanel prefsApi={prefsApi} />

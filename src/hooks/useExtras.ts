@@ -199,6 +199,22 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  // Urządzenie z włączonymi przypomnieniami (subskrypcja push). test = poproś o próbne powiadomienie.
+  const savePushDevice = useCallback(
+    (id: string, subscription: PushSubscriptionJSON, device: string, test = false) =>
+      write((c, u) =>
+        c.setItem(u, 'push', id, {
+          endpoint: subscription.endpoint,
+          keys: subscription.keys ?? {},
+          device,
+          testRequested: test,
+        }),
+      ),
+    [write],
+  )
+
+  const deletePushDevice = useCallback((id: string) => write((c, u) => c.deleteItem(u, 'push', id)), [write])
+
   // Kopia zapasowa: wszystkie dokumenty dodatków (bez znaczników czasu serwera).
   const exportBackup = useCallback((): BackupFile => {
     const data: Record<string, CloudDoc[]> = {}
@@ -244,6 +260,8 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     saveTypeColors,
     savePrefs,
     saveOptimizer,
+    savePushDevice,
+    deletePushDevice,
     exportBackup,
     importBackup,
   }

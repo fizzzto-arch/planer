@@ -22,7 +22,15 @@ export interface CloudData {
 }
 
 // Kolekcje z dodatkami użytkownika: users/{uid}/{nazwa}/{id}
-export type CollectionName = 'courses' | 'deadlines' | 'meetingEdits' | 'seriesEdits' | 'customMeetings' | 'settings'
+// 'push' - urządzenia z włączonymi przypomnieniami (czyta je skrypt wysyłający, nie aplikacja).
+export type CollectionName =
+  | 'courses'
+  | 'deadlines'
+  | 'meetingEdits'
+  | 'seriesEdits'
+  | 'customMeetings'
+  | 'settings'
+  | 'push'
 
 export interface CloudDoc {
   id: string

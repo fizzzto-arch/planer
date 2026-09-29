@@ -1,4 +1,5 @@
 // Ustawienia użytkownika. Zapisywane w przeglądarce, a po zalogowaniu także na koncie.
+import { DEFAULT_REMINDERS, parseReminderKinds, type ReminderKind } from './reminders'
 
 export type AnimationsMode = 'on' | 'off' | 'system'
 export type ThemeMode = 'system' | 'light' | 'dark'
@@ -18,6 +19,7 @@ export interface Prefs {
   upcomingDays: number // zasięg paska "Nadchodzące terminy"
   courseAliases: Record<string, string> // pełna nazwa przedmiotu -> skrót
   useAliases: boolean // pokazuj skróty zamiast pełnych nazw (skróty zostają zapisane)
+  reminders: ReminderKind[] // kiedy przypominać o terminach (czyta to też skrypt wysyłający)
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -33,6 +35,7 @@ export const DEFAULT_PREFS: Prefs = {
   upcomingDays: 14,
   courseAliases: {},
   useAliases: true,
+  reminders: DEFAULT_REMINDERS,
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -77,6 +80,7 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     upcomingDays: numberFrom(raw.upcomingDays, UPCOMING_OPTIONS, DEFAULT_PREFS.upcomingDays),
     courseAliases: aliases,
     useAliases: bool(raw.useAliases, DEFAULT_PREFS.useAliases),
+    reminders: parseReminderKinds(raw.reminders),
   }
 }
 

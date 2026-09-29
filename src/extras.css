@@ -1806,3 +1806,35 @@ label.setting-row {
 .view-enter-left {
   animation: slide-from-left 260ms ease-out both;
 }
+
+/* ---------- Przypomnienia o terminach ---------- */
+
+.reminder-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.reminder-device .muted {
+  margin: 0;
+}
+
+.reminder-state {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.reminder-state.is-on {
+  color: var(--ok);
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 8px;
+}
