@@ -95,10 +95,32 @@ export function useCloud(plan: PlanApi) {
   const accessStatus = accessData && accessData.uid === userUid ? accessData.status : undefined
 
   // Brak prośby o dostęp (świeżo potwierdzony e-mail) - wysyłamy ją sami.
+  // Nieudaną wysyłkę ponawiamy - inaczej konto wisiałoby na "czeka na zatwierdzenie",
+  // a administrator w ogóle nie widziałby prośby.
+  const [requestError, setRequestError] = useState<{ uid: string; message: string } | null>(null)
+  const [requestRetry, setRequestRetry] = useState(0)
   useEffect(() => {
     if (!cloud || !userUid || !userEmail || isAdmin || !emailVerified || accessStatus !== null) return
-    cloud.requestAccess(userUid, userEmail).catch((e) => setSyncError(errorMessage(e)))
-  }, [cloud, userUid, userEmail, isAdmin, emailVerified, accessStatus])
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    let cancelled = false
+    cloud
+      .requestAccess(userUid, userEmail)
+      .then(() => {
+        if (!cancelled) setRequestError(null)
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setRequestError({ uid: userUid, message: errorMessage(e) })
+        retryTimer = setTimeout(() => setRequestRetry((n) => n + 1), RETRY_AFTER_MS)
+      })
+    return () => {
+      cancelled = true
+      clearTimeout(retryTimer)
+    }
+  }, [cloud, userUid, userEmail, isAdmin, emailVerified, accessStatus, requestRetry])
+  // Prośba nie dotarła do administratora (błąd dotyczy tylko konta bez zapisanej prośby).
+  const accessRequestError =
+    requestError && requestError.uid === userUid && accessStatus === null ? requestError.message : null
 
   let access: AccessState
   if (!user) access = 'none'
@@ -204,6 +226,7 @@ export function useCloud(plan: PlanApi) {
     // Panel zatwierdzania kont - tylko dla administratora.
     adminClient: isAdmin ? cloud : null,
     syncError,
+    accessRequestError,
     // Na koncie jest plan, którego ta przeglądarka jeszcze nie ma (trwa pobieranie).
     isAdopting: !!uid && !!cloudUrl && cloudUrl !== localUrl,
     signIn,

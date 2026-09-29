@@ -1,7 +1,5 @@
 import type { CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
-import { useMediaQuery } from '../hooks/useMediaQuery'
-import { PHONE_QUERY } from '../lib/prefs'
 import { formatTypes, summarizeCourses } from '../lib/courses'
 import { formatShortDay, formatTime } from '../lib/dates'
 import { upcomingDeadlines } from '../lib/deadlines'
@@ -20,14 +18,13 @@ interface Props {
 
 export function CoursesView({ meetings, now }: Props) {
   const { extras, openCourse, openOptimizer, isAdmin, editDeadline, displayName } = usePlanUi()
-  const isPhone = useMediaQuery(PHONE_QUERY)
   const courses = summarizeCourses(meetings, now)
   const deadlines = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD) : []
 
   return (
     <section>
-      {/* Optymalizator: wersja alpha - tylko administrator i tylko na komputerze. */}
-      {isAdmin && !isPhone && (
+      {/* Optymalizator: wersja alpha - tylko administrator (na komputerze i telefonie). */}
+      {isAdmin && (
         <button type="button" className="optimizer-entry" onClick={openOptimizer}>
           <span className="optimizer-entry-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">

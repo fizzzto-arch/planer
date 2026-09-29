@@ -154,8 +154,13 @@ function createCloud(config: FirebaseOptions): Cloud {
       )
     },
 
+    // Reguły wymagają "e-mail potwierdzony" w tokenie. Zaraz po kliknięciu linku token bywa
+    // jeszcze stary - bez odświeżenia zapis odbijał się od reguł i prośba nigdy nie powstawała.
     requestAccess: (uid, email) =>
-      wrap(() => setDoc(doc(db, 'access', uid), { email, status: 'pending', requestedAt: serverTimestamp() })),
+      wrap(async () => {
+        await auth.currentUser?.getIdToken(true)
+        await setDoc(doc(db, 'access', uid), { email, status: 'pending', requestedAt: serverTimestamp() })
+      }),
 
     watchAccessRequests(onRequests, onError) {
       return onSnapshot(
