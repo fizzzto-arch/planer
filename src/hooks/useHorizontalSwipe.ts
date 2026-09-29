@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react'
+import { swipeLog } from '../lib/swipeDebug'
 
 export interface SwipeHandlers {
   onStart?: () => void // palec ruszył w bok - gest się zaczyna
@@ -8,6 +9,7 @@ export interface SwipeHandlers {
 }
 
 interface Options {
+  name: string // do diagnostyki gestów
   enabled: boolean
   onlyRight?: boolean // tylko gest w prawo ("wstecz"); ruch w lewo zostaje stronie
   ignoreEdges?: number // pomijaj gesty od krawędzi - tam działa gest przeglądarki
@@ -28,11 +30,11 @@ function inHorizontalScroller(node: Element | null): boolean {
   return false
 }
 
-// Przesunięcie palcem w bok. target = element albo cały dokument.
+// Przesunięcie palcem w bok na elemencie target.
 export function useHorizontalSwipe(
-  target: RefObject<HTMLElement | null> | 'document',
+  target: RefObject<HTMLElement | null>,
   handlers: SwipeHandlers,
-  { enabled, onlyRight, ignoreEdges }: Options,
+  { name, enabled, onlyRight, ignoreEdges }: Options,
 ) {
   const handlersRef = useRef(handlers)
   useEffect(() => {
@@ -41,45 +43,61 @@ export function useHorizontalSwipe(
 
   useEffect(() => {
     if (!enabled) return
-    const el = target === 'document' ? document : target.current
-    if (!el) return
+    const el = target.current
+    if (!el) {
+      swipeLog(`${name}: brak elementu`)
+      return
+    }
 
     let start: { x: number; y: number } | null = null
     let horizontal = false
+    let moves = 0
     let last = { x: 0, t: 0 }
     let prev = { x: 0, t: 0 }
 
-    const onTouchStart = (e: Event) => {
-      const { touches, target: touched, timeStamp } = e as TouchEvent
+    const onTouchStart = (e: TouchEvent) => {
+      const { touches, target: touched, timeStamp } = e
       start = null
       if (touches.length !== 1) return
       const { clientX, clientY } = touches[0]
-      if (ignoreEdges !== undefined && (clientX < ignoreEdges || clientX > window.innerWidth - ignoreEdges)) return
-      if (touched instanceof Element && (touched.closest(IGNORED) || inHorizontalScroller(touched))) return
-      if (document.querySelector('dialog[open]')) return
+      const skip =
+        ignoreEdges !== undefined && (clientX < ignoreEdges || clientX > window.innerWidth - ignoreEdges)
+          ? 'krawędź'
+          : touched instanceof Element && touched.closest(IGNORED)
+            ? 'pole/okno'
+            : touched instanceof Element && inHorizontalScroller(touched)
+              ? 'przewijany element'
+              : document.querySelector('dialog[open]')
+                ? 'otwarte okno'
+                : null
+      swipeLog(`${name}: start x=${Math.round(clientX)}${skip ? ` pomijam (${skip})` : ''}`)
+      if (skip) return
       start = { x: clientX, y: clientY }
       horizontal = false
+      moves = 0
       last = prev = { x: clientX, t: timeStamp }
     }
 
-    const onTouchMove = (e: Event) => {
-      const event = e as TouchEvent
+    const onTouchMove = (e: TouchEvent) => {
       if (!start) return
-      const { clientX, clientY } = event.touches[0]
+      const { clientX, clientY } = e.touches[0]
       const dx = clientX - start.x
       const dy = clientY - start.y
       if (!horizontal) {
         if (Math.abs(dx) < LOCK_DISTANCE && Math.abs(dy) < LOCK_DISTANCE) return
         if (Math.abs(dx) <= Math.abs(dy) * 1.2 || (onlyRight && dx < 0)) {
+          swipeLog(`${name}: to nie gest (dx=${Math.round(dx)} dy=${Math.round(dy)})`)
           start = null // przewijanie w pionie (albo zły kierunek) - nie przeszkadzamy
           return
         }
         horizontal = true
+        swipeLog(`${name}: gest w bok, cancelable=${e.cancelable}`)
         handlersRef.current.onStart?.()
       }
-      event.preventDefault() // w trakcie gestu strona nie przewija się w pionie
+      if (e.cancelable) e.preventDefault() // w trakcie gestu strona nie przewija się w pionie
+      moves++
       prev = last
-      last = { x: clientX, t: event.timeStamp }
+      last = { x: clientX, t: e.timeStamp }
       handlersRef.current.onMove(dx)
     }
 
@@ -89,11 +107,13 @@ export function useHorizontalSwipe(
       start = null
       if (!horizontal) return
       const velocity = (last.x - prev.x) / Math.max(1, last.t - prev.t)
+      swipeLog(`${name}: koniec dx=${Math.round(dx)} v=${velocity.toFixed(2)} ruchów=${moves}`)
       handlersRef.current.onEnd(dx, velocity)
     }
 
     const onTouchCancel = () => {
       if (start && horizontal) handlersRef.current.onCancel?.()
+      if (start) swipeLog(`${name}: przerwane przez system`)
       start = null
     }
 
@@ -107,8 +127,9 @@ export function useHorizontalSwipe(
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchcancel', onTouchCancel)
     }
-  }, [target, enabled, onlyRight, ignoreEdges])
+  }, [target, name, enabled, onlyRight, ignoreEdges])
 }
+
 
 // Aplikacja z ekranu początkowego - bez paska Safari i jego gestów "wstecz / dalej" od krawędzi.
 // navigator.standalone to stary sposób iOS, display-mode - nowszy; sprawdzamy oba.

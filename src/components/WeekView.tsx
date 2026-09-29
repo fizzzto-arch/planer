@@ -44,7 +44,7 @@ export function WeekView({ meetings, now }: Props) {
       onCancel: () => slideElement(bodyRef.current, 0, true),
     },
     // W Safari przy krawędziach działa gest przeglądarki "wstecz / dalej".
-    { enabled: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
+    { name: 'tydzień', enabled: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
   )
 
   const weekEnd = addDays(weekStart, 7)

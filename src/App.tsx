@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { MeetingEditor } from './components/MeetingEditor'
 import { OptimizerView } from './components/OptimizerView'
 import { SettingsView } from './components/SettingsView'
+import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { SourceForm } from './components/SourceForm'
 import { Tabs } from './components/Tabs'
 import { TodayView } from './components/TodayView'
@@ -164,12 +165,12 @@ function App() {
 
   // Gest "wstecz": przesunięcie w prawo na podstronie. Aplikacja z ekranu początkowego nie ma paska Safari,
   // więc i jego gestu - robimy własny: podstrona jedzie za palcem, a spod niej wyłania się plan.
+  // Plan pod spodem jest wyrenderowany zawczasu (niewidoczny), żeby start gestu niczego nie przebudowywał.
   const pageRef = useRef<HTMLDivElement>(null)
+  const underWrapRef = useRef<HTMLDivElement>(null)
   const underRef = useRef<HTMLDivElement>(null)
-  const [underlay, setUnderlay] = useState<{ page: Page; top: number } | null>(null)
-  const scrollAfterBack = useRef<number | null>(null)
-
   const dimRef = useRef<HTMLDivElement>(null)
+  const scrollAfterBack = useRef<number | null>(null)
 
   const moveUnderlay = (progress: number, animate: boolean) => {
     const transition = animate ? 'transform 220ms ease-out, opacity 220ms ease-out' : 'none'
@@ -190,7 +191,7 @@ function App() {
     window.setTimeout(() => {
       pageRef.current?.classList.remove('is-swiping')
       if (!back) {
-        setUnderlay(null)
+        underWrapRef.current?.classList.remove('is-active')
         return
       }
       setSkipEnter(true)
@@ -199,14 +200,18 @@ function App() {
   }
 
   useHorizontalSwipe(
-    'document',
+    pageRef,
     {
       onStart: () => {
         const top = pageRef.current?.getBoundingClientRect().top ?? 0
         // Przewinięta podstrona: plan pod spodem pokazujemy od góry, więc po powrocie przewijamy do niego.
         scrollAfterBack.current = top < 0 ? top + window.scrollY : null
         pageRef.current?.classList.add('is-swiping')
-        setUnderlay({ page, top: Math.max(0, top) })
+        const under = underWrapRef.current
+        if (under) {
+          under.style.top = `${Math.max(0, top)}px`
+          under.classList.add('is-active')
+        }
       },
       onMove: (dx) => {
         const x = Math.max(0, dx)
@@ -217,7 +222,7 @@ function App() {
       onCancel: () => endSwipe(false),
     },
     // W Safari przy samej krawędzi działa gest przeglądarki - tam go nie dublujemy.
-    { enabled: page !== null, onlyRight: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
+    { name: 'wstecz', enabled: page !== null, onlyRight: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
   )
 
   useLayoutEffect(() => {
@@ -368,12 +373,13 @@ function App() {
         </header>
         <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
 
-        {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
-        <div
-          key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view}
-          className={[skipEnter ? '' : 'view-enter', page ? 'swipe-host' : ''].join(' ').trim() || undefined}
-        >
-          <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
+        {/* Stały element (bez key) - na nim nasłuchujemy gestu "wstecz" i to on jedzie za palcem. */}
+        <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
+          {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
+          <div
+            key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view}
+            className={skipEnter ? undefined : 'view-enter'}
+          >
             <ErrorBoundary>
               {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
               {page?.kind === 'optimizer' && cloud.isAdmin ? (
@@ -387,15 +393,16 @@ function App() {
           </div>
         </div>
 
-        {/* W trakcie gestu "wstecz": plan, do którego wracamy, wyłania się spod podstrony. */}
-        {underlay && underlay.page === page && (
-          <div className="swipe-under" style={{ top: underlay.top }} aria-hidden="true">
+        {/* Plan, do którego wraca gest "wstecz" - niewidoczny, dopóki gest się nie zacznie. */}
+        {page && (
+          <div ref={underWrapRef} className="swipe-under" aria-hidden="true">
             <div ref={underRef} className="swipe-under-inner">
               {mainView}
             </div>
             <div ref={dimRef} className="swipe-dim" />
           </div>
         )}
+        <SwipeDebugOverlay />
 
         {deadlineDraft && extrasApi && (
           <DeadlineEditor

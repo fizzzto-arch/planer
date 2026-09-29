@@ -1,6 +1,9 @@
+import { useSyncExternalStore } from 'react'
 import type { AccessRequestsApi } from '../hooks/useAccessRequests'
 import type { AccessRequest } from '../lib/cloudTypes'
 import { formatUpdatedAt } from '../lib/dates'
+import { setSwipeDebug, swipeDebugStore } from '../lib/swipeDebug'
+import { SwitchSetting } from './SettingControls'
 
 interface Props {
   admin: AccessRequestsApi
@@ -51,6 +54,7 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Props)
 
 // Zatwierdzanie nowych kont - widoczne tylko dla administratora.
 export function AdminPanel({ admin, now }: Props) {
+  const debugGestures = useSyncExternalStore(swipeDebugStore.subscribe, swipeDebugStore.enabled)
   const sorted = [...admin.requests].sort(
     (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.email.localeCompare(b.email),
   )
@@ -81,6 +85,12 @@ export function AdminPanel({ admin, now }: Props) {
           ))}
         </ul>
       )}
+      <SwitchSetting
+        label="Diagnostyka gestów"
+        hint="Pokazuje na dole ekranu, co telefon wysyła przy przesuwaniu palcem. Tylko na tym urządzeniu."
+        checked={debugGestures}
+        onChange={setSwipeDebug}
+      />
     </div>
   )
 }
