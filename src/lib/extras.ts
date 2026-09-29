@@ -27,6 +27,23 @@ export interface Deadline {
   time: string | null // "HH:MM"
   note: string
   done: boolean
+  checklist?: ChecklistItem[] // "do przygotowania" (np. rozdziały na kolokwium)
+}
+
+export interface ChecklistItem {
+  text: string
+  done: boolean
+}
+
+export const CHECKLIST_MAX = 30
+
+function parseChecklist(raw: unknown): ChecklistItem[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((i): i is { text: string; done?: unknown } => typeof i === 'object' && i !== null && typeof i.text === 'string')
+    .map((i) => ({ text: i.text.slice(0, 200), done: i.done === true }))
+    .filter((i) => i.text.trim())
+    .slice(0, CHECKLIST_MAX)
 }
 
 export interface CourseLink {
@@ -133,6 +150,7 @@ export function parseDeadline(id: string, raw: Raw): Deadline | null {
     time: optTime(raw.time),
     note: str(raw.note),
     done: raw.done === true,
+    checklist: parseChecklist(raw.checklist),
   }
 }
 

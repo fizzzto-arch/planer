@@ -55,6 +55,11 @@ describe('terminy', () => {
       time: null,
       note: '',
       done: false,
+      checklist: [],
     })
+    // Lista do przygotowania: puste i uszkodzone punkty odpadają.
+    expect(
+      parseDeadline('x', { date: '2026-10-08', checklist: [{ text: 'rozdział 1', done: true }, { text: '  ' }, 'śmieci', { done: true }] })?.checklist,
+    ).toEqual([{ text: 'rozdział 1', done: true }])
   })
 })

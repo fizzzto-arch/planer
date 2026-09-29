@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { DeadlineDraft } from '../hooks/planUi'
 import { parseDateKey } from '../lib/dates'
-import { DEADLINE_KINDS, deadlineKindLabel, type Deadline, type DeadlineKind } from '../lib/extras'
+import { CHECKLIST_MAX, DEADLINE_KINDS, deadlineKindLabel, type ChecklistItem, type Deadline, type DeadlineKind } from '../lib/extras'
 import { Dialog } from './Dialog'
 
 interface Props {
@@ -21,6 +21,15 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
   const [time, setTime] = useState(draft.time ?? '')
   const [note, setNote] = useState(draft.note ?? '')
   const [done, setDone] = useState(draft.done ?? false)
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(draft.checklist ?? [])
+  const [newItem, setNewItem] = useState('')
+
+  const addItem = () => {
+    const text = newItem.trim()
+    if (!text || checklist.length >= CHECKLIST_MAX) return
+    setChecklist([...checklist, { text, done: false }])
+    setNewItem('')
+  }
   const [error, setError] = useState<string | null>(null)
 
   // Przedmiot spoza obecnego planu (np. z poprzedniego semestru) też zostaje na liście.
@@ -45,6 +54,7 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
       time,
       note: note.trim(),
       done,
+      checklist,
     })
     onClose()
   }
@@ -114,6 +124,59 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
+
+        <div className="field">
+          <span className="field-label">
+            Do przygotowania <span className="label-note">(opcjonalnie)</span>
+          </span>
+          {checklist.length > 0 && (
+            <ul className="checklist">
+              {checklist.map((item, i) => (
+                <li key={i}>
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={item.done}
+                      onChange={(e) =>
+                        setChecklist(checklist.map((x, k) => (k === i ? { ...x, done: e.target.checked } : x)))
+                      }
+                    />
+                    <span className={item.done ? 'is-done' : undefined}>{item.text}</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="chip-remove"
+                    aria-label={`Usuń „${item.text}”`}
+                    onClick={() => setChecklist(checklist.filter((_, k) => k !== i))}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M7 7l10 10M17 7 7 17" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="checklist-add">
+            <input
+              className="text-input"
+              value={newItem}
+              maxLength={200}
+              placeholder="np. rozdział 3, zadania z listy 2"
+              onChange={(e) => setNewItem(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter dodaje punkt, zamiast wysyłać cały formularz.
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addItem()
+                }
+              }}
+            />
+            <button type="button" className="button small secondary" onClick={addItem} disabled={!newItem.trim()}>
+              Dodaj
+            </button>
+          </div>
+        </div>
 
         {!isNew && (
           <label className="check-field">

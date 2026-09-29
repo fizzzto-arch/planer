@@ -45,6 +45,11 @@ export function DeadlineList({ deadlines, now, showCourse = false, compact = fal
                 {d.time && ` · ${d.time}`}
                 {showCourse && d.courseName && ` · ${displayName(d.courseName)}`}
               </span>
+              {d.checklist && d.checklist.length > 0 && (
+                <span className="deadline-progress">
+                  ✓ {d.checklist.filter((i) => i.done).length}/{d.checklist.length} przygotowane
+                </span>
+              )}
             </button>
             <span className="deadline-countdown">{d.done ? 'zrobione' : countdownLabel(d, now)}</span>
           </li>

@@ -2519,3 +2519,42 @@ label.setting-row {
   padding-right: 4px;
   font-size: 0.85rem;
 }
+
+/* ---------- Termin: lista "do przygotowania" ---------- */
+
+.checklist {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.checklist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.checklist .is-done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.checklist-add {
+  display: flex;
+  gap: 8px;
+}
+
+.checklist-add .text-input {
+  flex: 1;
+}
+
+.deadline-progress {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ok);
+}
