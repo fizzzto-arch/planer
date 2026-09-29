@@ -17,6 +17,7 @@ import { WEEKDAYS } from '../lib/optimizerSettings'
 import { buildTimetable, formatClock } from '../lib/timetable'
 import type { Meeting } from '../lib/usos'
 import type { GroupsProgress } from '../lib/usosGroups'
+import { ExtraPreview } from './ExtraPreview'
 import { ChoiceSetting } from './SettingControls'
 
 interface Props {
@@ -56,6 +57,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
   const [groups, setGroups] = useState<ExtraGroup[] | null>(null)
   const [groupsStatus, setGroupsStatus] = useState<Status>({ kind: 'idle' })
   const [shown, setShown] = useState(SHOW_STEP)
+  const [preview, setPreview] = useState<ExtraGroup | null>(null)
 
   const timetable = useMemo(() => buildTimetable(meetings, now), [meetings, now])
   const ranking = useMemo(
@@ -215,13 +217,18 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
                     <span>{schedule(fit.group)}</span>
                     {fit.group.place && <span className="muted">{fit.group.place}</span>}
                   </div>
-                  <div className="extra-fit-tags">
-                    {i === 0 && <span className="extra-tag is-best">Najlepiej pasuje</span>}
-                    <span className={`extra-tag ${fit.newDay ? 'is-worse' : 'is-better'}`}>
-                      {fit.newDay ? 'dodatkowy dzień' : 'bez nowego dnia'}
-                    </span>
-                    <span className={`extra-tag ${fit.gapMinutes > 2 ? 'is-worse' : 'is-better'}`}>{gapText(fit.gapMinutes)}</span>
-                    <span className="extra-tag">koniec dnia {formatClock(fit.dayEnd)}</span>
+                  <div className="extra-fit-side">
+                    <div className="extra-fit-tags">
+                      {i === 0 && <span className="extra-tag is-best">Najlepiej pasuje</span>}
+                      <span className={`extra-tag ${fit.newDay ? 'is-worse' : 'is-better'}`}>
+                        {fit.newDay ? 'dodatkowy dzień' : 'bez nowego dnia'}
+                      </span>
+                      <span className={`extra-tag ${fit.gapMinutes > 2 ? 'is-worse' : 'is-better'}`}>{gapText(fit.gapMinutes)}</span>
+                      <span className="extra-tag">koniec dnia {formatClock(fit.dayEnd)}</span>
+                    </div>
+                    <button type="button" className="button small secondary" onClick={() => setPreview(fit.group)}>
+                      Podgląd tygodnia
+                    </button>
                   </div>
                 </li>
               ))}
@@ -237,6 +244,8 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
           </p>
         </div>
       )}
+
+      {preview && <ExtraPreview group={preview} meetings={meetings} now={now} onClose={() => setPreview(null)} />}
     </div>
   )
 }

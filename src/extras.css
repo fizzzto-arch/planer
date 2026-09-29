@@ -2371,3 +2371,10 @@ label.setting-row {
   font-size: 0.78rem;
   font-weight: 600;
 }
+
+.extra-fit-side {
+  display: grid;
+  justify-items: end;
+  align-content: space-between;
+  gap: 8px;
+}
