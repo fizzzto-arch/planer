@@ -11,14 +11,14 @@ import { OptimizerView } from './components/OptimizerView'
 import { SettingsView } from './components/SettingsView'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { SourceForm } from './components/SourceForm'
-import { Tabs } from './components/Tabs'
+import { Tabs, type TabsControl } from './components/Tabs'
 import { TodayView } from './components/TodayView'
 import { WeekView } from './components/WeekView'
 import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
 import { useExtras } from './hooks/useExtras'
-import { isFling, isStandaloneApp, slideElement, useHorizontalSwipe } from './hooks/useHorizontalSwipe'
+import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
@@ -30,6 +30,14 @@ import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 
 type View = 'today' | 'week' | 'courses' | 'settings'
+
+// Kolejność zakładek - przesunięcie palcem w lewo idzie do następnej.
+const VIEW_ORDER: View[] = ['today', 'week', 'courses', 'settings']
+
+// Pas przy krawędzi ekranu zostawiony gestom przeglądarki.
+const EDGE_PX = 24
+
+const ENTER_CLASS = { rise: 'view-enter', left: 'view-enter-left', right: 'view-enter-right', none: undefined }
 
 const DEADLINE_SLACK_MIN = 15
 
@@ -129,7 +137,9 @@ function App() {
   const now = useNow()
   const [view, setView] = useState<View>(() => prefs.startView)
   const [page, setPage] = useState<Page>(readPageFromHistory)
-  const [skipEnter, setSkipEnter] = useState(false) // po geście "wstecz" plan już widać - bez animacji wejścia
+  // Jak wchodzi nowy widok: 'rise' - z dołu, 'left'/'right' - z tej strony, w którą przesuwamy zakładki,
+  // 'none' - po geście "wstecz" plan już widać.
+  const [enter, setEnter] = useState<'rise' | 'left' | 'right' | 'none'>('rise')
   const course = page?.kind === 'course' ? page.name : null
   const [deadlineDraft, setDeadlineDraft] = useState<DeadlineDraft | null>(null)
   const [editingMeeting, setEditingMeeting] = useState<PlanMeeting | null>(null)
@@ -138,30 +148,68 @@ function App() {
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
   const meetings = useMemo(() => applyEdits(plan.meetings, extras), [plan.meetings, extras])
 
+  // Bieżąca podstrona dla obsługi historii (aktualizowana od razu, bez czekania na render).
+  const pageNow = useRef(page)
+
   useEffect(() => {
-    const onPopState = () => setPage(readPageFromHistory())
+    const onPopState = () => {
+      // Gest "dalej" na pusty wpis (niżej) - wracamy, historia się nie rozrasta.
+      if ((window.history.state as { spacer?: boolean } | null)?.spacer) {
+        window.history.back()
+        return
+      }
+      const next = readPageFromHistory()
+      // Po wyjściu z podstrony zostaje w historii wpis "dalej" do niej, a iPhone pozwala do niego
+      // wrócić gestem od prawej krawędzi - i nagle jesteśmy w dawno zamkniętym przedmiocie.
+      // Nowy wpis kasuje "dalej", a cofnięcie na niego zostawia nas na planie (w "dalej" jest już tylko plan).
+      const wasOnPage = pageNow.current !== null
+      // Od razu, nie czekając na React - drugie "popstate" (z back() niżej) nie może zrobić tego samego.
+      pageNow.current = next
+      if (wasOnPage && next === null) {
+        window.history.pushState({ spacer: true }, '')
+        window.history.back()
+      }
+      setPage(next)
+    }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
   const openCourse = useCallback((name: string) => {
+    pageNow.current = { kind: 'course', name }
     window.history.pushState({ course: name }, '')
     setPage({ kind: 'course', name })
-    setSkipEnter(false)
+    setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
 
   const openOptimizer = useCallback(() => {
+    pageNow.current = { kind: 'optimizer' }
     window.history.pushState({ optimizer: true }, '')
     setPage({ kind: 'optimizer' })
-    setSkipEnter(false)
+    setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
 
   const closePage = useCallback(() => {
     if (readPageFromHistory()) window.history.back()
-    else setPage(null)
+    else {
+      pageNow.current = null
+      setPage(null)
+    }
   }, [])
+
+  // Zmiana zakładki: nowy widok wjeżdża z tej strony, w którą "idziemy".
+  const changeView = useCallback(
+    (next: View) => {
+      if (next === view && !page) return
+      if (page) closePage()
+      const step = VIEW_ORDER.indexOf(next) - VIEW_ORDER.indexOf(view)
+      setEnter(step > 0 ? 'right' : step < 0 ? 'left' : 'rise')
+      setView(next)
+    },
+    [view, page, closePage],
+  )
 
   // Gest "wstecz": przesunięcie w prawo na podstronie. Aplikacja z ekranu początkowego nie ma paska Safari,
   // więc i jego gestu - robimy własny: podstrona jedzie za palcem, a spod niej wyłania się plan.
@@ -194,36 +242,68 @@ function App() {
         underWrapRef.current?.classList.remove('is-active')
         return
       }
-      setSkipEnter(true)
+      setEnter('none')
       closePage()
     }, 220)
   }
 
-  useHorizontalSwipe(
-    pageRef,
-    {
-      onStart: () => {
-        const top = pageRef.current?.getBoundingClientRect().top ?? 0
-        // Przewinięta podstrona: plan pod spodem pokazujemy od góry, więc po powrocie przewijamy do niego.
-        scrollAfterBack.current = top < 0 ? top + window.scrollY : null
-        pageRef.current?.classList.add('is-swiping')
-        const under = underWrapRef.current
-        if (under) {
-          under.style.top = `${Math.max(0, top)}px`
-          under.classList.add('is-active')
-        }
-      },
-      onMove: (dx) => {
-        const x = Math.max(0, dx)
-        slideElement(pageRef.current, x, false)
-        moveUnderlay(x / window.innerWidth, false)
-      },
-      onEnd: (dx, velocity) => endSwipe(dx > 0 && isFling(dx, velocity, window.innerWidth * 0.35)),
-      onCancel: () => endSwipe(false),
+  // Na planie przesunięcie w bok zmienia zakładkę: widok jedzie za palcem, a razem z nim niebieski suwak.
+  const tabsControl = useRef<TabsControl>(null)
+  const neighbourView = (dx: number) => VIEW_ORDER[VIEW_ORDER.indexOf(view) + (dx < 0 ? 1 : -1)]
+
+  const tabSwipe: SwipeHandlers = {
+    onMove: (dx) => {
+      const width = window.innerWidth
+      // Za ostatnią zakładką nie ma już nic - widok tylko lekko się wychyla.
+      const offset = neighbourView(dx) ? dx : dx * 0.25
+      slideElement(pageRef.current, offset, false, true)
+      tabsControl.current?.preview(neighbourView(dx) ? -offset / width : 0)
     },
-    // W Safari przy samej krawędzi działa gest przeglądarki - tam go nie dublujemy.
-    { name: 'wstecz', enabled: page !== null, onlyRight: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
-  )
+    onEnd: (dx, velocity) => {
+      const next = neighbourView(dx)
+      if (next && isFling(dx, velocity, window.innerWidth * 0.25)) {
+        slideElement(pageRef.current, 0, false) // nowy widok wjeżdża własną animacją
+        changeView(next)
+      } else {
+        slideElement(pageRef.current, 0, true)
+        tabsControl.current?.settle()
+      }
+    },
+    onCancel: () => {
+      slideElement(pageRef.current, 0, true)
+      tabsControl.current?.settle()
+    },
+  }
+
+  const backSwipe: SwipeHandlers = {
+    onStart: () => {
+      const top = pageRef.current?.getBoundingClientRect().top ?? 0
+      // Przewinięta podstrona: plan pod spodem pokazujemy od góry, więc po powrocie przewijamy do niego.
+      scrollAfterBack.current = top < 0 ? top + window.scrollY : null
+      pageRef.current?.classList.add('is-swiping')
+      const under = underWrapRef.current
+      if (under) {
+        under.style.top = `${Math.max(0, top)}px`
+        under.classList.add('is-active')
+      }
+    },
+    onMove: (dx) => {
+      const x = Math.max(0, dx)
+      slideElement(pageRef.current, x, false)
+      moveUnderlay(x / window.innerWidth, false)
+    },
+    onEnd: (dx, velocity) => endSwipe(dx > 0 && isFling(dx, velocity, window.innerWidth * 0.35)),
+    onCancel: () => endSwipe(false),
+  }
+
+  // Przy samych krawędziach ekranu działa gest "wstecz / dalej" przeglądarki (także w aplikacji
+  // z ekranu początkowego) - tam nasz gest się nie włącza.
+  useHorizontalSwipe(pageRef, page ? backSwipe : tabSwipe, {
+    name: page ? 'wstecz' : 'zakładki',
+    enabled: true,
+    onlyRight: page !== null,
+    ignoreEdges: EDGE_PX,
+  })
 
   useLayoutEffect(() => {
     if (page !== null || scrollAfterBack.current === null) return
@@ -364,21 +444,18 @@ function App() {
           <Tabs
             tabs={tabs((admin?.pendingCount ?? 0) > 0)}
             value={view}
-            onChange={(next) => {
-              if (page) closePage()
-              setView(next)
-              setSkipEnter(false)
-            }}
+            onChange={changeView}
+            controlRef={tabsControl}
           />
         </header>
         <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
 
-        {/* Stały element (bez key) - na nim nasłuchujemy gestu "wstecz" i to on jedzie za palcem. */}
+        {/* Stały element (bez key) - na nim nasłuchujemy gestów i to on jedzie za palcem. */}
         <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
           {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
           <div
             key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view}
-            className={skipEnter ? undefined : 'view-enter'}
+            className={ENTER_CLASS[enter]}
           >
             <ErrorBoundary>
               {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}

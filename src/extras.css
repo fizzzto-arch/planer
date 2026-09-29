@@ -1780,3 +1780,29 @@ label.setting-row {
   white-space: pre-wrap;
   pointer-events: none;
 }
+
+/* Przeciąganie suwaka zakładek (palcem po suwaku albo po całym widoku) */
+.tabs {
+  touch-action: pan-y; /* ruch w bok należy do suwaka, nie do przeglądarki */
+}
+
+.tabs .tab.is-active {
+  cursor: grab;
+}
+
+.tabs.is-dragging .tab.is-active {
+  color: var(--muted);
+}
+
+.tabs.is-dragging .tab.is-under {
+  color: var(--accent-text);
+}
+
+/* Nowa zakładka wjeżdża z tej strony, w którą przesuwamy */
+.view-enter-right {
+  animation: slide-from-right 260ms ease-out both;
+}
+
+.view-enter-left {
+  animation: slide-from-left 260ms ease-out both;
+}

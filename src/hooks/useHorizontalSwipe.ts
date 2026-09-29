@@ -131,15 +131,6 @@ export function useHorizontalSwipe(
 }
 
 
-// Aplikacja z ekranu początkowego - bez paska Safari i jego gestów "wstecz / dalej" od krawędzi.
-// navigator.standalone to stary sposób iOS, display-mode - nowszy; sprawdzamy oba.
-export function isStandaloneApp(): boolean {
-  return (
-    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
-    window.matchMedia('(display-mode: standalone)').matches
-  )
-}
-
 // Przesuwa element za palcem; animate = płynny dojazd (powrót na miejsce albo odjazd).
 export function slideElement(el: HTMLElement | null, dx: number, animate: boolean, fade = false) {
   if (!el) return

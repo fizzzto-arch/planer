@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
-import { isFling, isStandaloneApp, slideElement, useHorizontalSwipe } from '../hooks/useHorizontalSwipe'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
@@ -26,27 +25,6 @@ export function WeekView({ meetings, now }: Props) {
     setWeekStart(target)
   }
 
-  // Przesunięcie palcem w bok zmienia tydzień; tydzień jedzie za palcem.
-  const areaRef = useRef<HTMLElement>(null) // gest łapiemy w całym widoku
-  const bodyRef = useRef<HTMLDivElement>(null) // a przesuwamy same zajęcia
-  useHorizontalSwipe(
-    areaRef,
-    {
-      onMove: (dx) => slideElement(bodyRef.current, dx, false, true),
-      onEnd: (dx, velocity) => {
-        if (isFling(dx, velocity, window.innerWidth * 0.25)) {
-          slideElement(bodyRef.current, 0, false) // nowy tydzień wjeżdża własną animacją
-          goTo(addDays(weekStart, dx < 0 ? 7 : -7))
-        } else {
-          slideElement(bodyRef.current, 0, true)
-        }
-      },
-      onCancel: () => slideElement(bodyRef.current, 0, true),
-    },
-    // W Safari przy krawędziach działa gest przeglądarki "wstecz / dalej".
-    { name: 'tydzień', enabled: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
-  )
-
   const weekEnd = addDays(weekStart, 7)
   const weekMeetings = meetings.filter((m) => m.start >= weekStart && m.start < weekEnd)
   const hasWeekend =
@@ -56,7 +34,7 @@ export function WeekView({ meetings, now }: Props) {
   const semWeek = prefs.showWeekNumber ? semesterWeek(weekStart, meetings) : null
 
   return (
-    <section ref={areaRef}>
+    <section>
       <div className="week-nav">
         <button
           type="button"
@@ -103,7 +81,6 @@ export function WeekView({ meetings, now }: Props) {
         </div>
       )}
 
-      <div ref={bodyRef} className="week-swipe">
       <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
         {weekMeetings.length === 0 ? (
           <div className="empty-state">W tym tygodniu nie ma zajęć.</div>
@@ -128,7 +105,6 @@ export function WeekView({ meetings, now }: Props) {
             )
           })
         )}
-      </div>
       </div>
     </section>
   )
