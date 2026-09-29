@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AccessGate } from './components/AccessGate'
 import { AuthForm } from './components/AuthForm'
 import { CoursesView } from './components/CoursesView'
@@ -17,6 +17,7 @@ import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
 import { useExtras } from './hooks/useExtras'
+import { isFling, isIosStandalone, slideElement, useHorizontalSwipe } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
@@ -127,6 +128,7 @@ function App() {
   const now = useNow()
   const [view, setView] = useState<View>(() => prefs.startView)
   const [page, setPage] = useState<Page>(readPageFromHistory)
+  const [skipEnter, setSkipEnter] = useState(false) // po geście "wstecz" plan już widać - bez animacji wejścia
   const course = page?.kind === 'course' ? page.name : null
   const [deadlineDraft, setDeadlineDraft] = useState<DeadlineDraft | null>(null)
   const [editingMeeting, setEditingMeeting] = useState<PlanMeeting | null>(null)
@@ -144,12 +146,14 @@ function App() {
   const openCourse = useCallback((name: string) => {
     window.history.pushState({ course: name }, '')
     setPage({ kind: 'course', name })
+    setSkipEnter(false)
     window.scrollTo({ top: 0 })
   }, [])
 
   const openOptimizer = useCallback(() => {
     window.history.pushState({ optimizer: true }, '')
     setPage({ kind: 'optimizer' })
+    setSkipEnter(false)
     window.scrollTo({ top: 0 })
   }, [])
 
@@ -157,6 +161,69 @@ function App() {
     if (readPageFromHistory()) window.history.back()
     else setPage(null)
   }, [])
+
+  // Gest "wstecz" od lewej krawędzi. Aplikacja z ekranu początkowego iPhone'a nie ma paska Safari,
+  // więc i jego gestu - robimy własny: podstrona jedzie za palcem, a spod niej wyłania się plan.
+  const pageRef = useRef<HTMLDivElement>(null)
+  const underRef = useRef<HTMLDivElement>(null)
+  const [underlay, setUnderlay] = useState<{ page: Page; top: number } | null>(null)
+  const scrollAfterBack = useRef<number | null>(null)
+
+  const dimRef = useRef<HTMLDivElement>(null)
+
+  const moveUnderlay = (progress: number, animate: boolean) => {
+    const transition = animate ? 'transform 220ms ease-out, opacity 220ms ease-out' : 'none'
+    if (underRef.current) {
+      underRef.current.style.transition = transition
+      underRef.current.style.transform = `translateX(${(progress - 1) * 30}%)`
+    }
+    if (dimRef.current) {
+      dimRef.current.style.transition = transition
+      dimRef.current.style.opacity = String(1 - progress)
+    }
+  }
+
+  const endSwipe = (back: boolean) => {
+    const width = window.innerWidth
+    slideElement(pageRef.current, back ? width : 0, true)
+    moveUnderlay(back ? 1 : 0, true)
+    window.setTimeout(() => {
+      pageRef.current?.classList.remove('is-swiping')
+      if (!back) {
+        setUnderlay(null)
+        return
+      }
+      setSkipEnter(true)
+      closePage()
+    }, 220)
+  }
+
+  useHorizontalSwipe(
+    'document',
+    {
+      onStart: () => {
+        const top = pageRef.current?.getBoundingClientRect().top ?? 0
+        // Przewinięta podstrona: plan pod spodem pokazujemy od góry, więc po powrocie przewijamy do niego.
+        scrollAfterBack.current = top < 0 ? top + window.scrollY : null
+        pageRef.current?.classList.add('is-swiping')
+        setUnderlay({ page, top: Math.max(0, top) })
+      },
+      onMove: (dx) => {
+        const x = Math.max(0, dx)
+        slideElement(pageRef.current, x, false)
+        moveUnderlay(x / window.innerWidth, false)
+      },
+      onEnd: (dx, velocity) => endSwipe(dx > 0 && isFling(dx, velocity, window.innerWidth * 0.35)),
+      onCancel: () => endSwipe(false),
+    },
+    { enabled: page !== null && isIosStandalone(), edge: 24 },
+  )
+
+  useLayoutEffect(() => {
+    if (page !== null || scrollAfterBack.current === null) return
+    window.scrollTo({ top: scrollAfterBack.current })
+    scrollAfterBack.current = null
+  }, [page])
 
   // Terminy przypadające w dniu danych zajęć z tego samego przedmiotu.
   const deadlinesByDay = useMemo(() => {
@@ -262,6 +329,27 @@ function App() {
     )
   }
 
+  const mainView = (
+    <>
+      {view === 'today' && <TodayView meetings={meetings} now={now} />}
+      {view === 'week' && <WeekView meetings={meetings} now={now} />}
+      {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
+      {view === 'settings' && (
+        <SettingsView
+          plan={plan}
+          cloud={cloud}
+          extras={extrasApi}
+          typeColors={typeColors}
+          prefsApi={prefsApi}
+          courseNames={courseNames}
+          admin={admin}
+          now={now}
+          onSourceChanged={() => setView('today')}
+        />
+      )}
+    </>
+  )
+
   return (
     <PlanUiContext.Provider value={ui}>
       <main className="app" style={typeColors.style}>
@@ -273,41 +361,40 @@ function App() {
             onChange={(next) => {
               if (page) closePage()
               setView(next)
+              setSkipEnter(false)
             }}
           />
         </header>
         <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
 
         {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
-        <div key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view} className="view-enter">
-          <ErrorBoundary>
-            {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
-            {page?.kind === 'optimizer' && cloud.isAdmin ? (
-              <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
-            ) : course ? (
-              <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
-            ) : (
-              <>
-                {view === 'today' && <TodayView meetings={meetings} now={now} />}
-                {view === 'week' && <WeekView meetings={meetings} now={now} />}
-                {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
-                {view === 'settings' && (
-                  <SettingsView
-                    plan={plan}
-                    cloud={cloud}
-                    extras={extrasApi}
-                    typeColors={typeColors}
-                    prefsApi={prefsApi}
-                    courseNames={courseNames}
-                    admin={admin}
-                    now={now}
-                    onSourceChanged={() => setView('today')}
-                  />
-                )}
-              </>
-            )}
-          </ErrorBoundary>
+        <div
+          key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view}
+          className={[skipEnter ? '' : 'view-enter', page ? 'swipe-host' : ''].join(' ').trim() || undefined}
+        >
+          <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
+            <ErrorBoundary>
+              {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
+              {page?.kind === 'optimizer' && cloud.isAdmin ? (
+                <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+              ) : course ? (
+                <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
+              ) : (
+                mainView
+              )}
+            </ErrorBoundary>
+          </div>
         </div>
+
+        {/* W trakcie gestu "wstecz": plan, do którego wracamy, wyłania się spod podstrony. */}
+        {underlay && underlay.page === page && (
+          <div className="swipe-under" style={{ top: underlay.top }} aria-hidden="true">
+            <div ref={underRef} className="swipe-under-inner">
+              {mainView}
+            </div>
+            <div ref={dimRef} className="swipe-dim" />
+          </div>
+        )}
 
         {deadlineDraft && extrasApi && (
           <DeadlineEditor

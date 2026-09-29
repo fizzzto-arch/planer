@@ -1715,3 +1715,49 @@ label.setting-row {
     filter: none;
   }
 }
+
+/* ---------- Gesty przesuwania ---------- */
+
+/* Przesunięta w bok strona nie może rozszerzać ekranu (poziomy pasek przewijania). */
+.app {
+  overflow-x: clip;
+}
+
+/* Podstrona nad planem, który wyłania się spod niej w trakcie gestu "wstecz". */
+.swipe-host {
+  position: relative;
+  z-index: 2;
+}
+
+.swipe-page {
+  background: var(--bg);
+}
+
+.swipe-page.is-swiping {
+  box-shadow: -10px 0 24px rgb(0 0 0 / 0.14);
+  will-change: transform;
+}
+
+.swipe-under {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+.swipe-under-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px;
+  transform: translateX(-30%);
+}
+
+.swipe-dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.12);
+}
