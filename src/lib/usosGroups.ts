@@ -4,7 +4,7 @@ import { addDays, startOfWeek, toDateKey } from './dates'
 import type { GroupOption, OptMeeting, Slot } from './optimizer'
 import type { Meeting } from './usos'
 
-const API = 'https://apps.usos.pw.edu.pl/services'
+export const USOS_API = 'https://apps.usos.pw.edu.pl/services'
 const PARALLEL = 8 // tyle zapytań naraz - szybko, a bez zasypywania serwera USOS
 const CACHE_KEY = 'planer.groups.v1'
 export const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
@@ -19,7 +19,7 @@ interface Activity {
   building_id?: string | null
 }
 
-async function getJson<T>(url: string): Promise<T> {
+export async function getJson<T>(url: string): Promise<T> {
   let response: Response
   try {
     response = await fetch(url)
@@ -31,7 +31,7 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 // Wykonuje zadania po kilka naraz, zgłaszając postęp.
-async function runLimited<T>(tasks: (() => Promise<T>)[], onDone: () => void): Promise<T[]> {
+export async function runLimited<T>(tasks: (() => Promise<T>)[], onDone: () => void): Promise<T[]> {
   const results = new Array<T>(tasks.length)
   let next = 0
   const worker = async () => {
@@ -45,7 +45,7 @@ async function runLimited<T>(tasks: (() => Promise<T>)[], onDone: () => void): P
   return results
 }
 
-function parseUsosTime(value: string): Date {
+export function parseUsosTime(value: string): Date {
   const [date, time] = value.split(' ')
   const [y, mo, d] = date.split('-').map(Number)
   const [h, mi] = time.split(':').map(Number)
@@ -53,10 +53,11 @@ function parseUsosTime(value: string): Date {
 }
 
 // "1030-ETI" -> "EiTI" (skróty jak przy planie z iCal)
-function shortBuildingId(id: string | null | undefined): string | null {
+export function shortBuildingId(id: string | null | undefined): string | null {
   if (!id) return null
   if (id.endsWith('-ETI')) return 'EiTI'
   if (id.endsWith('-MCH')) return 'Mechatronika'
+  if (id.endsWith('-SWF')) return 'SWFiS'
   return id
 }
 
@@ -88,7 +89,7 @@ export async function fetchSlots(meetings: Meeting[], onProgress: (p: GroupsProg
   const unitInfo = await runLimited(
     [...units.keys()].map((unitId) => () =>
       getJson<{ course_id: string; term_id: string; classtype_id: string }>(
-        `${API}/courses/unit?unit_id=${unitId}&fields=course_id|term_id|classtype_id`,
+        `${USOS_API}/courses/unit?unit_id=${unitId}&fields=course_id|term_id|classtype_id`,
       ).then((info) => ({ unitId, ...info })),
     ),
     tick,
@@ -113,7 +114,7 @@ export async function fetchSlots(meetings: Meeting[], onProgress: (p: GroupsProg
   const tasks = [...courses.entries()].flatMap(([courseId, termId]) =>
     weeks.map((week) => () =>
       getJson<Activity[]>(
-        `${API}/tt/course_edition?course_id=${encodeURIComponent(courseId)}&term_id=${termId}` +
+        `${USOS_API}/tt/course_edition?course_id=${encodeURIComponent(courseId)}&term_id=${termId}` +
           `&start=${toDateKey(week)}&days=7&fields=${fields}`,
       ).then((activities) => ({ courseId, activities })),
     ),

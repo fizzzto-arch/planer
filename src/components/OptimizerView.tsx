@@ -7,6 +7,7 @@ import type { PlanMeeting } from '../lib/edits'
 import { deanFilter, deanGroupOf, deanGroups, optimize, type Candidate } from '../lib/optimizer'
 import type { Meeting } from '../lib/usos'
 import { CandidateCard, MetricsGrid } from './CandidateCard'
+import { ExtraCoursesPanel } from './ExtraCoursesPanel'
 import { OptimizerSettingsPanel } from './OptimizerSettingsPanel'
 import { PlanPreview } from './PlanPreview'
 
@@ -121,6 +122,13 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
       {slots && slots.length > 0 && results && (
         <>
           <OptimizerSettingsPanel api={settingsApi} slots={slots} />
+          <ExtraCoursesPanel
+            planMeetings={planMeetings}
+            meetings={meetings}
+            now={now}
+            settings={settings}
+            gapThreshold={prefs.gapMinutes}
+          />
 
           {current && (
             <div className="panel">
