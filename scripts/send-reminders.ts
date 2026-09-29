@@ -21,8 +21,9 @@ interface Notice {
   tag: string
 }
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+// trim(): przypadkowa spacja albo Enter przy wklejaniu sekretu nie psuje klucza.
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT?.trim()
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY?.trim()
 if (!serviceAccount || !vapidPrivateKey) {
   // Bez sekretów kończymy "na zielono" - inaczej GitHub co kwadrans wysyłałby maila o błędzie.
   console.log('::warning::Brak sekretów FIREBASE_SERVICE_ACCOUNT / VAPID_PRIVATE_KEY - przypomnienia wyłączone.')
