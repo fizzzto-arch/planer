@@ -17,7 +17,7 @@ export function WeekView({ meetings, now }: Props) {
   // Z której strony ma wjechać nowy tydzień.
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
-  const { extras, addCustomMeeting, prefs } = usePlanUi()
+  const { extras, addCustomMeeting, openExport, prefs } = usePlanUi()
 
   function goTo(target: Date) {
     if (target.getTime() === weekStart.getTime()) return
@@ -69,8 +69,8 @@ export function WeekView({ meetings, now }: Props) {
         </button>
       </div>
 
-      {extras && (
-        <div className="week-actions">
+      <div className="week-actions">
+        {extras && (
           <button
             type="button"
             className="button small secondary"
@@ -78,8 +78,12 @@ export function WeekView({ meetings, now }: Props) {
           >
             + Dodaj zajęcia
           </button>
-        </div>
-      )}
+        )}
+        {/* Eksport działa też bez konta - korzysta tylko z planu. */}
+        <button type="button" className="button small secondary" onClick={() => openExport(weekStart)}>
+          Eksportuj plan
+        </button>
+      </div>
 
       <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
         {weekMeetings.length === 0 ? (

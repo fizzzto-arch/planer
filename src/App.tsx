@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AccessGate } from './components/AccessGate'
 import { AuthForm } from './components/AuthForm'
 import { CoursesView } from './components/CoursesView'
@@ -30,6 +30,9 @@ import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 
 type View = 'today' | 'week' | 'courses' | 'settings'
+
+// Eksport (rysowanie zdjęcia, PDF, Excel) ładuje się dopiero po wejściu w "Eksportuj plan".
+const ExportView = lazy(() => import('./components/ExportView').then((m) => ({ default: m.ExportView })))
 
 // Kolejność zakładek - przesunięcie palcem w lewo idzie do następnej.
 const VIEW_ORDER: View[] = ['today', 'week', 'courses', 'settings']
@@ -110,14 +113,19 @@ function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extr
   )
 }
 
-// Podstrony (przedmiot, optymalizator) to wpisy w historii przeglądarki,
+// Podstrony (przedmiot, optymalizator, eksport) to wpisy w historii przeglądarki,
 // więc gest "wstecz" wraca do planu.
-type Page = { kind: 'course'; name: string } | { kind: 'optimizer' } | null
+type Page =
+  | { kind: 'course'; name: string }
+  | { kind: 'optimizer' }
+  | { kind: 'export'; weekStart: number } // tydzień, z którego otwarto eksport
+  | null
 
 function readPageFromHistory(): Page {
-  const state = window.history.state as { course?: unknown; optimizer?: unknown } | null
+  const state = window.history.state as { course?: unknown; optimizer?: unknown; export?: unknown } | null
   if (typeof state?.course === 'string') return { kind: 'course', name: state.course }
   if (state?.optimizer === true) return { kind: 'optimizer' }
+  if (typeof state?.export === 'number') return { kind: 'export', weekStart: state.export }
   return null
 }
 
@@ -187,6 +195,14 @@ function App() {
     pageNow.current = { kind: 'optimizer' }
     window.history.pushState({ optimizer: true }, '')
     setPage({ kind: 'optimizer' })
+    setEnter('rise')
+    window.scrollTo({ top: 0 })
+  }, [])
+
+  const openExport = useCallback((weekStart: Date) => {
+    pageNow.current = { kind: 'export', weekStart: weekStart.getTime() }
+    window.history.pushState({ export: weekStart.getTime() }, '')
+    setPage({ kind: 'export', weekStart: weekStart.getTime() })
     setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
@@ -328,6 +344,7 @@ function App() {
       materials,
       openCourse,
       openOptimizer,
+      openExport,
       isAdmin: cloud.isAdmin,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
@@ -349,7 +366,7 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, openOptimizer, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
+    [extrasApi, materials, openCourse, openOptimizer, openExport, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
@@ -454,13 +471,23 @@ function App() {
         <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
           {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
           <div
-            key={page ? (page.kind === 'course' ? `course:${page.name}` : 'optimizer') : view}
+            key={page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}
             className={ENTER_CLASS[enter]}
           >
             <ErrorBoundary>
               {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
               {page?.kind === 'optimizer' && cloud.isAdmin ? (
                 <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+              ) : page?.kind === 'export' ? (
+                <Suspense fallback={<p className="muted loading-line"><span className="spinner" aria-hidden="true" />Ładowanie…</p>}>
+                  <ExportView
+                    meetings={meetings}
+                    now={now}
+                    initialWeek={new Date(page.weekStart)}
+                    colors={typeColors.colors}
+                    onBack={closePage}
+                  />
+                </Suspense>
               ) : course ? (
                 <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
               ) : (

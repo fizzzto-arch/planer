@@ -17,6 +17,7 @@ export interface PlanUi {
   materials: SharedMaterialsApi | null // wspólne pliki przedmiotów; null = niezalogowany
   openCourse: (courseName: string) => void
   openOptimizer: () => void // "Dobierz grupy"
+  openExport: (weekStart: Date) => void // eksport planu (zdjęcie, PDF, Excel, kalendarz)
   isAdmin: boolean // funkcje w wersji alpha (np. optymalizator) są tylko dla administratora
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych

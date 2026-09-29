@@ -31,12 +31,13 @@ describe('numer tygodnia semestru', () => {
   // Zajęcia: 5.10, 12.10, (przerwa 19.10), 26.10; potem nowy semestr od 22.02.
   const meetings = [at(9, 5), at(9, 7), at(9, 12), at(9, 19, true), at(9, 26), at(11, 21), at(1 + 12, 22)]
 
-  it('liczy tylko tygodnie z zajęciami', () => {
+  it('tydzień bez zajęć nie ma numeru, ale liczy się dalej (jak w USOS)', () => {
     expect(semesterWeek(new Date(2026, 9, 6), meetings)).toEqual({ number: 1, odd: true })
     expect(semesterWeek(new Date(2026, 9, 14), meetings)).toEqual({ number: 2, odd: false })
-    // tydzień 19.10 ma tylko odwołane zajęcia - bez numeru, a następny to 3
+    // tydzień 19.10 ma tylko odwołane zajęcia - bez numeru, ale następny to 4, nie 3:
+    // zajęcia "co dwa tygodnie" zachowują parzystość po przerwie
     expect(semesterWeek(new Date(2026, 9, 20), meetings)).toBeNull()
-    expect(semesterWeek(new Date(2026, 9, 27), meetings)).toEqual({ number: 3, odd: true })
+    expect(semesterWeek(new Date(2026, 9, 27), meetings)).toEqual({ number: 4, odd: false })
   })
 
   it('długa przerwa zaczyna numerację od nowa (nowy semestr)', () => {

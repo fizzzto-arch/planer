@@ -1838,3 +1838,95 @@ label.setting-row {
   display: flex;
   gap: 8px;
 }
+
+/* ---------- Eksport planu ---------- */
+
+.week-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.export-layout {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .export-layout {
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    align-items: start;
+  }
+
+  /* Podgląd zostaje w oknie przy przewijaniu opcji. */
+  .export-result {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+.export-week {
+  margin: 8px 0 0;
+}
+
+.export-notes {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.check-row input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.export-preview {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.export-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.12);
+}
+
+.export-preview.is-portrait img {
+  max-width: 380px;
+}
+
+.export-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-buttons .button {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 10px 12px;
+}
+
+.export-button-hint {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
