@@ -1,15 +1,26 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatTypes, summarizeCourses } from '../lib/courses'
-import { formatShortDay, formatTime } from '../lib/dates'
+import { daysBetween, formatShortDay, formatTime, parseDateKey } from '../lib/dates'
 import { upcomingDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
-import { courseKey } from '../lib/extras'
+import { courseKey, type DeadlineKind } from '../lib/extras'
 import { plural } from '../lib/plural'
 import { typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 
 const DAYS_AHEAD = 60
+// Egzaminy bywają w sesji za kilka miesięcy - przy tym filtrze patrzymy na cały semestr.
+const DAYS_AHEAD_EXAMS = 200
+
+type KindFilter = 'all' | DeadlineKind
+
+const FILTERS: { value: KindFilter; label: string }[] = [
+  { value: 'all', label: 'Wszystkie' },
+  { value: 'kolokwium', label: 'Kolokwia' },
+  { value: 'egzamin', label: 'Egzaminy' },
+  { value: 'projekt', label: 'Projekty' },
+]
 
 interface Props {
   meetings: PlanMeeting[]
@@ -18,8 +29,16 @@ interface Props {
 
 export function CoursesView({ meetings, now }: Props) {
   const { extras, openCourse, openOptimizer, isAdmin, editDeadline, displayName } = usePlanUi()
+  const [filter, setFilter] = useState<KindFilter>('all')
   const courses = summarizeCourses(meetings, now)
-  const deadlines = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD) : []
+  const all = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD_EXAMS) : []
+  const inHorizon = (days: number) => all.filter((d) => daysBetween(now, parseDateKey(d.date)!) <= days)
+  const deadlines =
+    filter === 'all'
+      ? inHorizon(DAYS_AHEAD)
+      : all.filter((d) => d.kind === filter && (filter === 'egzamin' || daysBetween(now, parseDateKey(d.date)!) <= DAYS_AHEAD))
+  // Filtr pokazujemy dopiero, gdy jest co filtrować (terminy różnych rodzajów).
+  const showFilter = new Set(all.map((d) => d.kind)).size > 1
 
   return (
     <section>
@@ -51,10 +70,30 @@ export function CoursesView({ meetings, now }: Props) {
           </button>
         )}
       </div>
+      {showFilter && (
+        <div className="segmented deadline-filter" role="radiogroup" aria-label="Rodzaj terminów">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              role="radio"
+              aria-checked={filter === f.value}
+              className={`segment${filter === f.value ? ' is-active' : ''}`}
+              onClick={() => setFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
       {!extras ? (
         <p className="empty-state">Zaloguj się (Ustawienia), żeby dodawać kolokwia, egzaminy i notatki.</p>
       ) : deadlines.length === 0 ? (
-        <p className="empty-state">Brak terminów w najbliższych tygodniach. Dodaj kolokwium albo egzamin.</p>
+        <p className="empty-state">
+          {filter === 'all'
+            ? 'Brak terminów w najbliższych tygodniach. Dodaj kolokwium albo egzamin.'
+            : 'Brak takich terminów.'}
+        </p>
       ) : (
         <DeadlineList deadlines={deadlines} now={now} showCourse />
       )}
