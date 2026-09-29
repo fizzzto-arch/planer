@@ -1,0 +1,74 @@
+// Reguły bazy Planera (Cloud Firestore) - kopia reguł opublikowanych w konsoli Firebase
+// (Firestore → Rules). To one decydują, kto co może czytać i zmieniać - niezależnie od kodu strony.
+// Serwer przypomnień (scripts/send-reminders.ts) działa na koncie usługi i reguł nie potrzebuje.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Administratorzy - ta sama lista co ADMIN_EMAILS w src/lib/firebaseConfig.ts.
+    function isAdmin() {
+      return signedIn() && request.auth.token.email.lower() in ['fizzz.to@gmail.com'];
+    }
+
+    // Zwykły użytkownik: potwierdzony e-mail i konto zatwierdzone przez administratora.
+    function isApproved() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && get(/databases/$(database)/documents/access/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    function hasAccess() {
+      return isAdmin() || isApproved();
+    }
+
+    // Prośby o dostęp: każdy widzi i zakłada tylko swoją (jako "pending"), decyduje administrator.
+    // Własną prośbę można usunąć - przy usuwaniu konta.
+    match /access/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && request.resource.data.status == 'pending'
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    // Prywatne dane (plan, notatki, terminy, ustawienia, przypomnienia):
+    // każdy widzi i zmienia tylko swoje. Administrator też nie ma tu dostępu.
+    match /users/{uid}/{document=**} {
+      allow read, write: if hasAccess() && request.auth.uid == uid;
+    }
+
+    // Wspólne materiały przedmiotów: czytają wszyscy z dostępem, zmienia i usuwa tylko autor.
+    match /materials/{fileId} {
+      allow read: if hasAccess();
+      allow create: if hasAccess()
+        && request.resource.data.uploadedBy == request.auth.uid
+        && request.resource.data.size is int
+        && request.resource.data.size <= 20971520
+        && request.resource.data.chunkCount is int
+        && request.resource.data.chunkCount <= 30
+        && request.resource.data.complete == false;
+      allow update: if hasAccess()
+        && resource.data.uploadedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['complete']);
+      allow delete: if hasAccess() && resource.data.uploadedBy == request.auth.uid;
+
+      match /chunks/{chunkId} {
+        allow read: if hasAccess();
+        allow create: if hasAccess()
+          && get(/databases/$(database)/documents/materials/$(fileId)).data.uploadedBy == request.auth.uid
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() <= 921600;
+        allow delete: if hasAccess()
+          && get(/databases/$(database)/documents/materials/$(fileId)).data.uploadedBy == request.auth.uid;
+      }
+    }
+
+    // Wszystko inne (np. dziennik wysłanych przypomnień) - niedostępne ze strony.
+  }
+}

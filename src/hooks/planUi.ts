@@ -18,6 +18,7 @@ export interface PlanUi {
   openCourse: (courseName: string) => void
   openOptimizer: () => void // "Dobierz grupy"
   openExport: (weekStart: Date) => void // eksport planu (zdjęcie, PDF, Excel, kalendarz)
+  openHelp: () => void // pomoc i prywatność
   isAdmin: boolean // funkcje w wersji alpha (np. optymalizator) są tylko dla administratora
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych

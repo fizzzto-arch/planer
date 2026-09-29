@@ -41,8 +41,9 @@ type Unsubscribe = () => void
 
 export interface Cloud {
   watchUser(onChange: (user: CloudUser | null) => void): Unsubscribe
-  signIn(email: string, password: string): Promise<void>
-  signUp(email: string, password: string): Promise<void>
+  // remember = "Zapamiętaj mnie na tym urządzeniu"; bez tego sesja kończy się z zamknięciem przeglądarki.
+  signIn(email: string, password: string, remember: boolean): Promise<void>
+  signUp(email: string, password: string, remember: boolean): Promise<void>
   signOut(): Promise<void>
   resetPassword(email: string): Promise<void>
   // Potwierdzenie e-maila linkiem (wysyła Firebase); po kliknięciu refreshUser odświeża stan.
@@ -74,4 +75,6 @@ export interface Cloud {
   uploadMaterial(meta: NewMaterial, chunks: Uint8Array[], onProgress: (chunksDone: number) => void): Promise<void>
   downloadMaterial(id: string, chunkCount: number, onProgress: (chunksDone: number) => void): Promise<Uint8Array[]>
   deleteMaterial(id: string, chunkCount: number): Promise<void>
+  // Usuwa konto i wszystkie dane użytkownika (wymaga hasła - potwierdzenie tożsamości).
+  deleteAccount(password: string): Promise<void>
 }

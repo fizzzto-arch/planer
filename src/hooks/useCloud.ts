@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AccessStatus, Cloud, CloudUser } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
 import { ADMIN_EMAILS, firebaseConfig } from '../lib/firebaseConfig'
+import { isEphemeralDevice, setRememberDevice, wipeLocalData } from '../lib/deviceMemory'
 import { decideSync, type SyncSnapshot } from '../lib/sync'
 import type { PlanApi } from './usePlan'
 
@@ -157,20 +158,41 @@ export function useCloud(plan: PlanApi) {
   }, [cloud])
 
   const signIn = useCallback(
-    (email: string, password: string) => requireCloud().signIn(email, password),
+    async (email: string, password: string, remember: boolean) => {
+      await requireCloud().signIn(email, password, remember)
+      setRememberDevice(remember)
+    },
     [requireCloud],
   )
   const signUp = useCallback(
-    (email: string, password: string) => requireCloud().signUp(email, password),
+    async (email: string, password: string, remember: boolean) => {
+      await requireCloud().signUp(email, password, remember)
+      setRememberDevice(remember)
+    },
     [requireCloud],
   )
   const resetPassword = useCallback((email: string) => requireCloud().resetPassword(email), [requireCloud])
   const sendVerificationEmail = useCallback(() => requireCloud().sendVerificationEmail(), [requireCloud])
   const refreshUser = useCallback(() => requireCloud().refreshUser(), [requireCloud])
 
+  // Urządzenie "bez zapamiętania": wylogowanie od razu kasuje wszystko, co Planer tu zostawił.
   const signOut = useCallback(async () => {
     await cloud?.signOut()
+    if (isEphemeralDevice()) {
+      await wipeLocalData()
+      window.location.reload()
+    }
   }, [cloud])
+
+  // Po usunięciu konta czyścimy też to urządzenie - nic po koncie nie zostaje.
+  const deleteAccount = useCallback(
+    async (password: string) => {
+      await requireCloud().deleteAccount(password)
+      await wipeLocalData()
+      window.location.reload()
+    },
+    [requireCloud],
+  )
 
   return {
     state,
@@ -190,6 +212,7 @@ export function useCloud(plan: PlanApi) {
     sendVerificationEmail,
     refreshUser,
     signOut,
+    deleteAccount,
   }
 }
 

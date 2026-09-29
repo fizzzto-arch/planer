@@ -4,6 +4,7 @@ import { errorMessage } from '../lib/errors'
 
 interface Props {
   cloud: CloudApi
+  onHelp: () => void
 }
 
 // Co ile sprawdzamy, czy użytkownik kliknął już link w mailu.
@@ -11,7 +12,7 @@ const VERIFY_POLL_MS = 5_000
 // Ile trzeba odczekać, zanim da się wysłać link ponownie.
 const RESEND_COOLDOWN_S = 60
 
-function VerifyEmail({ cloud, email }: Props & { email: string }) {
+function VerifyEmail({ cloud, email }: Pick<Props, 'cloud'> & { email: string }) {
   const [cooldown, setCooldown] = useState(0)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [checking, setChecking] = useState(false)
@@ -87,7 +88,7 @@ function VerifyEmail({ cloud, email }: Props & { email: string }) {
 }
 
 // Ekran dla zalogowanego konta bez dostępu (niepotwierdzony e-mail, czeka na zatwierdzenie, odrzucone).
-export function AccessGate({ cloud }: Props) {
+export function AccessGate({ cloud, onHelp }: Props) {
   const email = cloud.state.kind === 'signedIn' ? (cloud.state.user.email ?? '') : ''
 
   return (
@@ -142,6 +143,10 @@ export function AccessGate({ cloud }: Props) {
           Zalogowano jako <strong>{email}</strong> ·{' '}
           <button type="button" className="link-button" onClick={() => void cloud.signOut()}>
             Wyloguj
+          </button>{' '}
+          ·{' '}
+          <button type="button" className="link-button" onClick={onHelp}>
+            Pomoc i prywatność
           </button>
         </p>
       </section>

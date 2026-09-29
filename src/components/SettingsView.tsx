@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
+import { usePlanUi } from '../hooks/planUi'
 import type { PlanApi } from '../hooks/usePlan'
 import { formatShortDay, formatUpdatedAt } from '../lib/dates'
 import { plural } from '../lib/plural'
@@ -39,6 +40,7 @@ export function SettingsView({
   onSourceChanged,
 }: Props) {
   const [changing, setChanging] = useState(false)
+  const { openHelp } = usePlanUi()
   const { source, meetings, updatedAt } = plan
   const courseCount = new Set(meetings.map((m) => m.courseName)).size
   const first = meetings[0]
@@ -57,6 +59,20 @@ export function SettingsView({
 
   return (
     <section>
+      <button type="button" className="panel help-entry" onClick={openHelp}>
+        <span className="help-entry-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z" />
+          </svg>
+        </span>
+        <span className="help-entry-text">
+          <strong>Pomoc i prywatność</strong>
+          <span>Co Planer zapisuje, kto to widzi i najczęstsze pytania</span>
+        </span>
+        <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      </button>
       <AccountPanel cloud={cloud} />
       {admin && <AdminPanel admin={admin} now={now} />}
       <RemindersPanel extras={extras} prefsApi={prefsApi} />

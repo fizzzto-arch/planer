@@ -2,11 +2,17 @@
 // żeby nie spowalniać pierwszego wyświetlenia planu.
 import { FirebaseError, getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app'
 import {
+  EmailAuthProvider,
+  browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
+  deleteUser,
   getAuth,
   onIdTokenChanged,
+  reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth'
@@ -16,16 +22,22 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
   initializeFirestore,
   onSnapshot,
   persistentLocalCache,
   persistentMultipleTabManager,
+  query,
   serverTimestamp,
   setDoc,
+  where,
   type Firestore,
 } from 'firebase/firestore'
-import type { AccessStatus, Cloud } from './cloudTypes'
+import type { AccessStatus, Cloud, CollectionName } from './cloudTypes'
+
+// Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
+const ACCOUNT_COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings', 'push']
 import { chunkId } from './materials'
 
 export type { Cloud, CloudUser, CloudData } from './cloudTypes'
@@ -105,10 +117,15 @@ function createCloud(config: FirebaseOptions): Cloud {
       )
     },
 
-    signIn: (email, password) => wrap(() => signInWithEmailAndPassword(auth, email, password)),
-    // Po rejestracji od razu wysyłamy link potwierdzający e-mail.
-    signUp: (email, password) =>
+    signIn: (email, password, remember) =>
       wrap(async () => {
+        await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence)
+        await signInWithEmailAndPassword(auth, email, password)
+      }),
+    // Po rejestracji od razu wysyłamy link potwierdzający e-mail.
+    signUp: (email, password, remember) =>
+      wrap(async () => {
+        await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence)
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
         await sendEmailVerification(user, verificationSettings())
       }),
@@ -238,6 +255,30 @@ function createCloud(config: FirebaseOptions): Cloud {
       wrap(async () => {
         for (let i = 0; i < chunkCount; i++) await deleteDoc(doc(db, 'materials', id, 'chunks', chunkId(i)))
         await deleteDoc(doc(db, 'materials', id))
+      }),
+
+    // Kolejność ma znaczenie: dane usuwamy, póki reguły jeszcze wpuszczają (konto zatwierdzone),
+    // potem prośbę o dostęp, a na końcu samo konto.
+    deleteAccount: (password) =>
+      wrap(async () => {
+        const user = auth.currentUser
+        if (!user?.email) return
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password))
+        const uid = user.uid
+        for (const name of ACCOUNT_COLLECTIONS) {
+          const snap = await getDocs(collection(db, 'users', uid, name))
+          await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)))
+        }
+        await deleteDoc(doc(db, 'users', uid))
+        const own = await getDocs(query(collection(db, 'materials'), where('uploadedBy', '==', uid)))
+        for (const m of own.docs) {
+          const chunks = await getDocs(collection(m.ref, 'chunks'))
+          for (const c of chunks.docs) await deleteDoc(c.ref)
+          await deleteDoc(m.ref)
+        }
+        // Starsze reguły nie pozwalały usunąć własnej prośby - wtedy zostaje (sam e-mail i status).
+        await deleteDoc(doc(db, 'access', uid)).catch(() => undefined)
+        await deleteUser(user)
       }),
   }
 }

@@ -15,6 +15,7 @@ export function AuthForm({ cloud }: Props) {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -47,7 +48,7 @@ export function AuthForm({ cloud }: Props) {
       setError(`Hasło musi mieć co najmniej ${MIN_PASSWORD_LENGTH} znaków.`)
       return
     }
-    void run(() => (isRegister ? cloud.signUp(address, password) : cloud.signIn(address, password)))
+    void run(() => (isRegister ? cloud.signUp(address, password, remember) : cloud.signIn(address, password, remember)))
   }
 
   function handleReset() {
@@ -87,6 +88,18 @@ export function AuthForm({ cloud }: Props) {
         onChange={setPassword}
         autoComplete={isRegister ? 'new-password' : 'current-password'}
       />
+
+      <label className="check-row remember-row">
+        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+        <span>
+          Zapamiętaj mnie na tym urządzeniu
+          <span className="setting-hint">
+            {remember
+              ? 'Zostaniesz zalogowany także po zamknięciu przeglądarki.'
+              : 'Na cudzym komputerze: po zamknięciu przeglądarki Planer wyloguje Cię i usunie stąd Twoje dane.'}
+          </span>
+        </span>
+      </label>
 
       {isRegister && (
         <p className="hint">

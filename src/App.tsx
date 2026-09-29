@@ -6,6 +6,7 @@ import { CourseView } from './components/CourseView'
 import { CustomMeetingEditor } from './components/CustomMeetingEditor'
 import { DeadlineEditor } from './components/DeadlineEditor'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { HelpView } from './components/HelpView'
 import { MeetingEditor } from './components/MeetingEditor'
 import { OptimizerView } from './components/OptimizerView'
 import { SettingsView } from './components/SettingsView'
@@ -119,13 +120,15 @@ type Page =
   | { kind: 'course'; name: string }
   | { kind: 'optimizer' }
   | { kind: 'export'; weekStart: number } // tydzień, z którego otwarto eksport
+  | { kind: 'help' }
   | null
 
 function readPageFromHistory(): Page {
-  const state = window.history.state as { course?: unknown; optimizer?: unknown; export?: unknown } | null
+  const state = window.history.state as { course?: unknown; optimizer?: unknown; export?: unknown; help?: unknown } | null
   if (typeof state?.course === 'string') return { kind: 'course', name: state.course }
   if (state?.optimizer === true) return { kind: 'optimizer' }
   if (typeof state?.export === 'number') return { kind: 'export', weekStart: state.export }
+  if (state?.help === true) return { kind: 'help' }
   return null
 }
 
@@ -195,6 +198,14 @@ function App() {
     pageNow.current = { kind: 'optimizer' }
     window.history.pushState({ optimizer: true }, '')
     setPage({ kind: 'optimizer' })
+    setEnter('rise')
+    window.scrollTo({ top: 0 })
+  }, [])
+
+  const openHelp = useCallback(() => {
+    pageNow.current = { kind: 'help' }
+    window.history.pushState({ help: true }, '')
+    setPage({ kind: 'help' })
     setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
@@ -345,6 +356,7 @@ function App() {
       openCourse,
       openOptimizer,
       openExport,
+      openHelp,
       isAdmin: cloud.isAdmin,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
@@ -366,7 +378,7 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, openOptimizer, openExport, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
+    [extrasApi, materials, openCourse, openOptimizer, openExport, openHelp, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
@@ -375,8 +387,24 @@ function App() {
   )
 
   // Zalogowane konto bez dostępu: potwierdzenie e-maila / czeka na zatwierdzenie / odrzucone.
-  if (cloud.state.kind === 'signedIn' && cloud.access !== 'approved') {
-    return <AccessGate cloud={cloud} />
+  const gated = cloud.state.kind === 'signedIn' && cloud.access !== 'approved'
+
+  // Pomoc otwarta z ekranu logowania albo oczekiwania na dostęp - bez zakładek planu.
+  if (page?.kind === 'help' && (gated || !plan.source)) {
+    return (
+      <main className="app">
+        <header className="topbar">
+          <h1 className="brand">Planer</h1>
+        </header>
+        <div className="view-enter">
+          <HelpView onBack={closePage} />
+        </div>
+      </main>
+    )
+  }
+
+  if (gated) {
+    return <AccessGate cloud={cloud} onHelp={openHelp} />
   }
 
   if (!plan.source) {
@@ -428,6 +456,11 @@ function App() {
             </section>
           </>
         )}
+        <p className="gate-footer view-enter">
+          <button type="button" className="link-button" onClick={openHelp}>
+            Pomoc i prywatność
+          </button>
+        </p>
       </main>
     )
   }
@@ -478,6 +511,8 @@ function App() {
               {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
               {page?.kind === 'optimizer' && cloud.isAdmin ? (
                 <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+              ) : page?.kind === 'help' ? (
+                <HelpView onBack={closePage} />
               ) : page?.kind === 'export' ? (
                 <Suspense fallback={<p className="muted loading-line"><span className="spinner" aria-hidden="true" />Ładowanie…</p>}>
                   <ExportView

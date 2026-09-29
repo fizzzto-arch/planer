@@ -69,6 +69,11 @@ function createMockCloud(): Cloud {
     signIn: async () => setUser(MOCK_USER),
     signUp: async () => setUser(MOCK_USER),
     signOut: async () => setUser(null),
+    deleteAccount: async () => {
+      store = {}
+      localStorage.removeItem(STORAGE_KEY)
+      setUser(null)
+    },
     resetPassword: async () => {},
     sendVerificationEmail: async () => {},
     // Udajemy, że użytkownik kliknął link w mailu przy pierwszym sprawdzeniu.
