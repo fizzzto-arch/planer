@@ -2348,3 +2348,26 @@ label.setting-row {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+/* Strona przedmiotu na komputerze: dwie kolumny */
+@media (min-width: 900px) {
+  .course-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .course-side > .section-head:first-child .section-title {
+    margin-top: 0;
+  }
+}
+
+.day-countdown {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--border);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}

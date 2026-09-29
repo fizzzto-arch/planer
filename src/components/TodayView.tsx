@@ -1,5 +1,5 @@
 import { usePlanUi } from '../hooks/planUi'
-import { addDays, formatDay, isSameDay } from '../lib/dates'
+import { addDays, daysBetween, formatDay, isSameDay } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { semesterWeek } from '../lib/semesterWeek'
 import { DayTimeline } from './DayTimeline'
@@ -55,6 +55,7 @@ export function TodayView({ meetings, now }: Props) {
         <>
           <h3 className="day-title secondary">
             {isTomorrow ? 'Jutro' : 'Najbliższe zajęcia'}: {formatDay(upcoming.start)}
+            {!isTomorrow && <span className="day-countdown">za {daysBetween(now, upcoming.start)} dni</span>}
           </h3>
           <DayTimeline meetings={upcomingDay} now={now} />
         </>

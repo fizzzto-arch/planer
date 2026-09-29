@@ -73,72 +73,79 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
         )}
       </header>
 
-      {!extras && (
-        <p className="empty-state">Zaloguj się (Ustawienia), żeby dodawać notatki i terminy do przedmiotu.</p>
-      )}
-
-      {extras && (
-        <div className="panel">
-          <div className="section-head">
-            <h3 className="panel-title">Terminy</h3>
-            <button type="button" className="button small" onClick={() => editDeadline({ courseName })}>
-              + Dodaj
-            </button>
-          </div>
-          {activeDeadlines.length === 0 ? (
-            <p className="muted">Brak nadchodzących kolokwiów i terminów.</p>
-          ) : (
-            <DeadlineList deadlines={activeDeadlines} now={now} />
+      {/* Na komputerze dwie kolumny: terminy, materiały i notatka | zajęcia. Na telefonie jedna pod drugą. */}
+      <div className="course-columns">
+        <div className="course-main">
+          {!extras && (
+            <p className="empty-state">Zaloguj się (Ustawienia), żeby dodawać notatki i terminy do przedmiotu.</p>
           )}
-          {closedDeadlines.length > 0 && (
+
+          {extras && (
+            <div className="panel">
+              <div className="section-head">
+                <h3 className="panel-title">Terminy</h3>
+                <button type="button" className="button small" onClick={() => editDeadline({ courseName })}>
+                  + Dodaj
+                </button>
+              </div>
+              {activeDeadlines.length === 0 ? (
+                <p className="muted">Brak nadchodzących kolokwiów i terminów.</p>
+              ) : (
+                <DeadlineList deadlines={activeDeadlines} now={now} />
+              )}
+              {closedDeadlines.length > 0 && (
+                <details className="collapsible">
+                  <summary>Minione i zrobione ({closedDeadlines.length})</summary>
+                  <DeadlineList deadlines={closedDeadlines} now={now} />
+                </details>
+              )}
+            </div>
+          )}
+
+          <MaterialsSection courseName={courseName} />
+
+          {extras && (
+            <div className="panel">
+              <h3 className="panel-title">Notatka do przedmiotu</h3>
+              <NoteField
+                id={`course-note-${courseKey(courseName)}`}
+                value={note}
+                rows={5}
+                placeholder="np. zasady zaliczenia, kontakt do prowadzącego, próg na ocenę"
+                onSave={(text) => extras.saveCourseNote(courseName, text)}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="course-side">
+          <div className="section-head">
+            <h3 className="section-title">Zajęcia</h3>
+            {extras && (
+              <button type="button" className="button small secondary" onClick={() => addCustomMeeting({ courseName })}>
+                + Dodaj zajęcia
+              </button>
+            )}
+          </div>
+          {upcoming.length === 0 ? (
+            <p className="muted">Brak nadchodzących zajęć.</p>
+          ) : (
+            <MeetingsByDay meetings={upcoming.slice(0, UPCOMING_LIMIT)} now={now} />
+          )}
+          {upcoming.length > UPCOMING_LIMIT && (
             <details className="collapsible">
-              <summary>Minione i zrobione ({closedDeadlines.length})</summary>
-              <DeadlineList deadlines={closedDeadlines} now={now} />
+              <summary>Pozostałe nadchodzące ({upcoming.length - UPCOMING_LIMIT})</summary>
+              <MeetingsByDay meetings={upcoming.slice(UPCOMING_LIMIT)} now={now} />
+            </details>
+          )}
+          {past.length > 0 && (
+            <details className="collapsible">
+              <summary>Minione ({past.length})</summary>
+              <MeetingsByDay meetings={past} now={now} />
             </details>
           )}
         </div>
-      )}
-
-      <MaterialsSection courseName={courseName} />
-
-      {extras && (
-        <div className="panel">
-          <h3 className="panel-title">Notatka do przedmiotu</h3>
-          <NoteField
-            id={`course-note-${courseKey(courseName)}`}
-            value={note}
-            rows={5}
-            placeholder="np. zasady zaliczenia, kontakt do prowadzącego, próg na ocenę"
-            onSave={(text) => extras.saveCourseNote(courseName, text)}
-          />
-        </div>
-      )}
-
-      <div className="section-head">
-        <h3 className="section-title">Zajęcia</h3>
-        {extras && (
-          <button type="button" className="button small secondary" onClick={() => addCustomMeeting({ courseName })}>
-            + Dodaj zajęcia
-          </button>
-        )}
       </div>
-      {upcoming.length === 0 ? (
-        <p className="muted">Brak nadchodzących zajęć.</p>
-      ) : (
-        <MeetingsByDay meetings={upcoming.slice(0, UPCOMING_LIMIT)} now={now} />
-      )}
-      {upcoming.length > UPCOMING_LIMIT && (
-        <details className="collapsible">
-          <summary>Pozostałe nadchodzące ({upcoming.length - UPCOMING_LIMIT})</summary>
-          <MeetingsByDay meetings={upcoming.slice(UPCOMING_LIMIT)} now={now} />
-        </details>
-      )}
-      {past.length > 0 && (
-        <details className="collapsible">
-          <summary>Minione ({past.length})</summary>
-          <MeetingsByDay meetings={past} now={now} />
-        </details>
-      )}
     </section>
   )
 }

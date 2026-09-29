@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
@@ -24,6 +24,21 @@ export function WeekView({ meetings, now }: Props) {
     setDirection(target > weekStart ? 'next' : 'prev')
     setWeekStart(target)
   }
+
+  // Na komputerze strzałki ← → zmieniają tydzień (poza polami tekstowymi i oknami).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      if (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]')) return
+      if (document.querySelector('dialog[open]')) return
+      e.preventDefault()
+      setDirection(e.key === 'ArrowRight' ? 'next' : 'prev')
+      setWeekStart((w) => addDays(w, e.key === 'ArrowRight' ? 7 : -7))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const weekEnd = addDays(weekStart, 7)
   const weekMeetings = meetings.filter((m) => m.start >= weekStart && m.start < weekEnd)
