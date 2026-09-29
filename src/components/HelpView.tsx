@@ -116,6 +116,12 @@ export function HelpView({ onBack }: Props) {
             <strong>Przypomnienia:</strong> jeśli je włączysz, serwer co kwadrans sprawdza Twoje terminy, żeby wysłać
             powiadomienie (tytuł, przedmiot i godzina) przez usługę powiadomień Apple albo Google.
           </li>
+          <li>
+            <strong>Zmiany w planie, plan dnia:</strong> przy włączonych powiadomieniach serwer co ok. 2 godziny
+            pobiera Twój plan z USOS (przez Twój link) i pamięta najbliższe 3 tygodnie, żeby zauważyć zmiany. Po
+            wyłączeniu powiadomień albo usunięciu konta ta kopia jest usuwana. Możesz to wyłączyć w Ustawieniach →
+            Przypomnienia.
+          </li>
         </ul>
       </div>
 

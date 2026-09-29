@@ -1,4 +1,4 @@
-import { parseIcs, type IcsEvent } from './ical'
+import { parseIcs, type IcsEvent } from './ical.ts'
 
 // Pojedyncze spotkanie (jeden termin zajęć).
 // Para unitId + groupNumber jednoznacznie wskazuje grupę zajęciową w USOS -

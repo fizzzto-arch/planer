@@ -142,7 +142,30 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
           </div>
           {status && <p className={status.ok ? 'hint' : 'error'}>{status.text}</p>}
 
-          <h4 className="material-heading">Kiedy przypominać</h4>
+          <h4 className="material-heading">Plan zajęć</h4>
+          <SwitchSetting
+            label="Zmiany w planie z USOS"
+            hint="Przeniesione lub odwołane zajęcia, zmiana sali - sprawdzane co ok. 2 godziny."
+            checked={prefs.planChanges}
+            onChange={(planChanges) => update({ planChanges })}
+          />
+          <SwitchSetting
+            label="Plan dnia rano"
+            hint="O 7:00: ile zajęć, od której do której i gdzie pierwsze."
+            checked={prefs.morningSummary}
+            onChange={(morningSummary) => update({ morningSummary })}
+          />
+          <SwitchSetting
+            label="Przed pierwszymi zajęciami"
+            hint="Ok. 30 minut wcześniej, z salą."
+            checked={prefs.beforeFirstClass}
+            onChange={(beforeFirstClass) => update({ beforeFirstClass })}
+          />
+          <p className="hint">
+            Działa z planem dodanym linkiem z USOSweb (nie z pliku). Uwzględnia plan z USOS, bez Twoich ręcznych zmian.
+          </p>
+
+          <h4 className="material-heading">Kiedy przypominać o terminach</h4>
           {REMINDER_KINDS.map((k) => (
             <SwitchSetting
               key={k.id}

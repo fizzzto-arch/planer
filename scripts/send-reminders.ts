@@ -10,12 +10,28 @@ import { FieldValue, getFirestore, type DocumentData, type DocumentReference } f
 import webpush from 'web-push'
 import { ADMIN_EMAILS } from '../src/lib/firebaseConfig.ts'
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../src/lib/pushConfig.ts'
+import {
+  WATCH_DAYS,
+  changesText,
+  classesOn,
+  daySummaryText,
+  diffPlans,
+  firstClassText,
+  looksBroken,
+  snapshotPlan,
+  type WatchedMeeting,
+} from '../src/lib/planWatch.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
+import { parseUsosCalendar } from '../src/lib/usos.ts'
 
 // Przypomnienie spóźnione o więcej (skrypt pominięty, awaria) już się nie wysyła.
 const LOOKBACK_MS = 6 * 60 * 60 * 1000
 // Jak długo usługa push ma próbować dostarczyć powiadomienie wyłączonemu telefonowi.
 const TTL_SECONDS = 12 * 60 * 60
+// Co ile pobieramy plan z USOS (zmiany w planie, plan dnia).
+const WATCH_EVERY_MS = 2 * 60 * 60 * 1000
+// Przypomnienie przed pierwszymi zajęciami: gdy zostało najwyżej tyle.
+const FIRST_CLASS_WINDOW_MS = 35 * 60 * 1000
 
 interface Notice {
   title: string
@@ -70,6 +86,7 @@ for (const [uid, userDevices] of byUser) {
     if (!(await firstTime(key, uid))) continue
     notices.push({ ...reminderText(reminder, courseLabel), tag: `${reminder.deadline.id}-${reminder.kind}` })
   }
+  notices.push(...(await planNotices(uid, prefs, courseLabel)))
 
   for (const device of userDevices) {
     const data = device.data()
@@ -106,7 +123,69 @@ if (!pending.empty) {
   }
 }
 
+// Zapamiętany plan trzymamy tylko u osób z włączonymi powiadomieniami - po wyłączeniu
+// powiadomień albo usunięciu konta znika też z serwera.
+for (const watch of (await db.collection('planWatch').listDocuments())) {
+  if (!byUser.has(watch.id)) await watch.delete()
+}
+
 console.log(`Urządzenia: ${devices.size}, wysłane: ${sent}, usunięte nieaktualne: ${removed}`)
+
+// Zmiany w planie z USOS, plan dnia rano i przypomnienie przed pierwszymi zajęciami.
+// Plan pobieramy przez link użytkownika co WATCH_EVERY_MS i zapamiętujemy najbliższe tygodnie
+// (planWatch/{uid} - tylko dla serwera, reguły nie wpuszczają tam strony).
+async function planNotices(uid: string, prefs: DocumentData, label: (course: string) => string): Promise<Notice[]> {
+  const wantChanges = prefs.planChanges !== false
+  const wantMorning = prefs.morningSummary === true
+  const wantFirst = prefs.beforeFirstClass === true
+  if (!wantChanges && !wantMorning && !wantFirst) return []
+
+  const ref = db.doc(`planWatch/${uid}`)
+  const watch = (await ref.get()).data() as { plan?: WatchedMeeting[]; until?: number; checkedAt?: number } | undefined
+  let plan = watch?.plan ?? null
+  const notices: Notice[] = []
+
+  if (!watch?.checkedAt || now.getTime() - watch.checkedAt >= WATCH_EVERY_MS) {
+    const url = (await db.doc(`users/${uid}`).get()).get('icalUrl')
+    if (typeof url === 'string' && url.startsWith('https://')) {
+      try {
+        const response = await fetch(url)
+        if (!response.ok) throw new Error(`USOS ${response.status}`)
+        const next = snapshotPlan(parseUsosCalendar(await response.text()), now)
+        // Niepełna odpowiedź USOS: nie porównujemy i nie nadpisujemy - spróbujemy za kwadrans.
+        const broken = plan !== null && watch?.until !== undefined && looksBroken(plan, next, now, watch.until)
+        if (!broken) {
+          if (plan && watch?.until && wantChanges) {
+            const changes = diffPlans(plan, next, now, watch.until)
+            if (changes.length > 0) notices.push({ ...changesText(changes, label), tag: `plan-${now.getTime()}` })
+          }
+          plan = next
+          await ref.set({ plan: next, until: now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000, checkedAt: now.getTime() })
+        }
+      } catch (e) {
+        console.log(`::warning::Nie udało się pobrać planu z USOS: ${(e as Error).message}`)
+      }
+    }
+  }
+  if (!plan) return notices
+
+  const today = classesOn(plan, now)
+  if (today.length === 0) return notices
+  const dateKey = now.toDateString().replace(/\s+/g, '-')
+  const last = today.reduce((a, b) => (b.end > a.end ? b : a))
+  // Plan dnia: między 7 a 10, póki zajęcia jeszcze trwają.
+  if (wantMorning && now.getHours() >= 7 && now.getHours() < 10 && now.getTime() < last.end) {
+    if (await firstTime(`morning_${uid}_${dateKey}`, uid)) {
+      notices.push({ ...daySummaryText(today, label), tag: `day-${dateKey}` })
+    }
+  }
+  const first = today[0]
+  const left = first.start - now.getTime()
+  if (wantFirst && left > 0 && left <= FIRST_CLASS_WINDOW_MS && (await firstTime(`first_${uid}_${first.id}`, uid))) {
+    notices.push({ ...firstClassText(first, label, now), tag: `first-${first.id}` })
+  }
+  return notices
+}
 
 // Dziennik wysłanych: create() nie nadpisuje, więc każde powiadomienie idzie najwyżej raz,
 // nawet gdy dwa uruchomienia skryptu nałożą się na siebie.

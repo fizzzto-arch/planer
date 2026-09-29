@@ -20,6 +20,9 @@ export interface Prefs {
   courseAliases: Record<string, string> // pełna nazwa przedmiotu -> skrót
   useAliases: boolean // pokazuj skróty zamiast pełnych nazw (skróty zostają zapisane)
   reminders: ReminderKind[] // kiedy przypominać o terminach (czyta to też skrypt wysyłający)
+  planChanges: boolean // powiadomienie o zmianie w planie z USOS
+  morningSummary: boolean // plan dnia rano (7:00)
+  beforeFirstClass: boolean // przypomnienie 30 min przed pierwszymi zajęciami dnia
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -36,6 +39,9 @@ export const DEFAULT_PREFS: Prefs = {
   courseAliases: {},
   useAliases: true,
   reminders: DEFAULT_REMINDERS,
+  planChanges: true,
+  morningSummary: false,
+  beforeFirstClass: false,
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -81,6 +87,9 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     courseAliases: aliases,
     useAliases: bool(raw.useAliases, DEFAULT_PREFS.useAliases),
     reminders: parseReminderKinds(raw.reminders),
+    planChanges: bool(raw.planChanges, DEFAULT_PREFS.planChanges),
+    morningSummary: bool(raw.morningSummary, DEFAULT_PREFS.morningSummary),
+    beforeFirstClass: bool(raw.beforeFirstClass, DEFAULT_PREFS.beforeFirstClass),
   }
 }
 

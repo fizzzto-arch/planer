@@ -69,6 +69,7 @@ service cloud.firestore {
       }
     }
 
-    // Wszystko inne (np. dziennik wysłanych przypomnień) - niedostępne ze strony.
+    // Wszystko inne (dziennik wysłanych przypomnień, zapamiętany plan do wykrywania zmian w USOS)
+    // - niedostępne ze strony, korzysta z tego tylko serwer przypomnień.
   }
 }
