@@ -17,7 +17,7 @@ import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
 import { useExtras } from './hooks/useExtras'
-import { isFling, isIosStandalone, slideElement, useHorizontalSwipe } from './hooks/useHorizontalSwipe'
+import { isFling, isStandaloneApp, slideElement, useHorizontalSwipe } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
@@ -162,7 +162,7 @@ function App() {
     else setPage(null)
   }, [])
 
-  // Gest "wstecz" od lewej krawędzi. Aplikacja z ekranu początkowego iPhone'a nie ma paska Safari,
+  // Gest "wstecz": przesunięcie w prawo na podstronie. Aplikacja z ekranu początkowego nie ma paska Safari,
   // więc i jego gestu - robimy własny: podstrona jedzie za palcem, a spod niej wyłania się plan.
   const pageRef = useRef<HTMLDivElement>(null)
   const underRef = useRef<HTMLDivElement>(null)
@@ -216,7 +216,8 @@ function App() {
       onEnd: (dx, velocity) => endSwipe(dx > 0 && isFling(dx, velocity, window.innerWidth * 0.35)),
       onCancel: () => endSwipe(false),
     },
-    { enabled: page !== null && isIosStandalone(), edge: 24 },
+    // W Safari przy samej krawędzi działa gest przeglądarki - tam go nie dublujemy.
+    { enabled: page !== null, onlyRight: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
   )
 
   useLayoutEffect(() => {

@@ -9,7 +9,7 @@ export interface SwipeHandlers {
 
 interface Options {
   enabled: boolean
-  edge?: number // tylko gesty zaczęte przy lewej krawędzi ekranu (px)
+  onlyRight?: boolean // tylko gest w prawo ("wstecz"); ruch w lewo zostaje stronie
   ignoreEdges?: number // pomijaj gesty od krawędzi - tam działa gest przeglądarki
 }
 
@@ -28,11 +28,11 @@ function inHorizontalScroller(node: Element | null): boolean {
   return false
 }
 
-// Przesunięcie palcem w bok. target = element albo cały dokument (gest od krawędzi).
+// Przesunięcie palcem w bok. target = element albo cały dokument.
 export function useHorizontalSwipe(
   target: RefObject<HTMLElement | null> | 'document',
   handlers: SwipeHandlers,
-  { enabled, edge, ignoreEdges }: Options,
+  { enabled, onlyRight, ignoreEdges }: Options,
 ) {
   const handlersRef = useRef(handlers)
   useEffect(() => {
@@ -54,7 +54,6 @@ export function useHorizontalSwipe(
       start = null
       if (touches.length !== 1) return
       const { clientX, clientY } = touches[0]
-      if (edge !== undefined && clientX > edge) return
       if (ignoreEdges !== undefined && (clientX < ignoreEdges || clientX > window.innerWidth - ignoreEdges)) return
       if (touched instanceof Element && (touched.closest(IGNORED) || inHorizontalScroller(touched))) return
       if (document.querySelector('dialog[open]')) return
@@ -71,8 +70,8 @@ export function useHorizontalSwipe(
       const dy = clientY - start.y
       if (!horizontal) {
         if (Math.abs(dx) < LOCK_DISTANCE && Math.abs(dy) < LOCK_DISTANCE) return
-        if (Math.abs(dx) <= Math.abs(dy) * 1.2) {
-          start = null // przewijanie w pionie - nie przeszkadzamy
+        if (Math.abs(dx) <= Math.abs(dy) * 1.2 || (onlyRight && dx < 0)) {
+          start = null // przewijanie w pionie (albo zły kierunek) - nie przeszkadzamy
           return
         }
         horizontal = true
@@ -108,12 +107,16 @@ export function useHorizontalSwipe(
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchcancel', onTouchCancel)
     }
-  }, [target, enabled, edge, ignoreEdges])
+  }, [target, enabled, onlyRight, ignoreEdges])
 }
 
-// Aplikacja z ekranu początkowego iPhone'a - bez paska Safari i jego gestu "wstecz".
-export function isIosStandalone(): boolean {
-  return (navigator as Navigator & { standalone?: boolean }).standalone === true
+// Aplikacja z ekranu początkowego - bez paska Safari i jego gestów "wstecz / dalej" od krawędzi.
+// navigator.standalone to stary sposób iOS, display-mode - nowszy; sprawdzamy oba.
+export function isStandaloneApp(): boolean {
+  return (
+    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches
+  )
 }
 
 // Przesuwa element za palcem; animate = płynny dojazd (powrót na miejsce albo odjazd).

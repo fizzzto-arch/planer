@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
-import { isFling, isIosStandalone, slideElement, useHorizontalSwipe } from '../hooks/useHorizontalSwipe'
+import { isFling, isStandaloneApp, slideElement, useHorizontalSwipe } from '../hooks/useHorizontalSwipe'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
@@ -44,7 +44,7 @@ export function WeekView({ meetings, now }: Props) {
       onCancel: () => slideElement(bodyRef.current, 0, true),
     },
     // W Safari przy krawędziach działa gest przeglądarki "wstecz / dalej".
-    { enabled: true, ignoreEdges: isIosStandalone() ? undefined : 24 },
+    { enabled: true, ignoreEdges: isStandaloneApp() ? undefined : 24 },
   )
 
   const weekEnd = addDays(weekStart, 7)
