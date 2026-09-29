@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addDays, formatWeekRange, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
+import { extraGroupWeek } from '../lib/candidatePlan'
 import type { ExtraGroup } from '../lib/extraCourses'
 import { semesterWeek } from '../lib/semesterWeek'
 import { Dialog } from './Dialog'
@@ -11,35 +12,6 @@ interface Props {
   meetings: PlanMeeting[] // obecny plan
   now: Date
   onClose: () => void
-}
-
-// Zajęcia grupy w danym tygodniu jako wpisy planu (w tygodnie z właściwą parzystością).
-function groupMeetings(group: ExtraGroup, weekStart: Date, odd: boolean | null): PlanMeeting[] {
-  if (group.parity !== 'weekly' && odd !== null && odd !== (group.parity === 'odd')) return []
-  // WF z USOS ma typ "FIZ" - w Planerze kolor WF.
-  const type = group.classType === 'FIZ' ? 'WF' : group.classType
-  return group.meetings.map((m, i) => {
-    const day = addDays(weekStart, m.weekday - 1)
-    const at = (minutes: number) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(minutes / 60), minutes % 60)
-    return {
-      id: `extra-${group.id}-${weekStart.getTime()}-${i}`,
-      courseName: group.courseName,
-      type,
-      start: at(m.start),
-      end: at(m.end),
-      room: group.place || null,
-      building: null,
-      address: null,
-      groupNumber: group.groupNumber,
-      unitId: null,
-      usosUrl: null,
-      cancelled: false,
-      edited: false,
-      custom: false,
-      note: '',
-      original: null,
-    }
-  })
 }
 
 // Terminarz tygodnia: obecny plan + wybrana grupa spoza planu (w pomarańczowej ramce).
@@ -58,7 +30,7 @@ export function ExtraPreview({ group, meetings, now, onClose }: Props) {
   const weekStart = new Date(weeks[weekIndex] ?? thisWeek)
   const weekEnd = addDays(weekStart, 7)
   const sw = semesterWeek(weekStart, active)
-  const extra = groupMeetings(group, weekStart, sw ? sw.odd : null)
+  const extra = extraGroupWeek(group, weekStart, sw ? sw.odd : null)
   // Po godzinie - siatka układa nakładające się zajęcia w pasy według kolejności.
   const items = [...active.filter((m) => m.start >= weekStart && m.start < weekEnd), ...extra].sort(
     (a, b) => a.start.getTime() - b.start.getTime(),

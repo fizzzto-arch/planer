@@ -2558,3 +2558,19 @@ label.setting-row {
   font-weight: 600;
   color: var(--ok);
 }
+
+/* Eksport propozycji z optymalizatora - wyraźnie, że to nie obecny plan */
+.export-source {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  font-size: 0.92rem;
+}
+
+/* Przyciski przy propozycji: podgląd i eksport */
+.candidate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

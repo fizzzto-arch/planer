@@ -15,7 +15,7 @@ import { SourceForm } from './components/SourceForm'
 import { Tabs, type TabsControl } from './components/Tabs'
 import { TodayView } from './components/TodayView'
 import { WeekView } from './components/WeekView'
-import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type PlanUi } from './hooks/planUi'
+import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type ExportSource, type PlanUi } from './hooks/planUi'
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
 import { useExtras } from './hooks/useExtras'
@@ -220,7 +220,10 @@ function App() {
     window.scrollTo({ top: 0 })
   }, [])
 
-  const openExport = useCallback((weekStart: Date) => {
+  // Eksport obecnego planu albo innego (propozycja z optymalizatora) - źródło trzymamy w pamięci.
+  const [exportSource, setExportSource] = useState<ExportSource | null>(null)
+  const openExport = useCallback((weekStart: Date, source?: ExportSource) => {
+    setExportSource(source ?? null)
     pageNow.current = { kind: 'export', weekStart: weekStart.getTime() }
     window.history.pushState({ export: weekStart.getTime() }, '')
     setPage({ kind: 'export', weekStart: weekStart.getTime() })
@@ -539,7 +542,8 @@ function App() {
                   <HelpView onBack={closePage} />
                 ) : page?.kind === 'export' ? (
                   <ExportView
-                    meetings={meetings}
+                    meetings={exportSource?.meetings ?? meetings}
+                    source={exportSource?.title ?? null}
                     now={now}
                     initialWeek={new Date(page.weekStart)}
                     colors={typeColors.colors}

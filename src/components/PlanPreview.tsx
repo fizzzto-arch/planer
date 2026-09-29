@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { addDays, formatWeekRange, startOfWeek } from '../lib/dates'
-import type { PlanMeeting } from '../lib/edits'
-import type { Candidate, OptMeeting, Slot } from '../lib/optimizer'
+import { candidateMeetings, type FixedMeeting } from '../lib/candidatePlan'
+import type { Candidate, Slot } from '../lib/optimizer'
 import { Dialog } from './Dialog'
 import { WeekGrid } from './WeekGrid'
 
@@ -9,54 +9,14 @@ interface Props {
   title: string
   candidate: Candidate
   slots: Slot[]
-  fixed: (OptMeeting & { courseName: string; type: string })[]
+  fixed: FixedMeeting[]
   now: Date
   onClose: () => void
 }
 
-// Zajęcia propozycji w kształcie, jaki rozumie siatka tygodnia.
-function toPlanMeeting(
-  id: string,
-  m: OptMeeting,
-  courseName: string,
-  type: string,
-  groupNumber: number | null,
-): PlanMeeting {
-  return {
-    id,
-    courseName,
-    type,
-    start: m.start,
-    end: m.end,
-    room: m.room,
-    building: m.building,
-    address: null,
-    groupNumber,
-    unitId: null,
-    usosUrl: null,
-    cancelled: false,
-    edited: false,
-    custom: false,
-    note: '',
-    original: null,
-  }
-}
-
 // Terminarz tydzień po tygodniu: jak wyglądałby plan z tymi grupami (nowe grupy wyróżnione).
 export function PlanPreview({ title, candidate, slots, fixed, now, onClose }: Props) {
-  const changedIds = new Set<string>()
-  const items: PlanMeeting[] = [
-    ...slots.flatMap((slot, i) => {
-      const option = slot.options[candidate.choice[i]]
-      const changed = slot.currentIndex !== null && candidate.choice[i] !== slot.currentIndex
-      return option.meetings.map((m, j) => {
-        const id = `${slot.id}-${option.groupNumber}-${j}`
-        if (changed) changedIds.add(id)
-        return toPlanMeeting(id, m, slot.courseName, slot.classType, option.groupNumber)
-      })
-    }),
-    ...fixed.map((m, j) => toPlanMeeting(`fixed-${j}`, m, m.courseName, m.type, null)),
-  ].sort((a, b) => a.start.getTime() - b.start.getTime())
+  const { meetings: items, changedIds } = candidateMeetings(candidate, slots, fixed)
 
   const weeks = [...new Set(items.map((m) => startOfWeek(m.start).getTime()))].sort((a, b) => a - b)
   const thisWeek = startOfWeek(now).getTime()

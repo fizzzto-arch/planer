@@ -99,10 +99,11 @@ interface Props {
   slots: Slot[]
   settings: OptimizerSettings
   onPreview: () => void
+  onExport: () => void // eksport tego planu (zdjęcie, PDF, Excel, kalendarz)
   highlight?: boolean
 }
 
-export function CandidateCard({ title, candidate, current, slots, settings, onPreview, highlight = false }: Props) {
+export function CandidateCard({ title, candidate, current, slots, settings, onPreview, onExport, highlight = false }: Props) {
   const { displayName } = usePlanUi()
   const changes = slots.flatMap((slot, i) => {
     const to = candidate.choice[i]
@@ -114,9 +115,14 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
     <div className={`panel candidate${highlight ? ' is-highlight' : ''}`}>
       <div className="section-head">
         <h4 className="candidate-title">{title}</h4>
-        <button type="button" className="button small secondary" onClick={onPreview}>
-          Podgląd tygodnia
-        </button>
+        <span className="candidate-actions">
+          <button type="button" className="button small secondary" onClick={onPreview}>
+            Podgląd tygodnia
+          </button>
+          <button type="button" className="button small secondary" onClick={onExport}>
+            Eksportuj
+          </button>
+        </span>
       </div>
       <MetricsGrid metrics={candidate.metrics} base={current?.metrics ?? null} settings={settings} />
       {changes.length === 0 ? (

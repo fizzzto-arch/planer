@@ -11,13 +11,20 @@ export type DeadlineDraft = Partial<Deadline>
 // Własne zajęcia do edycji: bez id = nowe.
 export type CustomMeetingDraft = Partial<CustomMeeting>
 
+// Plan do eksportu inny niż obecny (np. propozycja z optymalizatora) i podpowiedź tytułu.
+export interface ExportSource {
+  meetings: PlanMeeting[]
+  title: string
+}
+
 // Wspólne dla wszystkich widoków: dodatki i nawigacja.
 export interface PlanUi {
   extras: ExtrasApi | null // null = niezalogowany
   materials: SharedMaterialsApi | null // wspólne pliki przedmiotów; null = niezalogowany
   openCourse: (courseName: string) => void
   openOptimizer: () => void // "Dobierz grupy"
-  openExport: (weekStart: Date) => void // eksport planu (zdjęcie, PDF, Excel, kalendarz)
+  // eksport planu (zdjęcie, PDF, Excel, kalendarz); source = inny plan, np. propozycja z optymalizatora
+  openExport: (weekStart: Date, source?: ExportSource) => void
   openHelp: () => void // pomoc i prywatność
   openSettings: () => void // zakładka Ustawienia (np. z "Pierwszych kroków")
   isAdmin: boolean // funkcje w wersji alpha (np. optymalizator) są tylko dla administratora

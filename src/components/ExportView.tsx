@@ -24,6 +24,7 @@ interface Props {
   now: Date
   initialWeek: Date
   colors: TypeColors
+  source: string | null // eksport propozycji z optymalizatora (jej nazwa) zamiast obecnego planu
   onBack: () => void
 }
 
@@ -38,9 +39,15 @@ const FORMATS: { id: Format; label: string; hint: string }[] = [
 ]
 
 // Eksport planu: typowy tydzień albo konkretny tydzień jako zdjęcie, PDF, Excel albo kalendarz.
-export function ExportView({ meetings, now, initialWeek, colors, onBack }: Props) {
+export function ExportView({ meetings, now, initialWeek, colors, source, onBack }: Props) {
   const { displayName } = usePlanUi()
-  const [options, setOptions] = useState<ExportOptions>(loadExportOptions)
+  const [savedOptions, setOptions] = useState<ExportOptions>(loadExportOptions)
+  // Propozycja z optymalizatora ma własny tytuł (jej nazwę) - nie nadpisuje zapamiętanego tytułu planu.
+  const [sourceTitle, setSourceTitle] = useState(source ?? '')
+  const options = useMemo(
+    () => (source !== null ? { ...savedOptions, title: sourceTitle } : savedOptions),
+    [source, savedOptions, sourceTitle],
+  )
   const [weekStart, setWeekStart] = useState(() => startOfWeek(initialWeek))
   const [hiddenNotes, setHiddenNotes] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<{ url: string; canvas: HTMLCanvasElement } | null>(null)
@@ -140,6 +147,11 @@ export function ExportView({ meetings, now, initialWeek, colors, onBack }: Props
       <header className="course-header">
         <h2>Eksport planu</h2>
         <p className="muted">Zdjęcie do galerii albo dla znajomych, PDF do druku, Excel albo plik do kalendarza.</p>
+        {source !== null && (
+          <p className="export-source">
+            Eksportujesz propozycję z optymalizatora: <strong>{source}</strong> - nie swój obecny plan.
+          </p>
+        )}
       </header>
 
       {!timetable || !model ? (
@@ -209,7 +221,7 @@ export function ExportView({ meetings, now, initialWeek, colors, onBack }: Props
                   value={options.title}
                   maxLength={80}
                   placeholder={semesterTitle(timetable.semester)}
-                  onChange={(e) => update({ title: e.target.value })}
+                  onChange={(e) => (source !== null ? setSourceTitle(e.target.value) : update({ title: e.target.value }))}
                 />
               </label>
               <ChoiceSetting

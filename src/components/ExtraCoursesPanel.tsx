@@ -1,5 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { formatDuration } from '../lib/dates'
+import { usePlanUi } from '../hooks/planUi'
+import { withExtraGroup } from '../lib/candidatePlan'
+import { formatDuration, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { errorMessage } from '../lib/errors'
 import {
@@ -48,6 +50,7 @@ function gapText(minutes: number): string {
 
 // Zajęcia spoza planu (WF, lektorat): wyszukiwanie w USOS i grupy, które najlepiej pasują do planu.
 export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapThreshold }: Props) {
+  const { openExport } = usePlanUi()
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<ExtraSource>('wf')
   const [termId, setTermId] = useState<string | null>(null)
@@ -226,9 +229,24 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
                       <span className={`extra-tag ${fit.gapMinutes > 2 ? 'is-worse' : 'is-better'}`}>{gapText(fit.gapMinutes)}</span>
                       <span className="extra-tag">koniec dnia {formatClock(fit.dayEnd)}</span>
                     </div>
-                    <button type="button" className="button small secondary" onClick={() => setPreview(fit.group)}>
-                      Podgląd tygodnia
-                    </button>
+                    <span className="candidate-actions">
+                      <button type="button" className="button small secondary" onClick={() => setPreview(fit.group)}>
+                        Podgląd tygodnia
+                      </button>
+                      <button
+                        type="button"
+                        className="button small secondary"
+                        onClick={() =>
+                          openExport(startOfWeek(now), {
+                            meetings: withExtraGroup(meetings, fit.group, now),
+                            // "Plan + Siatkówka (gr. 10)" - bez odmiany nazw, której nie da się zrobić niezawodnie.
+                            title: `Plan + ${shortName(fit.group.courseName)} (gr. ${fit.group.groupNumber})`,
+                          })
+                        }
+                      >
+                        Eksportuj
+                      </button>
+                    </span>
                   </div>
                 </li>
               ))}

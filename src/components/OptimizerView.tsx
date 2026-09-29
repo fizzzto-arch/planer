@@ -6,6 +6,7 @@ import { formatUpdatedAt, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { deanFilter, deanGroupOf, deanGroups, optimize, type Candidate } from '../lib/optimizer'
 import type { Meeting } from '../lib/usos'
+import { candidateMeetings } from '../lib/candidatePlan'
 import { CandidateCard, MetricsGrid } from './CandidateCard'
 import { ExtraCoursesPanel } from './ExtraCoursesPanel'
 import { OptimizerSettingsPanel } from './OptimizerSettingsPanel'
@@ -21,7 +22,7 @@ interface Props {
 const TOP_LIMIT = 5
 
 export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
-  const { prefs, extras } = usePlanUi()
+  const { prefs, extras, openExport } = usePlanUi()
   const settingsApi = useOptimizerSettings(extras)
   const { settings } = settingsApi
 
@@ -50,6 +51,12 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   }, [slots, fixed, settings, prefs.gapMinutes])
 
   const [preview, setPreview] = useState<{ title: string; candidate: Candidate } | null>(null)
+
+  // Eksport propozycji: zwykły eksport (zdjęcie, PDF, Excel, kalendarz), ale z planem po zmianie grup.
+  const exportCandidate = (title: string, candidate: Candidate) => {
+    if (!slots) return
+    openExport(startOfWeek(now), { meetings: candidateMeetings(candidate, slots, fixed).meetings, title })
+  }
 
   // Twoja grupa dziekańska: najczęstsza wśród obecnych grup.
   const myDean = useMemo(() => {
@@ -164,6 +171,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
                     slots={slots}
                     settings={settings}
                     onPreview={() => setPreview({ title: `Grupa dziekańska ${dean}`, candidate: best })}
+                    onExport={() => exportCandidate(`Grupa dziekańska ${dean}`, best)}
                   />
                 ) : (
                   <div key={dean} className="panel candidate">
@@ -201,6 +209,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
                   slots={slots}
                   settings={settings}
                   onPreview={() => setPreview({ title, candidate })}
+                  onExport={() => exportCandidate(title, candidate)}
                 />
               )
             })
