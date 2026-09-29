@@ -12,6 +12,7 @@ import { MeetingEditor } from './components/MeetingEditor'
 import { OptimizerView } from './components/OptimizerView'
 import { SettingsView } from './components/SettingsView'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
+import { UpdateBanner } from './components/UpdateBanner'
 import { SourceForm } from './components/SourceForm'
 import { Tabs, type TabsControl } from './components/Tabs'
 import { TodayView } from './components/TodayView'
@@ -405,7 +406,12 @@ function App() {
   }
 
   if (gated) {
-    return <AccessGate cloud={cloud} onHelp={openHelp} />
+    return (
+      <>
+        <AccessGate cloud={cloud} onHelp={openHelp} />
+        <UpdateBanner />
+      </>
+    )
   }
 
   if (!plan.source) {
@@ -468,6 +474,7 @@ function App() {
             Pomoc i prywatność
           </button>
         </p>
+        <UpdateBanner />
       </main>
     )
   }
@@ -549,6 +556,7 @@ function App() {
           </div>
         )}
         <SwipeDebugOverlay />
+        <UpdateBanner />
 
         {deadlineDraft && extrasApi && (
           <DeadlineEditor

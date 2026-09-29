@@ -5,8 +5,10 @@
 //   FIREBASE_SERVICE_ACCOUNT - klucz konta usługi Firebase (cały plik JSON),
 //   VAPID_PRIVATE_KEY - prywatny klucz powiadomień (publiczny jest w src/lib/pushConfig.ts).
 import { cert, initializeApp } from 'firebase-admin/app'
+import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getFirestore, type DocumentData, type DocumentReference } from 'firebase-admin/firestore'
 import webpush from 'web-push'
+import { ADMIN_EMAILS } from '../src/lib/firebaseConfig.ts'
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../src/lib/pushConfig.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 
@@ -64,15 +66,8 @@ for (const [uid, userDevices] of byUser) {
 
   const notices: Notice[] = []
   for (const reminder of dueReminders(deadlines, kinds, now, LOOKBACK_MS)) {
-    // Dziennik wysłanych: create() nie nadpisuje, więc każde przypomnienie idzie najwyżej raz,
-    // nawet gdy dwa uruchomienia skryptu nałożą się na siebie.
     const key = `${uid}_${reminder.deadline.id}_${reminder.kind}_${reminder.at.getTime()}`
-    try {
-      await db.doc(`reminderLog/${key}`).create({ uid, sentAt: FieldValue.serverTimestamp() })
-    } catch (e) {
-      if ((e as { code?: number }).code === 6) continue // ALREADY_EXISTS - już wysłane
-      throw e
-    }
+    if (!(await firstTime(key, uid))) continue
     notices.push({ ...reminderText(reminder, courseLabel), tag: `${reminder.deadline.id}-${reminder.kind}` })
   }
 
@@ -90,7 +85,40 @@ for (const [uid, userDevices] of byUser) {
   }
 }
 
+// Nowe prośby o dostęp - powiadomienie dla administratorów (na ich urządzenia z przypomnieniami).
+const pending = await db.collection('access').where('status', '==', 'pending').get()
+if (!pending.empty) {
+  const adminUids = (
+    await Promise.all(ADMIN_EMAILS.map((email) => getAuth().getUserByEmail(email).then((u) => u.uid, () => null)))
+  ).filter((uid): uid is string => uid !== null)
+  for (const request of pending.docs) {
+    if (!(await firstTime(`access_${request.id}`, request.id))) continue
+    const email = String(request.get('email') ?? 'Ktoś')
+    for (const adminUid of adminUids) {
+      for (const device of byUser.get(adminUid) ?? []) {
+        await send(device.ref, device.data(), {
+          title: 'Nowe konto czeka na zatwierdzenie',
+          body: `${email} prosi o dostęp do Planera.`,
+          tag: `access-${request.id}`,
+        })
+      }
+    }
+  }
+}
+
 console.log(`Urządzenia: ${devices.size}, wysłane: ${sent}, usunięte nieaktualne: ${removed}`)
+
+// Dziennik wysłanych: create() nie nadpisuje, więc każde powiadomienie idzie najwyżej raz,
+// nawet gdy dwa uruchomienia skryptu nałożą się na siebie.
+async function firstTime(key: string, uid: string): Promise<boolean> {
+  try {
+    await db.doc(`reminderLog/${key}`).create({ uid, sentAt: FieldValue.serverTimestamp() })
+    return true
+  } catch (e) {
+    if ((e as { code?: number }).code === 6) return false // ALREADY_EXISTS - już wysłane
+    throw e
+  }
+}
 
 async function send(ref: DocumentReference, data: DocumentData, notice: Notice) {
   try {

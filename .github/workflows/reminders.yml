@@ -6,6 +6,8 @@ name: Przypomnienia o terminach
 on:
   schedule:
     - cron: '*/15 * * * *'
+    # Raz w miesiącu: podtrzymanie harmonogramu (niżej, zadanie keepalive).
+    - cron: '17 4 1 * *'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +19,9 @@ concurrency:
 
 jobs:
   send:
-    runs-on: ubuntu-latest
+    if: github.event.schedule != '17 4 1 * *'
+    # Przypięta wersja systemu - zmiana "ubuntu-latest" po stronie GitHuba niczego nie zepsuje.
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       TZ: Europe/Warsaw
@@ -32,3 +36,16 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+
+  # GitHub wyłącza zaplanowane uruchomienia po 60 dniach bez zmian w repozytorium (np. w wakacje).
+  # Ponowne "włączenie" harmonogramu przez API zeruje ten licznik - bez sztucznych commitów.
+  keepalive:
+    if: github.event.schedule == '17 4 1 * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      actions: write
+    steps:
+      - run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/reminders.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
