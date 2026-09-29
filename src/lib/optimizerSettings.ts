@@ -75,5 +75,21 @@ export function describeOption(option: GroupOption): string {
   const last = option.meetings[option.meetings.length - 1].start.getTime()
   const spanWeeks = Math.round((last - first) / (7 * 24 * 3600 * 1000)) + 1
   const biweekly = option.meetings.length >= 3 && spanWeeks >= option.meetings.length * 1.7
-  return biweekly ? `${main}, co 2 tyg.` : main
+  const base = biweekly ? `${main}, co 2 tyg.` : main
+  // Grupa blokowa (np. laboratorium 5 razy w części semestru) - od kiedy do kiedy, żeby było widać,
+  // że dwie takie grupy o tej samej godzinie się nie nakładają.
+  if (option.meetings.length > BLOCK_MAX_MEETINGS) return base
+  const date = (t: number) => {
+    const d = new Date(t)
+    return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+  return `${base}, ${date(first)}–${date(last)}, ${option.meetings.length}×`
+}
+
+// Grupa z najwyżej tyloma terminami to zajęcia w części semestru (pełny semestr to ok. 15).
+const BLOCK_MAX_MEETINGS = 8
+
+// Strona grupy w USOSweb - tam USOS pokazuje wszystkie terminy grupy (do sprawdzenia samemu).
+export function usosGroupUrl(option: GroupOption): string {
+  return `https://usosweb.usos.pw.edu.pl/kontroler.php?_action=katalog2/przedmioty/pokazZajecia&gr_nr=${option.groupNumber}&zaj_cyk_id=${option.unitId}`
 }

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDuration } from '../lib/dates'
 import type { Candidate, OptimizerSettings, PlanMetrics, Slot } from '../lib/optimizer'
-import { describeOption } from '../lib/optimizerSettings'
+import { describeOption, usosGroupUrl } from '../lib/optimizerSettings'
 import { typeLabel } from '../lib/usos'
 
 function formatMinutes(minutes: number): string {
@@ -136,7 +136,10 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
               </span>
               <span className="change-groups">
                 gr. {from.groupNumber} <span className="muted">({describeOption(from)})</span> →{' '}
-                <strong>gr. {to.groupNumber}</strong> <span className="muted">({describeOption(to)})</span>
+                <strong>gr. {to.groupNumber}</strong> <span className="muted">({describeOption(to)})</span>{' '}
+                <a className="usos-link" href={usosGroupUrl(to)} target="_blank" rel="noreferrer">
+                  terminy w USOS
+                </a>
               </span>
             </li>
           ))}

@@ -2574,3 +2574,11 @@ label.setting-row {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Link do strony grupy w USOSweb (terminy do sprawdzenia) */
+.usos-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
