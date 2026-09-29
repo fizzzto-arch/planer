@@ -53,10 +53,12 @@ export function TodayView({ meetings, now }: Props) {
       </div>
       {upcoming ? (
         <>
-          <h3 className="day-title secondary">
-            {isTomorrow ? 'Jutro' : 'Najbliższe zajęcia'}: {formatDay(upcoming.start)}
-            {!isTomorrow && <span className="day-countdown">za {daysBetween(now, upcoming.start)} dni</span>}
-          </h3>
+          {/* Krótki nagłówek, a kiedy - szarym tekstem pod nim (na wąskim ekranie nic się nie zawija). */}
+          <h3 className="day-title secondary next-title">{isTomorrow ? 'Jutro' : 'Najbliższe zajęcia'}</h3>
+          <p className="next-when">
+            {formatDay(upcoming.start)}
+            {!isTomorrow && ` · za ${daysBetween(now, upcoming.start)} dni`}
+          </p>
           <DayTimeline meetings={upcomingDay} now={now} />
         </>
       ) : (

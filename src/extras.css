@@ -2363,13 +2363,15 @@ label.setting-row {
   }
 }
 
-.day-countdown {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--border);
+/* "Najbliższe zajęcia" + kiedy (szary podpis pod nagłówkiem) */
+.day-title.next-title {
+  margin-bottom: 2px;
+}
+
+.next-when {
+  margin: 0 0 12px;
   color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .extra-fit-side {
