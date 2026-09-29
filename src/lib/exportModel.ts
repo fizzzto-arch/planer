@@ -81,6 +81,8 @@ export interface ExportEntry extends TimetableEntry {
   color: string // "#rrggbb"
   lane: number // nakładające się zajęcia obok siebie
   lanes: number
+  stack: number // zajęcia "na zmianę" (te same godziny, inne tygodnie) - jeden kafelek dzielony w pionie
+  stacks: number
 }
 
 export interface ExportDay {
@@ -130,6 +132,52 @@ export function layoutLanes(entries: Pick<TimetableEntry, 'id' | 'start' | 'end'
   return out
 }
 
+// Czy dwoje zajęć z typowego tygodnia kiedykolwiek wypada w tym samym tygodniu.
+function coOccur(a: TimetableEntry, b: TimetableEntry): boolean {
+  const parityOk = a.recurrence === 'weekly' || b.recurrence === 'weekly' || a.recurrence === b.recurrence
+  const span = (e: TimetableEntry): [number, number] => {
+    if (e.only) {
+      const times = e.only.map((d) => d.getTime())
+      return [Math.min(...times), Math.max(...times)]
+    }
+    return e.range ? [e.range.from.getTime(), e.range.to.getTime()] : [-Infinity, Infinity]
+  }
+  const [a1, a2] = span(a)
+  const [b1, b2] = span(b)
+  return parityOk && a1 <= b2 && b1 <= a2
+}
+
+// Zajęcia "na zmianę": ten sam dzień i godziny, ale nigdy w tym samym tygodniu (np. laboratoria
+// blokami: jedno 19.10-16.11, drugie 14.12-25.01, albo tygodnie nieparzyste/parzyste).
+// Rysujemy je jako jeden kafelek podzielony w pionie, a nie obok siebie - inaczej wyglądają na równoległe.
+// Wynik: id zajęć -> klucz grupy, miejsce w grupie i jej wielkość.
+export function alternatingGroups(entries: TimetableEntry[]): Map<string, { key: string; index: number; count: number }> {
+  const out = new Map<string, { key: string; index: number; count: number }>()
+  const bySlot = new Map<string, TimetableEntry[]>()
+  for (const e of entries) {
+    const k = `${e.weekday}|${e.start}|${e.end}`
+    bySlot.set(k, [...(bySlot.get(k) ?? []), e])
+  }
+  for (const [slot, list] of bySlot) {
+    const sets: TimetableEntry[][] = []
+    for (const e of list) {
+      const set = sets.find((s) => s.every((x) => !coOccur(x, e)))
+      if (set) set.push(e)
+      else sets.push([e])
+    }
+    sets.forEach((set, i) => {
+      // Co najmniej 30 minut na część - inaczej kafelek byłby za niski (wtedy zostają obok siebie).
+      if (set.length < 2 || set[0].end - set[0].start < 30 * set.length) return
+      const firstDay = (e: TimetableEntry) => (e.only ? e.only[0].getTime() : (e.range?.from.getTime() ?? 0))
+      const parityOrder = (e: TimetableEntry) => (e.recurrence === 'odd' ? 0 : e.recurrence === 'even' ? 1 : 2)
+      set
+        .sort((a, b) => firstDay(a) - firstDay(b) || parityOrder(a) - parityOrder(b))
+        .forEach((e, index) => out.set(e.id, { key: `alt:${slot}:${i}`, index, count: set.length }))
+    })
+  }
+  return out
+}
+
 // Uwagi automatyczne dla wybranego zakresu (w konkretnym tygodniu - tylko z tego tygodnia).
 export function notesInScope(timetable: Timetable, options: Pick<ExportOptions, 'scope'>, weekStart: Date): TimetableNote[] {
   if (options.scope === 'typical') return timetable.notes
@@ -152,13 +200,21 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
   const base = week ? weekEntries(meetings, startOfWeek(weekStart)) : filterByParity(timetable.entries, options.parity)
   const colorOf = (type: string) => colors[type] ?? DEFAULT_TYPE_COLORS[type] ?? DEFAULT_TYPE_COLORS.INNE
 
+  // Zajęcia na zmianę zajmują jeden pas (jako jedna pozycja), a w nim dzielą wysokość.
+  const alternating = week ? new Map<string, { key: string; index: number; count: number }>() : alternatingGroups(base)
+  const layoutId = (e: TimetableEntry) => alternating.get(e.id)?.key ?? e.id
   const lanesByDay = new Map<number, Map<string, { lane: number; lanes: number }>>()
-  for (const wd of new Set(base.map((e) => e.weekday))) lanesByDay.set(wd, layoutLanes(base.filter((e) => e.weekday === wd)))
+  for (const wd of new Set(base.map((e) => e.weekday))) {
+    const items = new Map<string, Pick<TimetableEntry, 'id' | 'start' | 'end'>>()
+    for (const e of base.filter((x) => x.weekday === wd)) items.set(layoutId(e), { id: layoutId(e), start: e.start, end: e.end })
+    lanesByDay.set(wd, layoutLanes([...items.values()]))
+  }
 
   const entries: ExportEntry[] = base.map((e) => {
     const typeName = typeLabel(e.type)
     const building = shortBuilding(e.building)
-    const { lane, lanes } = lanesByDay.get(e.weekday)!.get(e.id)!
+    const { lane, lanes } = lanesByDay.get(e.weekday)!.get(layoutId(e))!
+    const alt = alternating.get(e.id)
     return {
       ...e,
       course: label(e.courseName),
@@ -170,6 +226,8 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
       color: colorOf(e.type),
       lane,
       lanes,
+      stack: alt?.index ?? 0,
+      stacks: alt?.count ?? 1,
     }
   })
 

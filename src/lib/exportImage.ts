@@ -241,9 +241,22 @@ function renderLandscape(model: ExportModel, theme: ImageTheme, scale: number): 
     const laneW = colW / e.lanes
     const x = colX + e.lane * laneW + (e.lane > 0 ? 2 : 0)
     const w = laneW - (e.lanes > 1 ? 2 : 0)
-    const y = gridTop + (e.start - model.firstMinute) * minuteH + 2
-    const h = (e.end - e.start) * minuteH - 4
+    const slotY = gridTop + (e.start - model.firstMinute) * minuteH + 2
+    const slotH = (e.end - e.start) * minuteH - 4
+    // Zajęcia na zmianę: jeden termin dzielony w pionie + przerywana ramka wokół całości.
+    const partH = slotH / e.stacks
+    const y = slotY + e.stack * partH + (e.stack > 0 ? 2 : 0)
+    const h = partH - (e.stacks > 1 ? 2 : 0)
     drawEntryBlock(ctx, e, x, y, w, h, theme)
+    if (e.stacks > 1 && e.stack === 0) {
+      ctx.save()
+      ctx.strokeStyle = PALETTE[theme].strong
+      ctx.lineWidth = 1.5
+      ctx.setLineDash([5, 4])
+      roundRect(ctx, x - 2.5, slotY - 2.5, w + 5, slotH + 5, 10)
+      ctx.stroke()
+      ctx.restore()
+    }
   }
 
   // Legenda typów.

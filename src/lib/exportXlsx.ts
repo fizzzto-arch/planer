@@ -76,9 +76,18 @@ function planSheet(model: ExportModel): Sheet {
     const total = lanesPerDay[dayIdx]
     const c1 = dayCol[dayIdx] + Math.floor((e.lane * total) / e.lanes)
     const c2 = dayCol[dayIdx] + Math.floor(((e.lane + 1) * total) / e.lanes) - 1
-    const r1 = firstRow + Math.floor((e.start - model.firstMinute) / SLOT_MIN)
-    const r2 = firstRow + Math.ceil((e.end - model.firstMinute) / SLOT_MIN) - 1
-    const text = [e.course, [e.meta, e.time].filter(Boolean).join(' · '), e.place, e.when].filter(Boolean).join('\n')
+    const slotR1 = firstRow + Math.floor((e.start - model.firstMinute) / SLOT_MIN)
+    const slotR2 = firstRow + Math.ceil((e.end - model.firstMinute) / SLOT_MIN) - 1
+    // Zajęcia na zmianę dzielą wiersze terminu (model gwarantuje min. 2 wiersze na część).
+    const rows = slotR2 - slotR1 + 1
+    const r1 = slotR1 + Math.floor((rows * e.stack) / e.stacks)
+    const r2 = slotR1 + Math.floor((rows * (e.stack + 1)) / e.stacks) - 1
+    // W niższej komórce najważniejsze jest "kiedy" - zaraz pod nazwą.
+    const lines =
+      e.stacks > 1
+        ? [e.course, e.when, [e.meta, e.time].filter(Boolean).join(' · '), e.place]
+        : [e.course, [e.meta, e.time].filter(Boolean).join(' · '), e.place, e.when]
+    const text = lines.filter(Boolean).join('\n')
     const style: CellStyle = { fill: lighten(e.color), border: e.color, wrap: true, valign: 'top', size: 9 }
     for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) set(c, r, '', style)
     set(c1, r1, text, style)
