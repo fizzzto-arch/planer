@@ -1,4 +1,4 @@
-// Ustawienia optymalizatora (kryteria, blokady godzin, przypięte grupy) - w tej przeglądarce.
+// Ustawienia optymalizatora (kryteria, blokady godzin, przypięte grupy): na koncie, z kopią w przeglądarce.
 import { isTimeKey } from './dates'
 import { DEFAULT_OPTIMIZER_SETTINGS, type BlockedTime, type GroupOption, type OptimizerSettings } from './optimizer'
 
@@ -32,7 +32,9 @@ export function parseOptimizerSettings(raw: unknown): OptimizerSettings {
       days: weight(w.days, d.weights.days),
       early: weight(w.early, d.weights.early),
       late: weight(w.late, d.weights.late),
+      finish: weight(w.finish, d.weights.finish),
     },
+    dayStyle: r.dayStyle === 'early' || r.dayStyle === 'window' ? r.dayStyle : d.dayStyle,
     startAfter: typeof r.startAfter === 'string' && isTimeKey(r.startAfter) ? r.startAfter : d.startAfter,
     endBefore: typeof r.endBefore === 'string' && isTimeKey(r.endBefore) ? r.endBefore : d.endBefore,
     blocked,

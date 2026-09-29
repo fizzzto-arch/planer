@@ -836,8 +836,9 @@ button.grid-event {
 .material-action,
 .material-delete {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
+  margin-left: -6px; /* dwa przyciski obok siebie - równe odstępy */
   display: grid;
   place-items: center;
   border: 0;
@@ -847,6 +848,16 @@ button.grid-event {
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent; /* szary prostokąt iOS był przesunięty względem ikony */
+  transition:
+    background-color 120ms ease,
+    transform 120ms ease;
+}
+
+.material-action:active,
+.material-delete:active {
+  background: var(--border);
+  transform: scale(0.94);
 }
 
 .material-action svg {

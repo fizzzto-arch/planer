@@ -20,8 +20,8 @@ interface Props {
 const TOP_LIMIT = 5
 
 export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
-  const { prefs } = usePlanUi()
-  const settingsApi = useOptimizerSettings()
+  const { prefs, extras } = usePlanUi()
+  const settingsApi = useOptimizerSettings(extras)
   const { settings } = settingsApi
 
   // Liczy się tylko to, co przed nami: od początku bieżącego tygodnia.

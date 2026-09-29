@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import type { OptimizerSettingsApi } from '../hooks/useOptimizerSettings'
-import type { Slot, Weights } from '../lib/optimizer'
+import type { DayStyle, Slot, Weights } from '../lib/optimizer'
 import { WEEKDAYS, describeOption } from '../lib/optimizerSettings'
 import { plural } from '../lib/plural'
 import { typeLabel } from '../lib/usos'
@@ -12,6 +12,11 @@ const WEIGHT_OPTIONS = [
   { value: 1, label: 'Trochę' },
   { value: 2, label: 'Ważne' },
   { value: 3, label: 'Bardzo' },
+]
+
+const DAY_STYLE_OPTIONS: { value: DayStyle; label: string }[] = [
+  { value: 'window', label: 'W wybranych godzinach' },
+  { value: 'early', label: 'Jak najwcześniej' },
 ]
 
 interface Props {
@@ -147,39 +152,62 @@ export function OptimizerSettingsPanel({ api, slots }: Props) {
         onChange={(v) => setWeight('days', v)}
       />
       <ChoiceSetting
-        label="Bez zajęć wcześnie rano"
+        label="Pora zajęć"
         hint={
-          <label className="inline-time">
-            przed{' '}
-            <input
-              type="time"
-              className="text-input"
-              value={settings.startAfter}
-              onChange={(e) => e.target.value && update({ startAfter: e.target.value })}
-            />
-          </label>
+          settings.dayStyle === 'early'
+            ? 'Wcześniej zaczynam, wcześniej kończę - zajęcia rano, wolne popołudnia.'
+            : 'Późniejszy start i wczesny koniec - granice ustawiasz niżej.'
         }
-        value={settings.weights.early}
-        options={WEIGHT_OPTIONS}
-        onChange={(v) => setWeight('early', v)}
+        value={settings.dayStyle}
+        options={DAY_STYLE_OPTIONS}
+        onChange={(dayStyle) => update({ dayStyle })}
       />
-      <ChoiceSetting
-        label="Bez zajęć późno"
-        hint={
-          <label className="inline-time">
-            po{' '}
-            <input
-              type="time"
-              className="text-input"
-              value={settings.endBefore}
-              onChange={(e) => e.target.value && update({ endBefore: e.target.value })}
-            />
-          </label>
-        }
-        value={settings.weights.late}
-        options={WEIGHT_OPTIONS}
-        onChange={(v) => setWeight('late', v)}
-      />
+      {settings.dayStyle === 'early' ? (
+        <ChoiceSetting
+          label="Kończyć jak najwcześniej"
+          hint="Liczy się, o której kończysz każdego dnia."
+          value={settings.weights.finish}
+          options={WEIGHT_OPTIONS}
+          onChange={(v) => setWeight('finish', v)}
+        />
+      ) : (
+        <>
+          <ChoiceSetting
+            label="Bez zajęć wcześnie rano"
+            hint={
+              <label className="inline-time">
+                przed{' '}
+                <input
+                  type="time"
+                  className="text-input"
+                  value={settings.startAfter}
+                  onChange={(e) => e.target.value && update({ startAfter: e.target.value })}
+                />
+              </label>
+            }
+            value={settings.weights.early}
+            options={WEIGHT_OPTIONS}
+            onChange={(v) => setWeight('early', v)}
+          />
+          <ChoiceSetting
+            label="Bez zajęć późno"
+            hint={
+              <label className="inline-time">
+                po{' '}
+                <input
+                  type="time"
+                  className="text-input"
+                  value={settings.endBefore}
+                  onChange={(e) => e.target.value && update({ endBefore: e.target.value })}
+                />
+              </label>
+            }
+            value={settings.weights.late}
+            options={WEIGHT_OPTIONS}
+            onChange={(v) => setWeight('late', v)}
+          />
+        </>
+      )}
       <BlockedTimes api={api} />
       <PinnedGroups api={api} slots={slots} />
     </div>

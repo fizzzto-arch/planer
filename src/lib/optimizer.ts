@@ -36,10 +36,16 @@ export interface Weights {
   days: number
   early: number
   late: number
+  finish: number // tylko w trybie 'early'
 }
+
+// Pora zajęć: 'window' - zajęcia między startAfter a endBefore (późny start, wczesny koniec);
+// 'early' - wcześniej zaczynam, wcześniej kończę (zajęcia jak najbliżej rana).
+export type DayStyle = 'window' | 'early'
 
 export interface OptimizerSettings {
   weights: Weights
+  dayStyle: DayStyle
   startAfter: string // "zaczynaj nie wcześniej niż"
   endBefore: string // "kończ nie później niż"
   blocked: BlockedTime[]
@@ -47,7 +53,8 @@ export interface OptimizerSettings {
 }
 
 export const DEFAULT_OPTIMIZER_SETTINGS: OptimizerSettings = {
-  weights: { gaps: 3, days: 2, early: 1, late: 1 },
+  weights: { gaps: 3, days: 2, early: 1, late: 1, finish: 2 },
+  dayStyle: 'window',
   startAfter: '10:00',
   endBefore: '16:00',
   blocked: [],
@@ -59,6 +66,7 @@ export interface PlanMetrics {
   days: number // dni na uczelni, średnio na tydzień
   earlyMinutes: number // zajęcia przed startAfter, średnio na tydzień
   lateMinutes: number // zajęcia po endBefore, średnio na tydzień
+  avgEndMinutes: number | null // o której średnio kończą się zajęcia (minuty od północy); null = brak zajęć
   score: number // mniej = lepiej
 }
 
@@ -70,6 +78,9 @@ export interface Candidate {
 
 const minutesOfDay = (d: Date) => d.getHours() * 60 + d.getMinutes()
 const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+// Od tej godziny liczymy "zajęty ranek" w trybie 'early' (pierwsze zajęcia na PW są o 8:15).
+const DAY_START = 8 * 60
+
 // Getday: 0 = niedziela; my liczymy od poniedziałku.
 const weekdayOf = (d: Date) => ((d.getDay() + 6) % 7) + 1
 
@@ -101,7 +112,7 @@ export function countWeeks(meetings: OptMeeting[]): number {
 
 export function evaluate(
   meetings: OptMeeting[],
-  settings: Pick<OptimizerSettings, 'weights' | 'startAfter' | 'endBefore'>,
+  settings: Pick<OptimizerSettings, 'weights' | 'dayStyle' | 'startAfter' | 'endBefore'>,
   gapThreshold: number,
   weeks: number,
 ): PlanMetrics {
@@ -118,6 +129,7 @@ export function evaluate(
   let gaps = 0
   let early = 0
   let late = 0
+  let endSum = 0
   for (const day of byDay.values()) {
     day.sort((a, b) => a.start.getTime() - b.start.getTime())
     let lastEnd = day[0].end
@@ -128,6 +140,7 @@ export function evaluate(
     }
     early += Math.max(0, startAfter - minutesOfDay(day[0].start))
     late += Math.max(0, minutesOfDay(lastEnd) - endBefore)
+    endSum += minutesOfDay(lastEnd)
   }
 
   const metrics = {
@@ -135,13 +148,17 @@ export function evaluate(
     days: byDay.size / weeks,
     earlyMinutes: early / weeks,
     lateMinutes: late / weeks,
+    avgEndMinutes: byDay.size > 0 ? endSum / byDay.size : null,
   }
   const w = settings.weights
-  const score =
-    (w.gaps * metrics.gapMinutes) / 60 +
-    w.days * metrics.days +
-    (w.early * metrics.earlyMinutes) / 60 +
-    (w.late * metrics.lateMinutes) / 60
+  // Tryb 'early': suma godzin od 8:00 do końca zajęć w każdym dniu. Suma, nie średnia -
+  // inaczej dokładanie krótkich porannych dni "poprawiałoby" wynik.
+  const morning = (endSum - DAY_START * byDay.size) / weeks
+  const timing =
+    settings.dayStyle === 'early'
+      ? (w.finish * morning) / 60
+      : (w.early * metrics.earlyMinutes) / 60 + (w.late * metrics.lateMinutes) / 60
+  const score = (w.gaps * metrics.gapMinutes) / 60 + w.days * metrics.days + timing
   return { ...metrics, score }
 }
 

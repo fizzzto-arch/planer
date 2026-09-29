@@ -10,6 +10,11 @@ function formatMinutes(minutes: number): string {
   return rounded === 0 ? '0' : formatDuration(rounded)
 }
 
+function formatClock(minutes: number): string {
+  const rounded = Math.round(minutes / 5) * 5
+  return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, '0')}`
+}
+
 function formatDays(days: number): string {
   return days.toFixed(1).replace('.', ',')
 }
@@ -19,11 +24,12 @@ interface MetricProps {
   value: number
   base: number | null
   format: (v: number) => string
+  formatDelta?: (v: number) => string // gdy różnica ma inny format niż wartość (godzina vs minuty)
   tolerance: number
 }
 
 // Wartość + zmiana względem obecnego planu (zielona = lepiej, czerwona = gorzej).
-function Metric({ label, value, base, format, tolerance }: MetricProps) {
+function Metric({ label, value, base, format, formatDelta = format, tolerance }: MetricProps) {
   const diff = base === null ? 0 : value - base
   const show = base !== null && Math.abs(diff) > tolerance
   return (
@@ -34,7 +40,7 @@ function Metric({ label, value, base, format, tolerance }: MetricProps) {
         {show && (
           <span className={`metric-delta ${diff < 0 ? 'is-better' : 'is-worse'}`}>
             {diff < 0 ? '−' : '+'}
-            {format(Math.abs(diff))}
+            {formatDelta(Math.abs(diff))}
           </span>
         )}
       </span>
@@ -55,20 +61,33 @@ export function MetricsGrid({
     <div className="metrics">
       <Metric label="Okienka / tydz." value={metrics.gapMinutes} base={base?.gapMinutes ?? null} format={formatMinutes} tolerance={2} />
       <Metric label="Dni na uczelni / tydz." value={metrics.days} base={base?.days ?? null} format={formatDays} tolerance={0.05} />
-      <Metric
-        label={`Przed ${settings.startAfter} / tydz.`}
-        value={metrics.earlyMinutes}
-        base={base?.earlyMinutes ?? null}
-        format={formatMinutes}
-        tolerance={2}
-      />
-      <Metric
-        label={`Po ${settings.endBefore} / tydz.`}
-        value={metrics.lateMinutes}
-        base={base?.lateMinutes ?? null}
-        format={formatMinutes}
-        tolerance={2}
-      />
+      {settings.dayStyle === 'early' ? (
+        <Metric
+          label="Koniec zajęć (średnio)"
+          value={metrics.avgEndMinutes ?? 0}
+          base={base?.avgEndMinutes ?? null}
+          format={formatClock}
+          formatDelta={formatMinutes}
+          tolerance={2}
+        />
+      ) : (
+        <>
+          <Metric
+            label={`Przed ${settings.startAfter} / tydz.`}
+            value={metrics.earlyMinutes}
+            base={base?.earlyMinutes ?? null}
+            format={formatMinutes}
+            tolerance={2}
+          />
+          <Metric
+            label={`Po ${settings.endBefore} / tydz.`}
+            value={metrics.lateMinutes}
+            base={base?.lateMinutes ?? null}
+            format={formatMinutes}
+            tolerance={2}
+          />
+        </>
+      )}
     </div>
   )
 }

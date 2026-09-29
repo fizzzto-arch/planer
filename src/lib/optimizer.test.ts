@@ -36,7 +36,7 @@ const slot = (id: string, currentIndex: number, ...options: GroupOption[]): Slot
   currentIndex,
 })
 
-const settings = { ...DEFAULT_OPTIMIZER_SETTINGS, weights: { gaps: 3, days: 2, early: 0, late: 0 } }
+const settings = { ...DEFAULT_OPTIMIZER_SETTINGS, weights: { gaps: 3, days: 2, early: 0, late: 0, finish: 0 } }
 
 describe('ocena planu', () => {
   it('liczy okienka od progu, dni i wczesne/późne godziny', () => {
@@ -50,6 +50,7 @@ describe('ocena planu', () => {
     expect(m.days).toBe(2)
     expect(m.earlyMinutes).toBe(105) // 8:15 zamiast 10:00
     expect(m.lateMinutes).toBe(120) // do 18:00 zamiast 16:00
+    expect(m.avgEndMinutes).toBe(17 * 60) // koniec o 16:00 i 18:00
   })
 
   it('rozpoznaje zablokowane godziny', () => {
@@ -128,6 +129,33 @@ describe('optymalizator', () => {
   it('przy równym wyniku woli plan bliższy obecnemu', () => {
     const same = slot('s', 0, option(101, at(3, '10:15', '12:00')), option(102, at(3, '10:15', '12:00')))
     const { candidates } = optimize([same], { fixed: [], settings, gapThreshold: 30, limit: 2 })
+    expect(candidates[0].choice).toEqual([0])
+  })
+})
+
+describe('pora zajęć', () => {
+  // Jedne ćwiczenia: rano (8:15-10:00) albo po południu (14:15-16:00), bez innych zajęć tego dnia.
+  const cwi = slot('cwi', 1, option(101, at(1, '08:15', '10:00')), option(102, at(1, '14:15', '16:00')))
+
+  it('domyślnie woli zajęcia po wybranej godzinie startu', () => {
+    const { candidates } = optimize([cwi], { fixed: [], settings: DEFAULT_OPTIMIZER_SETTINGS, gapThreshold: 30, limit: 1 })
+    expect(candidates[0].choice).toEqual([1])
+  })
+
+  it('"wcześniej zaczynam, wcześniej kończę" woli zajęcia rano', () => {
+    const early = { ...DEFAULT_OPTIMIZER_SETTINGS, dayStyle: 'early' as const }
+    const { candidates } = optimize([cwi], { fixed: [], settings: early, gapThreshold: 30, limit: 1 })
+    expect(candidates[0].choice).toEqual([0])
+  })
+
+  it('w trybie porannym dokładanie dnia na uczelni nie poprawia wyniku', () => {
+    // Wtorek zajęty 8:15-14:00. Lab: we wtorek 14:15-15:00 albo osobno w czwartek 8:15-10:00.
+    // Średnia godzina końca wolałaby czwartek (12:00 zamiast 15:00), ale to dodatkowe 2 h rano.
+    const fixed = [at(1, '08:15', '14:00')]
+    const lab = slot('lab', 1, option(101, at(1, '14:15', '15:00')), option(102, at(3, '08:15', '10:00')))
+    const weights = { ...settings.weights, days: 0, finish: 2 }
+    const early = { ...DEFAULT_OPTIMIZER_SETTINGS, dayStyle: 'early' as const, weights }
+    const { candidates } = optimize([lab], { fixed, settings: early, gapThreshold: 30, limit: 1 })
     expect(candidates[0].choice).toEqual([0])
   })
 })

@@ -17,6 +17,8 @@ import {
   type MeetingOverride,
   type SeriesEdit,
 } from '../lib/extras'
+import type { OptimizerSettings } from '../lib/optimizer'
+import { parseOptimizerSettings } from '../lib/optimizerSettings'
 import { parsePrefs, type Prefs } from '../lib/prefs'
 import { parseTypeColors, type TypeColors } from '../lib/typeColors'
 import { RETRY_AFTER_MS } from './useCloud'
@@ -26,6 +28,7 @@ const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', '
 // Dokumenty w kolekcji "settings": kolory typów zajęć i pozostałe ustawienia.
 const COLORS_DOC = 'colors'
 const PREFS_DOC = 'prefs'
+const OPTIMIZER_DOC = 'optimizer'
 
 export type RawCollections = Partial<Record<CollectionName, CloudDoc[]>>
 
@@ -41,6 +44,7 @@ function toExtras(raw: RawCollections): Extras {
     if (course) courses.set(d.id, course)
   }
   const prefsDoc = raw.settings?.find((d) => d.id === PREFS_DOC)
+  const optimizerDoc = raw.settings?.find((d) => d.id === OPTIMIZER_DOC)
   return {
     courses,
     deadlines: (raw.deadlines ?? []).flatMap((d) => parseDeadline(d.id, d.data) ?? []),
@@ -49,6 +53,7 @@ function toExtras(raw: RawCollections): Extras {
     customMeetings: (raw.customMeetings ?? []).flatMap((d) => parseCustomMeeting(d.id, d.data) ?? []),
     typeColors: parseTypeColors(raw.settings?.find((d) => d.id === COLORS_DOC)?.data ?? {}),
     prefs: prefsDoc ? parsePrefs(prefsDoc.data) : null,
+    optimizer: optimizerDoc ? parseOptimizerSettings(optimizerDoc.data) : null,
   }
 }
 
@@ -189,6 +194,11 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  const saveOptimizer = useCallback(
+    (settings: OptimizerSettings) => write((c, u) => c.setItem(u, 'settings', OPTIMIZER_DOC, { ...settings })),
+    [write],
+  )
+
   // Kopia zapasowa: wszystkie dokumenty dodatków (bez znaczników czasu serwera).
   const exportBackup = useCallback((): BackupFile => {
     const data: Record<string, CloudDoc[]> = {}
@@ -233,6 +243,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     deleteCustomMeeting,
     saveTypeColors,
     savePrefs,
+    saveOptimizer,
     exportBackup,
     importBackup,
   }
