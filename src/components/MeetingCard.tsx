@@ -15,8 +15,13 @@ interface Props {
   showCourseLink?: boolean
 }
 
+// iPhone/iPad/Mac: od razu aplikacja Mapy; reszta: Mapy Google.
+const APPLE = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)
+
 function mapsUrl(address: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+  return APPLE
+    ? `https://maps.apple.com/?q=${encodeURIComponent(address)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
 function NoteIcon() {

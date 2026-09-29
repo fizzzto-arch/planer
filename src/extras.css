@@ -2440,3 +2440,69 @@ label.setting-row {
   word-break: break-word;
   user-select: all;
 }
+
+/* ---------- Pierwsze kroki (Dziś) ---------- */
+
+.first-steps .section-head {
+  margin-bottom: 8px;
+}
+
+.first-steps-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.first-steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.first-steps-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.first-steps-check {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+
+.first-steps-list li.is-done .first-steps-check {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #fff;
+}
+
+.first-steps-check svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.first-steps-text {
+  flex: 1;
+  display: grid;
+  gap: 1px;
+  font-size: 0.92rem;
+}
+
+.first-steps-list li.is-done .first-steps-text strong {
+  color: var(--muted);
+  font-weight: 600;
+}

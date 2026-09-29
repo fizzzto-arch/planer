@@ -4,10 +4,10 @@ import { VAPID_PUBLIC_KEY } from './pushConfig'
 // 'ios-browser' = iPhone w zwykłym Safari: powiadomienia działają tylko w aplikacji z ekranu początkowego.
 export type PushSupport = 'ok' | 'ios-browser' | 'unsupported'
 
-const isIos = () =>
+export const isIos = () =>
   /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
-const isStandalone = () =>
+export const isStandalone = () =>
   (navigator as Navigator & { standalone?: boolean }).standalone === true ||
   window.matchMedia('(display-mode: standalone)').matches
 

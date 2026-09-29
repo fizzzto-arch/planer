@@ -367,6 +367,7 @@ function App() {
       openOptimizer,
       openExport,
       openHelp,
+      openSettings: () => changeView('settings'),
       isAdmin: cloud.isAdmin,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
@@ -388,7 +389,7 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, openOptimizer, openExport, openHelp, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
+    [extrasApi, materials, openCourse, openOptimizer, openExport, openHelp, changeView, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
