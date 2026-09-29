@@ -24,6 +24,7 @@ interface Props {
   prefsApi: PrefsApi
   courseNames: string[]
   admin: AccessRequestsApi | null // panel zatwierdzania kont; null = nie-administrator
+  onViewAsUser: () => void
   now: Date
   onSourceChanged: () => void
 }
@@ -36,6 +37,7 @@ export function SettingsView({
   prefsApi,
   courseNames,
   admin,
+  onViewAsUser,
   now,
   onSourceChanged,
 }: Props) {
@@ -60,7 +62,7 @@ export function SettingsView({
   return (
     <section>
       <AccountPanel cloud={cloud} />
-      {admin && <AdminPanel admin={admin} now={now} />}
+      {admin && <AdminPanel admin={admin} now={now} onViewAsUser={onViewAsUser} />}
       <RemindersPanel extras={extras} prefsApi={prefsApi} />
       <AppearancePanel prefsApi={prefsApi} signedIn={signedIn} />
       <PlanPrefsPanel prefsApi={prefsApi} />

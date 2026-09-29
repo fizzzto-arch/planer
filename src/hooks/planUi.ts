@@ -27,7 +27,8 @@ export interface PlanUi {
   openExport: (weekStart: Date, source?: ExportSource) => void
   openHelp: () => void // pomoc i prywatność
   openSettings: () => void // zakładka Ustawienia (np. z "Pierwszych kroków")
-  isAdmin: boolean // funkcje w wersji alpha (np. optymalizator) są tylko dla administratora
+  isAdmin: boolean // widok administratora (w podglądzie "jako zwykły użytkownik" - false)
+  canOptimize: boolean // optymalizator: administrator albo osoba, której go przyznał
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych
   addCustomMeeting: (draft: CustomMeetingDraft) => void

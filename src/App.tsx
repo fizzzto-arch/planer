@@ -51,6 +51,24 @@ const VIEW_ORDER: View[] = ['today', 'week', 'courses', 'settings']
 // Pas przy krawędzi ekranu zostawiony gestom przeglądarki.
 const EDGE_PX = 24
 
+// Podgląd "jako zwykły użytkownik" zapamiętany w tej przeglądarce.
+const VIEW_AS_USER_KEY = 'planer.view-as-user'
+function loadViewAsUser(): boolean {
+  try {
+    return localStorage.getItem(VIEW_AS_USER_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+function saveViewAsUser(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(VIEW_AS_USER_KEY, '1')
+    else localStorage.removeItem(VIEW_AS_USER_KEY)
+  } catch {
+    // bez zapisu - podgląd do przeładowania
+  }
+}
+
 const ENTER_CLASS = { rise: 'view-enter', left: 'view-enter-left', right: 'view-enter-right', none: undefined }
 
 const DEADLINE_SLACK_MIN = 15
@@ -147,7 +165,17 @@ function App() {
   const cloud = useCloud(plan)
   const extrasApi = useExtras(cloud.client, cloud.uid)
   const typeColors = useTypeColors(extrasApi)
-  const admin = useAccessRequests(cloud.adminClient)
+  // Podgląd "jako zwykły użytkownik": administrator widzi Planera bez swoich dodatków (panel dostępu,
+  // optymalizator). Tylko wygląd - uprawnienia w bazie się nie zmieniają.
+  const [viewAsUser, setViewAsUser] = useState(loadViewAsUser)
+  const adminView = cloud.isAdmin && !viewAsUser
+  const canOptimize = adminView || (!cloud.isAdmin && cloud.optimizerAccess)
+  const switchView = useCallback((asUser: boolean) => {
+    setViewAsUser(asUser)
+    saveViewAsUser(asUser)
+    window.scrollTo({ top: 0 })
+  }, [])
+  const admin = useAccessRequests(adminView ? cloud.adminClient : null)
   const materials = useSharedMaterials(
     cloud.client,
     cloud.uid,
@@ -371,7 +399,8 @@ function App() {
       openExport,
       openHelp,
       openSettings: () => changeView('settings'),
-      isAdmin: cloud.isAdmin,
+      isAdmin: adminView,
+      canOptimize,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
         const customId = customMeetingId(m.id)
@@ -392,7 +421,7 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
     }),
-    [extrasApi, materials, openCourse, openOptimizer, openExport, openHelp, changeView, cloud.isAdmin, deadlinesByDay, extras.customMeetings, prefs],
+    [extrasApi, materials, openCourse, openOptimizer, openExport, openHelp, changeView, adminView, canOptimize, deadlinesByDay, extras.customMeetings, prefs],
   )
 
   const courseNames = useMemo(
@@ -507,6 +536,7 @@ function App() {
           admin={admin}
           now={now}
           onSourceChanged={() => setView('today')}
+          onViewAsUser={() => switchView(true)}
         />
       )}
     </>
@@ -515,6 +545,14 @@ function App() {
   return (
     <PlanUiContext.Provider value={ui}>
       <main className="app" style={typeColors.style}>
+        {cloud.isAdmin && viewAsUser && (
+          <div className="view-as-user-bar" role="status">
+            <span>Widok zwykłego użytkownika</span>
+            <button type="button" className="link-button" onClick={() => switchView(false)}>
+              Wróć do administratora
+            </button>
+          </div>
+        )}
         <header className="topbar">
           <h1 className="brand">Planer</h1>
           <Tabs
@@ -535,8 +573,8 @@ function App() {
           >
             <ErrorBoundary>
               <Suspense fallback={LOADING}>
-                {/* Optymalizator (alpha) tylko dla administratora - inni nie wejdą nawet z historii przeglądarki. */}
-                {page?.kind === 'optimizer' && cloud.isAdmin ? (
+                {/* Optymalizator tylko dla administratora i osób, którym go przyznał - inni nie wejdą nawet z historii. */}
+                {page?.kind === 'optimizer' && canOptimize ? (
                   <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
                 ) : page?.kind === 'help' ? (
                   <HelpView onBack={closePage} />

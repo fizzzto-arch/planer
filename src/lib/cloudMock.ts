@@ -54,8 +54,8 @@ function createMockCloud(): Cloud {
 
   // Prośby o dostęp - przykładowe dane do panelu administratora (tylko w pamięci karty).
   const access = new Map<string, AccessRequest>([
-    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@pw.edu.pl', status: 'pending', requestedAt: Date.now() - 3_600_000 }],
-    ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000 }],
+    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@pw.edu.pl', status: 'pending', requestedAt: Date.now() - 3_600_000, optimizer: false }],
+    ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000, optimizer: false }],
   ])
   const accessListeners = new Set<() => void>()
   const emitAccess = () => setTimeout(() => accessListeners.forEach((cb) => cb()), 0)
@@ -81,14 +81,14 @@ function createMockCloud(): Cloud {
       if (user && !user.emailVerified) setUser({ ...user, emailVerified: true })
     },
 
-    watchAccess(uid, onStatus) {
-      const emitOwn = () => onStatus(access.get(uid)?.status ?? null)
+    watchAccess(uid, onAccess) {
+      const emitOwn = () => onAccess({ status: access.get(uid)?.status ?? null, optimizer: access.get(uid)?.optimizer ?? false })
       accessListeners.add(emitOwn)
       setTimeout(emitOwn, 0)
       return () => accessListeners.delete(emitOwn)
     },
     async requestAccess(uid, email) {
-      access.set(uid, { uid, email, status: 'pending', requestedAt: Date.now() })
+      access.set(uid, { uid, email, status: 'pending', requestedAt: Date.now(), optimizer: false })
       emitAccess()
     },
     watchAccessRequests(onRequests) {
@@ -100,6 +100,11 @@ function createMockCloud(): Cloud {
     async setAccessStatus(uid, status: AccessStatus) {
       const current = access.get(uid)
       if (current) access.set(uid, { ...current, status })
+      emitAccess()
+    },
+    async setOptimizerAccess(uid, on) {
+      const current = access.get(uid)
+      if (current) access.set(uid, { ...current, optimizer: on })
       emitAccess()
     },
 

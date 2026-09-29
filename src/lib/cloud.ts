@@ -146,10 +146,10 @@ function createCloud(config: FirebaseOptions): Cloud {
         await user.getIdToken(true)
       }),
 
-    watchAccess(uid, onStatus, onError) {
+    watchAccess(uid, onAccess, onError) {
       return onSnapshot(
         doc(db, 'access', uid),
-        (snap) => onStatus(parseAccessStatus(snap.data()?.status)),
+        (snap) => onAccess({ status: parseAccessStatus(snap.data()?.status), optimizer: snap.data()?.optimizer === true }),
         (e) => onError(describeError(e)),
       )
     },
@@ -178,6 +178,7 @@ function createCloud(config: FirebaseOptions): Cloud {
                   email: typeof data.email === 'string' ? data.email : '?',
                   status,
                   requestedAt: typeof requested?.toMillis === 'function' ? requested.toMillis() : null,
+                  optimizer: data.optimizer === true,
                 },
               ]
             }),
@@ -188,6 +189,8 @@ function createCloud(config: FirebaseOptions): Cloud {
 
     setAccessStatus: (uid, status) =>
       wrap(() => setDoc(doc(db, 'access', uid), { status, decidedAt: serverTimestamp() }, { merge: true })),
+
+    setOptimizerAccess: (uid, on) => wrap(() => setDoc(doc(db, 'access', uid), { optimizer: on }, { merge: true })),
 
     watchData(uid, onData, onError) {
       return onSnapshot(

@@ -15,6 +15,13 @@ export interface AccessRequest {
   email: string
   status: AccessStatus
   requestedAt: number | null
+  optimizer: boolean // dostęp do optymalizatora (wersja testowa), nadaje administrator
+}
+
+// Własna prośba o dostęp: status i dodatkowe uprawnienia.
+export interface AccessInfo {
+  status: AccessStatus | null
+  optimizer: boolean
 }
 
 export interface CloudData {
@@ -51,10 +58,11 @@ export interface Cloud {
   refreshUser(): Promise<void>
 
   // Dostęp: własna prośba (każdy) i zatwierdzanie (tylko administrator).
-  watchAccess(uid: string, onStatus: (status: AccessStatus | null) => void, onError: (message: string) => void): Unsubscribe
+  watchAccess(uid: string, onAccess: (access: AccessInfo) => void, onError: (message: string) => void): Unsubscribe
   requestAccess(uid: string, email: string): Promise<void>
   watchAccessRequests(onRequests: (requests: AccessRequest[]) => void, onError: (message: string) => void): Unsubscribe
   setAccessStatus(uid: string, status: AccessStatus): Promise<void>
+  setOptimizerAccess(uid: string, on: boolean): Promise<void>
 
   watchData(uid: string, onData: (data: CloudData) => void, onError: (message: string) => void): Unsubscribe
   saveIcalUrl(uid: string, url: string): Promise<void>

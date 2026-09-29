@@ -39,6 +39,13 @@ export function useAccessRequests(client: Cloud | null) {
     [client],
   )
 
+  const setOptimizer = useCallback(
+    (uid: string, on: boolean) => {
+      client?.setOptimizerAccess(uid, on).catch((e) => setError(`Nie udało się zmienić dostępu: ${errorMessage(e)}`))
+    },
+    [client],
+  )
+
   if (!client) return null
   const list = requests ?? []
   return {
@@ -47,6 +54,7 @@ export function useAccessRequests(client: Cloud | null) {
     pendingCount: list.filter((r) => r.status === 'pending').length,
     error,
     setStatus,
+    setOptimizer,
   }
 }
 

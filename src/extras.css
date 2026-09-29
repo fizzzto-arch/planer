@@ -2582,3 +2582,25 @@ label.setting-row {
   color: var(--accent);
   white-space: nowrap;
 }
+
+/* ---------- Podgląd "jako zwykły użytkownik" (administrator) ---------- */
+
+.view-as-user-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 4px 0 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  animation: rise-in 220ms ease-out both;
+}
+
+.view-as-user {
+  margin-bottom: 12px;
+}

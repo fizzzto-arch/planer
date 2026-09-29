@@ -41,7 +41,7 @@ export function useCloud(plan: PlanApi) {
   )
   // Dane konta zapamiętane razem z uid - po wylogowaniu same przestają pasować.
   const [cloudData, setCloudData] = useState<{ uid: string; icalUrl: string | null } | null>(null)
-  const [accessData, setAccessData] = useState<{ uid: string; status: AccessStatus | null } | null>(null)
+  const [accessData, setAccessData] = useState<{ uid: string; status: AccessStatus | null; optimizer: boolean } | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   // 1. Ładujemy Firebase w tle i słuchamy, kto jest zalogowany.
@@ -80,7 +80,7 @@ export function useCloud(plan: PlanApi) {
     let retryTimer: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = cloud.watchAccess(
       userUid,
-      (status) => setAccessData({ uid: userUid, status }),
+      (info) => setAccessData({ uid: userUid, ...info }),
       (message) => {
         setSyncError(message)
         retryTimer = setTimeout(() => setAccessRetry((n) => n + 1), RETRY_AFTER_MS)
@@ -93,6 +93,8 @@ export function useCloud(plan: PlanApi) {
   }, [cloud, userUid, isAdmin, emailVerified, accessRetry])
 
   const accessStatus = accessData && accessData.uid === userUid ? accessData.status : undefined
+  // Dostęp do optymalizatora (wersja testowa) - nadaje administrator; on sam ma go zawsze.
+  const optimizerAccess = isAdmin || (accessData?.uid === userUid && accessData.optimizer)
 
   // Brak prośby o dostęp (świeżo potwierdzony e-mail) - wysyłamy ją sami.
   // Nieudaną wysyłkę ponawiamy - inaczej konto wisiałoby na "czeka na zatwierdzenie",
@@ -220,6 +222,7 @@ export function useCloud(plan: PlanApi) {
     state,
     access,
     isAdmin,
+    optimizerAccess,
     // Połączenie i konto dla dodatków (useExtras); null, dopóki konto nie ma dostępu.
     client: uid ? cloud : null,
     uid,

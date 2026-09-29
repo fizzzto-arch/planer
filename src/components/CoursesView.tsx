@@ -28,7 +28,7 @@ interface Props {
 }
 
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, openCourse, openOptimizer, isAdmin, editDeadline, displayName } = usePlanUi()
+  const { extras, openCourse, openOptimizer, isAdmin, canOptimize, editDeadline, displayName } = usePlanUi()
   const [filter, setFilter] = useState<KindFilter>('all')
   const courses = summarizeCourses(meetings, now)
   const all = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD_EXAMS) : []
@@ -42,8 +42,8 @@ export function CoursesView({ meetings, now }: Props) {
 
   return (
     <section>
-      {/* Optymalizator: wersja alpha - tylko administrator (na komputerze i telefonie). */}
-      {isAdmin && (
+      {/* Optymalizator: wersja testowa - administrator i osoby, którym go przyznał. */}
+      {canOptimize && (
         <button type="button" className="optimizer-entry" onClick={openOptimizer}>
           <span className="optimizer-entry-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -54,7 +54,10 @@ export function CoursesView({ meetings, now }: Props) {
             <strong>
               Dobierz grupy <span className="alpha-badge">alpha</span>
             </strong>
-            <span>Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni (widoczne tylko dla administratora)</span>
+            <span>
+              Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni
+              {isAdmin ? ' (widoczne dla Ciebie i osób, którym dasz dostęp)' : ' - wersja testowa, daj znać, co działa'}
+            </span>
           </span>
           <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
             <path d="m9 6 6 6-6 6" />

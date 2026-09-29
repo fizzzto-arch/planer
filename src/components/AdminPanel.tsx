@@ -8,22 +8,36 @@ import { SwitchSetting } from './SettingControls'
 interface Props {
   admin: AccessRequestsApi
   now: Date
+  onViewAsUser: () => void // podgląd Planera oczami zwykłego użytkownika
 }
 
 const STATUS_ORDER = { pending: 0, approved: 1, rejected: 2 } as const
 
-function RequestRow({ request, admin, now }: { request: AccessRequest } & Props) {
-  const { uid, email, status, requestedAt } = request
+function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<Props, 'onViewAsUser'>) {
+  const { uid, email, status, requestedAt, optimizer } = request
   return (
     <li className={`access-row is-${status}`}>
       <span className="access-main">
         <span className="access-email">{email}</span>
         <span className="access-meta">
           {status === 'pending' ? 'czeka na zatwierdzenie' : status === 'approved' ? 'ma dostęp' : 'odrzucone'}
+          {status === 'approved' && optimizer && ' · optymalizator'}
           {requestedAt && ` · zgłoszenie ${formatUpdatedAt(new Date(requestedAt), now)}`}
         </span>
       </span>
       <span className="access-actions">
+        {/* Optymalizator (wersja testowa) dla wybranych osób - tylko przy zatwierdzonych kontach. */}
+        {status === 'approved' && (
+          <button
+            type="button"
+            className={`button small ${optimizer ? '' : 'secondary'}`}
+            aria-pressed={optimizer}
+            title="Dostęp do optymalizatora (wersja testowa)"
+            onClick={() => admin.setOptimizer(uid, !optimizer)}
+          >
+            {optimizer ? 'Optymalizator ✓' : 'Optymalizator'}
+          </button>
+        )}
         {status !== 'approved' && (
           <button type="button" className="button small" onClick={() => admin.setStatus(uid, 'approved')}>
             Zatwierdź
@@ -53,7 +67,7 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Props)
 }
 
 // Zatwierdzanie nowych kont - widoczne tylko dla administratora.
-export function AdminPanel({ admin, now }: Props) {
+export function AdminPanel({ admin, now, onViewAsUser }: Props) {
   const debugGestures = useSyncExternalStore(swipeDebugStore.subscribe, swipeDebugStore.enabled)
   const sorted = [...admin.requests].sort(
     (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.email.localeCompare(b.email),
@@ -67,8 +81,11 @@ export function AdminPanel({ admin, now }: Props) {
       </h3>
       <p className="hint">
         Nowe konta pojawiają się tu po potwierdzeniu e-maila. Dostęp do synchronizacji i wspólnych materiałów mają
-        tylko zatwierdzone.
+        tylko zatwierdzone. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”.
       </p>
+      <button type="button" className="button small secondary view-as-user" onClick={onViewAsUser}>
+        Zobacz Planera jako zwykły użytkownik
+      </button>
       {admin.error ? (
         <p className="error">{admin.error}</p>
       ) : !admin.loaded ? (
