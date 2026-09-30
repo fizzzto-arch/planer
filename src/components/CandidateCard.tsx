@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDuration } from '../lib/dates'
-import type { Candidate, OptimizerSettings, PlanMetrics, Slot } from '../lib/optimizer'
+import type { Candidate, GroupOption, OptimizerSettings, PlanMetrics, Slot } from '../lib/optimizer'
 import { describeOption, usosGroupUrl } from '../lib/optimizerSettings'
 import { typeLabel } from '../lib/usos'
+import { GroupChangeDialog } from './GroupChangeDialog'
 
 function formatMinutes(minutes: number): string {
   const rounded = Math.round(minutes / 5) * 5
@@ -104,7 +105,9 @@ interface Props {
 }
 
 export function CandidateCard({ title, candidate, current, slots, settings, onPreview, onExport, highlight = false }: Props) {
-  const { displayName } = usePlanUi()
+  const { displayName, isAdmin } = usePlanUi()
+  // Prośba o zmianę grupy (na razie tylko administrator - wersja testowa).
+  const [request, setRequest] = useState<{ slot: Slot; from: GroupOption; to: GroupOption } | null>(null)
   const changes = slots.flatMap((slot, i) => {
     const to = candidate.choice[i]
     if (slot.currentIndex === null || to === slot.currentIndex) return []
@@ -140,10 +143,26 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
                 <a className="usos-link" href={usosGroupUrl(to)} target="_blank" rel="noreferrer">
                   terminy w USOS
                 </a>
+                {isAdmin && (
+                  <button type="button" className="link-button change-request" onClick={() => setRequest({ slot, from, to })}>
+                    Poproś o zmianę
+                  </button>
+                )}
               </span>
             </li>
           ))}
         </ul>
+      )}
+      {request && (
+        <GroupChangeDialog
+          courseName={request.slot.courseName}
+          classType={request.slot.classType}
+          from={request.from}
+          to={request.to}
+          fromWhen={describeOption(request.from)}
+          toWhen={describeOption(request.to)}
+          onClose={() => setRequest(null)}
+        />
       )}
     </div>
   )

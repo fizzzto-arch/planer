@@ -3069,3 +3069,50 @@ label.setting-row {
   display: inline-block;
   margin-top: 8px;
 }
+
+/* Prośba o zmianę grupy */
+.change-request {
+  margin-left: 8px;
+  font-size: 0.85rem;
+}
+
+.group-change {
+  display: grid;
+  gap: 12px;
+}
+
+.group-change-steps {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.group-change-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0;
+}
+
+.mail-box {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.mail-subject {
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.mail-body {
+  margin: 0;
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
