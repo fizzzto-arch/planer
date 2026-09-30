@@ -233,5 +233,8 @@ test('kalendarz akademicki: święto przy dniu w tygodniu', async ({ page }) => 
   await tab(page, 'Tydzień').click()
   // Tydzień 9-15.11 - 11.11 to święto (kalendarz podstawiony w fixtures.ts).
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Następny tydzień' }).click()
-  await expect(page.getByText('Narodowe Święto Niepodległości').first()).toBeVisible()
+  // Telefon (lista): pełna nazwa pod datą. Komputer (siatka): krótko "Święto", pełna nazwa w podpowiedzi.
+  await expect(
+    page.getByText('Narodowe Święto Niepodległości').or(page.getByTitle('Narodowe Święto Niepodległości')).first(),
+  ).toBeVisible()
 })
