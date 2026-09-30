@@ -8,19 +8,21 @@ const USOSWEB_PLAN_URL = 'https://usosweb.usos.pw.edu.pl/kontroler.php?_action=h
 function validateUrl(url: string): string | null {
   if (!url) return 'Wklej odnośnik do planu albo wpisz kod grupy WAT.'
   if (!/^https:\/\//i.test(url)) return 'Odnośnik powinien zaczynać się od https://'
+  // Ikona "udostępnij" (<) daje link do strony z planem, a nie do kalendarza - łatwo pomylić ikony.
+  if (/pokazPlanZajecStudenta/i.test(url)) {
+    return 'To link do udostępniania planu (ikona „<”), a potrzebny jest link do kalendarza. W USOSweb kliknij ikonę eksportu (strzałka w górę do kreski, obok) i skopiuj „Odnośnik do planu” z okna, które się otworzy.'
+  }
   if (/usosweb\.usos\.pw\.edu\.pl/i.test(url)) {
     return 'To adres strony USOSweb. Potrzebny jest „Odnośnik do planu” z okna eksportu (krok 2).'
   }
   return null
 }
 
-function ShareIcon() {
+// Ikona eksportu w USOSweb: strzałka w górę do poziomej kreski.
+function ExportIcon() {
   return (
     <svg className="inline-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="18" cy="5" r="2.5" />
-      <circle cx="6" cy="12" r="2.5" />
-      <circle cx="18" cy="19" r="2.5" />
-      <path d="M8.2 10.9 15.8 6.1M8.2 13.1l7.6 4.8" />
+      <path d="M5 4h14M12 20V9M7 13l5-5 5 5" />
     </svg>
   )
 }
@@ -90,7 +92,8 @@ export function SourceForm({ plan, onDone }: Props) {
           .
         </li>
         <li>
-          Kliknij ikonę udostępniania <ShareIcon /> obok nagłówka „Mój plan zajęć”.
+          Kliknij ikonę eksportu <ExportIcon /> (strzałka w górę do kreski) obok nagłówka „Mój plan zajęć” - nie ikonę
+          udostępniania {'„<”'}.
         </li>
         <li>Skopiuj „Odnośnik do planu” i wklej go poniżej.</li>
       </ol>
