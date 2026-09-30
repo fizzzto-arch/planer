@@ -28,6 +28,9 @@ interface Props {
   now: Date
   settings: OptimizerSettings
   gapThreshold: number
+  // Dobór grupy razem ze zmianami grup w planie (propozycje optymalizatora). Brak = bez tej opcji.
+  onInclude?: (groups: ExtraGroup[]) => void
+  included?: ExtraGroup[][] // wyniki wyszukiwania już uwzględnione w propozycjach
 }
 
 type Status = { kind: 'idle' } | { kind: 'loading'; progress?: GroupsProgress } | { kind: 'error'; message: string }
@@ -49,7 +52,7 @@ function gapText(minutes: number): string {
 }
 
 // Zajęcia spoza planu (WF, lektorat): wyszukiwanie w USOS i grupy, które najlepiej pasują do planu.
-export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapThreshold }: Props) {
+export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapThreshold, onInclude, included = [] }: Props) {
   const { openExport } = usePlanUi()
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<ExtraSource>('wf')
@@ -222,6 +225,22 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
 
       {ranking && groupsStatus.kind === 'idle' && (
         <div className="extra-results">
+          {onInclude && groups && groups.some((g) => g.meetings.length > 0) && (
+            <div className="extra-include">
+              <p className="setting-hint">
+                Grupa, która koliduje z obecnym planem, może pasować po zmianie innych grup. Uwzględnij ten przedmiot w
+                propozycjach niżej, a Planer dobierze grupę razem z resztą planu.
+              </p>
+              <button
+                type="button"
+                className="button small"
+                disabled={included.includes(groups)}
+                onClick={() => onInclude(groups)}
+              >
+                {included.includes(groups) ? 'Uwzględnione w propozycjach ✓' : 'Uwzględnij w propozycjach'}
+              </button>
+            </div>
+          )}
           {ranking.fits.length === 0 ? (
             <p className="empty-state">
               {groups?.length ? 'Każda grupa koliduje z Twoim planem.' : 'Te przedmioty nie mają jeszcze grup w USOS.'}

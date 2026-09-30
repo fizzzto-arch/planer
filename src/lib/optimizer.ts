@@ -13,6 +13,9 @@ export interface GroupOption {
   unitId: string
   groupNumber: number
   meetings: OptMeeting[]
+  // Tylko zajęcia spoza planu: kilka przedmiotów (np. różne lektoraty B2) w jednym wyborze.
+  courseId?: string
+  courseName?: string
 }
 
 // Jedne zajęcia z planu (przedmiot + typ), w których można wybrać grupę.
@@ -22,6 +25,9 @@ export interface Slot {
   classType: string
   options: GroupOption[]
   currentIndex: number | null // grupa, w której użytkownik jest teraz
+  // Zajęcia spoza planu (WF, lektorat), do których dopiero się zapiszesz - wybór grupy nie jest
+  // "zmianą", a obecny plan dostaje najlepiej pasującą grupę.
+  extra?: boolean
 }
 
 export interface BlockedTime {
@@ -71,7 +77,7 @@ export interface PlanMetrics {
 }
 
 export interface Candidate {
-  choice: number[] // indeks opcji dla każdego slotu
+  choice: number[] // indeks opcji dla każdego slotu; -1 = zajęcia spoza planu pominięte (tylko obecny plan)
   metrics: PlanMetrics
   changes: number // ile slotów różni się od obecnego planu
 }
@@ -170,7 +176,7 @@ export function deanGroupOf(groupNumber: number): number | null {
 // Grupy dziekańskie obecne w co najmniej połowie zajęć z grupami dziekańskimi. Pojedyncza
 // "trójka" w jednym przedmiocie to nie jest osobna grupa dziekańska do porównania.
 export function deanGroups(slots: Slot[]): number[] {
-  const withDeans = slots.filter((s) => s.options.some((o) => deanGroupOf(o.groupNumber) !== null))
+  const withDeans = slots.filter((s) => !s.extra && s.options.some((o) => deanGroupOf(o.groupNumber) !== null))
   const counts = new Map<number, number>()
   for (const s of withDeans) {
     for (const d of new Set(s.options.map((o) => deanGroupOf(o.groupNumber)))) {
@@ -187,6 +193,7 @@ export function deanGroups(slots: Slot[]): number[] {
 // w pozostałych zostaje obecna grupa (przejście do innej dziekanki ich nie zmienia).
 export function deanFilter(dean: number) {
   return (slot: Slot, option: GroupOption) => {
+    if (slot.extra) return true
     if (slot.options.some((o) => deanGroupOf(o.groupNumber) === dean)) return deanGroupOf(option.groupNumber) === dean
     return slot.currentIndex === null || slot.options[slot.currentIndex] === option
   }
@@ -204,6 +211,7 @@ export interface OptimizeOptions {
 export interface OptimizeResult {
   candidates: Candidate[]
   current: Candidate | null // obecny plan (jeśli spełnia ograniczenia, liczymy go i tak)
+  currentExtraClash: boolean // żadna grupa zajęć spoza planu nie mieści się w obecnym planie bez kolizji
   checked: number
   truncated: boolean
 }
@@ -217,14 +225,40 @@ export function optimize(slots: Slot[], opts: OptimizeOptions): OptimizeResult {
   const weeks = countWeeks(allMeetings)
 
   const scoreOf = (choice: number[]): Candidate => {
-    const meetings = [...fixed, ...choice.flatMap((c, i) => slots[i].options[c].meetings)]
+    const meetings = [...fixed, ...choice.flatMap((c, i) => (c < 0 ? [] : slots[i].options[c].meetings))]
     const changes = choice.filter((c, i) => slots[i].currentIndex !== null && c !== slots[i].currentIndex).length
     const metrics = evaluate(meetings, settings, gapThreshold, weeks)
     return { choice, changes, metrics: { ...metrics, score: metrics.score + changes * CHANGE_PENALTY } }
   }
 
-  // Obecny plan - do porównania, niezależnie od ograniczeń.
+  // Obecny plan - do porównania, niezależnie od ograniczeń. Zajęcia spoza planu dostają w nim
+  // grupę, która najlepiej pasuje do obecnych grup (bez kolizji i poza zablokowanymi godzinami).
   const currentChoice = slots.map((s) => s.currentIndex ?? 0)
+  // Grupa, która się nie mieści, zostaje poza obecnym planem - plan z kolizją byłby fikcją.
+  let currentExtraClash = false
+  slots.forEach((slot, i) => {
+    if (slot.extra) currentChoice[i] = -1
+  })
+  slots.forEach((slot, i) => {
+    if (!slot.extra) return
+    const busy = [
+      ...fixed,
+      ...slots.flatMap((s, j) => (s.extra && (j >= i || currentChoice[j] < 0) ? [] : s.options[currentChoice[j]].meetings)),
+    ]
+    let best = -1
+    let bestScore = Infinity
+    slot.options.forEach((option, k) => {
+      if (option.meetings.some((m) => hitsBlocked(m, settings.blocked) || busy.some((b) => overlaps(m, b)))) return
+      currentChoice[i] = k
+      const score = scoreOf(currentChoice).metrics.score
+      if (score < bestScore) {
+        best = k
+        bestScore = score
+      }
+    })
+    if (best === -1) currentExtraClash = true
+    currentChoice[i] = best
+  })
   const current = slots.length > 0 ? scoreOf(currentChoice) : null
 
   // Dozwolone grupy w każdym slocie: przypięcia, blokady godzin, filtr, kolizje z zajęciami stałymi.
@@ -242,7 +276,7 @@ export function optimize(slots: Slot[], opts: OptimizeOptions): OptimizeResult {
       })
       .map(({ index }) => index),
   )
-  if (allowed.some((a) => a.length === 0)) return { candidates: [], current, checked: 0, truncated: false }
+  if (allowed.some((a) => a.length === 0)) return { candidates: [], current, currentExtraClash, checked: 0, truncated: false }
 
   // Grupy o identycznych terminach (np. podgrupy 101 i 102 tego samego labu) dają ten sam plan -
   // zostawiamy jedną: przypiętą, obecną albo pierwszą. Inaczej propozycje różniłyby się tylko numerkiem.
@@ -299,5 +333,5 @@ export function optimize(slots: Slot[], opts: OptimizeOptions): OptimizeResult {
   }
   visit(0)
 
-  return { candidates: top, current, checked, truncated }
+  return { candidates: top, current, currentExtraClash, checked, truncated }
 }

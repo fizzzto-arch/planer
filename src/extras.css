@@ -3207,3 +3207,35 @@ label.setting-row {
   color: var(--accent-text);
   opacity: 0.85;
 }
+
+/* Optymalizator: WF / lektorat dobierane razem z grupami planu. */
+.extra-include {
+  margin-bottom: 12px;
+}
+
+.extra-included-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.extra-included-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.extra-included-list .link-button {
+  flex: none;
+}
+
+.change-list.is-extra li {
+  border-left-color: var(--accent);
+}
+
+.opt-note.is-warn {
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+}

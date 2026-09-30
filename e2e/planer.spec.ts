@@ -139,6 +139,65 @@ test('lektorat: wklejony link z USOSweb znajduje przedmiot', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeEnabled()
 })
 
+test('lektorat w propozycjach: grupa kolidująca z planem mieści się po zmianie innej grupy', async ({ page }) => {
+  const LANG = '6420-EEH60-0SA-0008'
+  // "2026-10-12" + dni -> "2026-10-14 10:15:00" (czas lokalny jak w USOS).
+  const day = (start: string, plus: number, time: string) => {
+    const [y, m, d] = start.split('-').map(Number)
+    return `${new Date(Date.UTC(y, m - 1, d + plus)).toISOString().slice(0, 10)} ${time}:00`
+  }
+  await page.route('https://apps.usos.pw.edu.pl/services/**', async (route) => {
+    const url = new URL(route.request().url())
+    const q = url.searchParams
+    const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
+    if (url.pathname.endsWith('/courses/unit')) {
+      // Grupy do wyboru ma tylko ćwiczenie z analizy; reszta planu - przedmioty bez innych grup.
+      const unit = q.get('unit_id') ?? ''
+      return json({ course_id: unit === 'U-an-c' ? 'AN' : unit, term_id: '2026Z', classtype_id: 'CWI' })
+    }
+    if (url.pathname.endsWith('/courses/course')) return json({ name: { pl: 'Język angielski - poziom B2' }, terms: [{ id: '2026Z' }] })
+    if (url.pathname.endsWith('/tt/course_edition')) {
+      const start = q.get('start') ?? ''
+      const act = (plus: number, from: string, to: string, classtype_id: string, group_number: number) => ({
+        start_time: day(start, plus, from),
+        end_time: day(start, plus, to),
+        classtype_id,
+        group_number,
+        unit_id: 'U-an-c',
+      })
+      // Analiza: obecna gr. 101 w środę 10:15 albo gr. 102 w czwartek. Lektorat tylko w środę 10:15.
+      if (q.get('course_id') === 'AN') return json([act(2, '10:15', '12:00', 'CWI', 101), act(3, '10:15', '12:00', 'CWI', 102)])
+      if (q.get('course_id') === LANG) return json([act(2, '10:15', '12:00', 'LEK', 5)])
+      return json([])
+    }
+    return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
+  })
+
+  await tab(page, 'Przedmioty').click()
+  await page.getByRole('button', { name: /Dobierz grupy/ }).click()
+  await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
+  await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
+  await page.getByLabel('Nazwa, kod albo link przedmiotu').fill(LANG)
+  await page.getByRole('button', { name: 'Szukaj' }).click()
+  await page.getByRole('button', { name: 'Dopasuj grupy' }).click()
+  await expect(page.getByText('Każda grupa koliduje z Twoim planem.')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Uwzględnij w propozycjach' }).click()
+  await expect(page.getByRole('button', { name: /Uwzględnione w propozycjach/ })).toBeDisabled()
+  await expect(page.getByRole('heading', { name: 'Dobieram też grupę' })).toBeVisible()
+  await expect(page.getByText(/nie mieści się w obecnym planie bez kolizji/)).toBeVisible()
+  await expect(page.getByText(/Z najlepiej pasującą grupą/)).toHaveCount(0)
+  const best = page.locator('.candidate', { has: page.getByRole('heading', { name: 'Najlepsza propozycja' }) })
+  await expect(best.getByText(/gr. 101/)).toBeVisible()
+  await expect(best.getByText('gr. 102', { exact: true })).toBeVisible()
+  await expect(best.getByText('gr. 5', { exact: true })).toBeVisible()
+
+  // Usunięcie - propozycje wracają do samego planu.
+  await page.locator('.extra-included').getByRole('button', { name: 'Usuń' }).click()
+  await expect(page.getByRole('heading', { name: 'Dobieram też grupę' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Uwzględnij w propozycjach' })).toBeEnabled()
+})
+
 test('zadania dla testerów: odhaczanie i "Problem?" z nazwą zadania', async ({ page }) => {
   await tab(page, 'Ustawienia').click()
   await page.getByText('Zgłoszenia od testerów').click()

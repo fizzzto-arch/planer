@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDuration } from '../lib/dates'
 import type { Candidate, GroupOption, OptimizerSettings, PlanMetrics, Slot } from '../lib/optimizer'
+import { USOSWEB_COURSE_URL } from '../lib/courseInfo'
 import { describeOption, usosGroupUrl } from '../lib/optimizerSettings'
 import { typeLabel } from '../lib/usos'
 import { GroupChangeDialog } from './GroupChangeDialog'
@@ -113,6 +114,8 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
     if (slot.currentIndex === null || to === slot.currentIndex) return []
     return [{ slot, from: slot.options[slot.currentIndex], to: slot.options[to] }]
   })
+  // Wybrane grupy zajęć spoza planu (WF, lektorat) - zapisujesz się na nie w USOS.
+  const extraPicks = slots.flatMap((slot, i) => (slot.extra ? [{ slot, option: slot.options[candidate.choice[i]] }] : []))
 
   return (
     <div className={`panel candidate${highlight ? ' is-highlight' : ''}`}>
@@ -129,7 +132,7 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
       </div>
       <MetricsGrid metrics={candidate.metrics} base={current?.metrics ?? null} settings={settings} />
       {changes.length === 0 ? (
-        <p className="muted small">Bez zmian - to Twój obecny plan.</p>
+        <p className="muted small">{extraPicks.length > 0 ? 'Bez zmian grup w obecnym planie.' : 'Bez zmian - to Twój obecny plan.'}</p>
       ) : (
         <ul className="change-list">
           {changes.map(({ slot, from, to }) => (
@@ -147,6 +150,25 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
                   <button type="button" className="link-button change-request" onClick={() => setRequest({ slot, from, to })}>
                     Poproś o zmianę
                   </button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {extraPicks.length > 0 && (
+        <ul className="change-list is-extra">
+          {extraPicks.map(({ slot, option }) => (
+            <li key={slot.id}>
+              <span className="change-course">
+                {option.courseName ?? slot.courseName} <span className="badge opt-badge">zapisz się</span>
+              </span>
+              <span className="change-groups">
+                <strong>gr. {option.groupNumber}</strong> <span className="muted">({describeOption(option)})</span>{' '}
+                {option.courseId && (
+                  <a className="usos-link" href={USOSWEB_COURSE_URL + encodeURIComponent(option.courseId)} target="_blank" rel="noreferrer">
+                    przedmiot w USOS
+                  </a>
                 )}
               </span>
             </li>

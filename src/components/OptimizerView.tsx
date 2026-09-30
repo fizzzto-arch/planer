@@ -6,8 +6,10 @@ import { formatUpdatedAt, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { deanFilter, deanGroupOf, deanGroups, optimize, type Candidate } from '../lib/optimizer'
 import type { Meeting } from '../lib/usos'
+import { describeOption } from '../lib/optimizerSettings'
 import { groupsCacheMaxAge } from '../lib/usosGroups'
-import { candidateMeetings } from '../lib/candidatePlan'
+import { candidateMeetings, extraGroupsSlot, extraSlotId } from '../lib/candidatePlan'
+import type { ExtraGroup } from '../lib/extraCourses'
 import { CandidateCard, MetricsGrid } from './CandidateCard'
 import { ExtraCoursesPanel } from './ExtraCoursesPanel'
 import { OptimizerSettingsPanel } from './OptimizerSettingsPanel'
@@ -31,7 +33,20 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   const weekStart = startOfWeek(now).getTime()
   const upcoming = useMemo(() => planMeetings.filter((m) => m.start.getTime() >= weekStart), [planMeetings, weekStart])
   const maxAge = useMemo(() => groupsCacheMaxAge(planMeetings, now), [planMeetings, now])
-  const { slots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
+  const { slots: planSlots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
+
+  // WF, lektorat: grupy z wyszukiwania dobierane razem ze zmianami grup w planie.
+  const [included, setIncluded] = useState<ExtraGroup[][]>([])
+  const extraSlots = useMemo(() => {
+    return included.flatMap((groups) => {
+      const slot = extraGroupsSlot(groups, meetings, new Date(weekStart))
+      return slot ? [{ slot, groups }] : []
+    })
+  }, [included, meetings, weekStart])
+  const slots = useMemo(
+    () => (planSlots ? [...planSlots, ...extraSlots.map((e) => e.slot)] : null),
+    [planSlots, extraSlots],
+  )
 
   const fixed = useMemo(
     () =>
@@ -42,7 +57,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   )
 
   const results = useMemo(() => {
-    if (!slots || slots.length === 0) return null
+    if (!slots || !slots.some((s) => !s.extra)) return null
     const base = { fixed, settings, gapThreshold: prefs.gapMinutes }
     const free = optimize(slots, { ...base, limit: TOP_LIMIT + 1 })
     const deans = deanGroups(slots).map((dean) => ({
@@ -63,15 +78,17 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   // Twoja grupa dziekańska: najczęstsza wśród obecnych grup.
   const myDean = useMemo(() => {
     const counts = new Map<number, number>()
-    for (const s of slots ?? []) {
+    for (const s of planSlots ?? []) {
       if (s.currentIndex === null) continue
       const d = deanGroupOf(s.options[s.currentIndex].groupNumber)
       if (d !== null) counts.set(d, (counts.get(d) ?? 0) + 1)
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-  }, [slots])
+  }, [planSlots])
 
   const current = results?.free.current ?? null
+  // Zajęcia spoza planu bez grupy pasującej do obecnego planu.
+  const clashing = current && slots ? slots.filter((s, i) => s.extra && current.choice[i] < 0) : []
   const better = results?.free.candidates.filter((c) => c.changes > 0).slice(0, TOP_LIMIT) ?? []
   const bestIsCurrent = results?.free.candidates[0]?.changes === 0
 
@@ -124,7 +141,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
         </p>
       )}
 
-      {slots && slots.length === 0 && (
+      {planSlots && planSlots.length === 0 && (
         <>
           <p className="empty-state">W planie nie ma nadchodzących zajęć z USOS, dla których można dobierać grupy.</p>
           {/* WF i lektorat da się dobrać także bez grup do zamiany w planie. */}
@@ -138,16 +155,51 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
         </>
       )}
 
-      {slots && slots.length > 0 && results && (
+      {slots && planSlots && planSlots.length > 0 && results && (
         <>
-          <OptimizerSettingsPanel api={settingsApi} slots={slots} />
+          <OptimizerSettingsPanel api={settingsApi} slots={planSlots} />
           <ExtraCoursesPanel
             planMeetings={planMeetings}
             meetings={meetings}
             now={now}
             settings={settings}
             gapThreshold={prefs.gapMinutes}
+            // Ten sam przedmiot drugi raz - nowsze wyniki zastępują poprzednie.
+            onInclude={(groups) => setIncluded((prev) => [...prev.filter((g) => extraSlotId(g) !== extraSlotId(groups)), groups])}
+            included={extraSlots.map((e) => e.groups)}
           />
+
+          {extraSlots.length > 0 && (
+            <div className="panel extra-included">
+              <h3 className="panel-title">Dobieram też grupę</h3>
+              <ul className="extra-included-list">
+                {extraSlots.map(({ slot, groups }) => {
+                  const courses = new Set(slot.options.map((o) => o.courseId)).size
+                  return (
+                    <li key={slot.id}>
+                      <span>
+                        {slot.courseName}
+                        {courses > 1 && ` i ${courses - 1} podobne`}{' '}
+                        <span className="muted">
+                          · {slot.options.length} {slot.options.length === 1 ? 'grupa' : 'grup'}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => setIncluded((prev) => prev.filter((g) => g !== groups))}
+                      >
+                        Usuń
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+              <p className="setting-hint">
+                Każda propozycja ma najlepiej pasującą do niej grupę - na nią zapisujesz się w USOS.
+              </p>
+            </div>
+          )}
 
           {current && (
             <div className="panel">
@@ -162,6 +214,24 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
                 </button>
               </div>
               <MetricsGrid metrics={current.metrics} base={null} settings={settings} />
+              {slots.map((slot, i) => {
+                if (!slot.extra) return null
+                const option = slot.options[current.choice[i]]
+                if (!option) return null
+                return (
+                  <p key={slot.id} className="muted small">
+                    Z najlepiej pasującą grupą: {option.courseName ?? slot.courseName} gr. {option.groupNumber} (
+                    {describeOption(option)})
+                  </p>
+                )
+              })}
+              {clashing.length > 0 && (
+                <p className="opt-note is-warn">
+                  Żadna grupa: {clashing.map((c) => c.courseName).join(', ')} nie mieści się w
+                  obecnym planie bez kolizji (albo trafia w zablokowane godziny) - powyżej plan bez niej. Propozycje
+                  niżej zmieniają grupy tak, żeby się zmieściła.
+                </p>
+              )}
             </div>
           )}
 

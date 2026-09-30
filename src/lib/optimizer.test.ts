@@ -187,3 +187,37 @@ describe('grupy dziekańskie', () => {
     expect(deanGroups([a, b, c])).toEqual([1, 2])
   })
 })
+
+describe('zajęcia spoza planu (WF, lektorat)', () => {
+  const extra = (...options: GroupOption[]): Slot => ({ ...slot('lektorat', 0, ...options), currentIndex: null, extra: true })
+  const plan = () => [
+    slot('A', 0, option(1, at(0, '10:15', '12:00')), option(2, at(2, '10:15', '12:00'))),
+    slot('B', 0, option(1, at(0, '08:15', '10:00'))),
+  ]
+  const base = { fixed: [], settings, gapThreshold: 30, limit: 5 }
+
+  it('obecny plan dostaje najlepiej pasującą grupę bez kolizji, a jej wybór nie jest zmianą', () => {
+    const slots = [...plan(), extra(option(7, at(0, '10:15', '12:00')), option(8, at(0, '12:15', '14:00')), option(9, at(3, '12:15', '14:00')))]
+    const result = optimize(slots, base)
+    expect(result.current?.choice).toEqual([0, 0, 1]) // gr. 7 koliduje z A, gr. 9 to nowy dzień
+    expect(result.current?.changes).toBe(0)
+    expect(result.currentExtraClash).toBe(false)
+    expect(result.candidates[0].choice).toEqual([0, 0, 1])
+  })
+
+  it('grupa, która koliduje z obecnym planem, mieści się po zmianie innej grupy', () => {
+    const slots = [...plan(), extra(option(7, at(0, '10:15', '12:00')))]
+    const result = optimize(slots, base)
+    expect(result.currentExtraClash).toBe(true)
+    expect(result.current?.choice).toEqual([0, 0, -1]) // obecny plan bez lektoratu, a nie z kolizją
+    expect(result.current?.metrics.days).toBe(1)
+    expect(result.candidates[0].choice).toEqual([1, 0, 0])
+    expect(result.candidates[0].changes).toBe(1)
+  })
+
+  it('grupy dziekańskie i filtr dziekanki pomijają zajęcia spoza planu', () => {
+    const e = extra(option(101, at(3, '08:15', '10:00')), option(301, at(4, '08:15', '10:00')))
+    expect(deanGroups([slot('C', 0, option(101), option(201)), e])).toEqual([1, 2])
+    expect(deanFilter(2)(e, e.options[1])).toBe(true)
+  })
+})

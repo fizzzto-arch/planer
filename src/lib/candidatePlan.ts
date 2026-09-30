@@ -44,11 +44,13 @@ export function candidateMeetings(
   const meetings = [
     ...slots.flatMap((slot, i) => {
       const option = slot.options[candidate.choice[i]]
-      const changed = slot.currentIndex !== null && candidate.choice[i] !== slot.currentIndex
+      if (!option) return [] // zajęcia spoza planu, które nie mieszczą się w obecnym planie
+      // Zajęcia spoza planu (WF, lektorat) też są nowe - wyróżniamy je jak zmienione grupy.
+      const changed = slot.extra === true || (slot.currentIndex !== null && candidate.choice[i] !== slot.currentIndex)
       return option.meetings.map((m, j) => {
         const id = `${slot.id}-${option.groupNumber}-${j}`
         if (changed) changedIds.add(id)
-        return toPlanMeeting(id, m, slot.courseName, slot.classType, option.groupNumber)
+        return toPlanMeeting(id, m, option.courseName ?? slot.courseName, slot.classType, option.groupNumber)
       })
     }),
     ...fixed.map((m, j) => toPlanMeeting(`fixed-${j}`, m, m.courseName, m.type, null)),
@@ -75,12 +77,55 @@ export function extraGroupWeek(group: ExtraGroup, weekStart: Date, odd: boolean 
   })
 }
 
+// Tygodnie z zajęciami od bieżącego - w nich rozpisujemy grupy spoza planu.
+function upcomingWeeks(meetings: Pick<PlanMeeting, 'start' | 'cancelled'>[], now: Date): Date[] {
+  const from = startOfWeek(now).getTime()
+  return [...new Set(meetings.map((m) => startOfWeek(m.start).getTime()))]
+    .filter((w) => w >= from)
+    .sort((a, b) => a - b)
+    .map((w) => new Date(w))
+}
+
+// Identyfikator wyboru: te same przedmioty i typ zajęć = ten sam wybór (drugie wyszukiwanie go zastępuje).
+export function extraSlotId(groups: ExtraGroup[]): string {
+  const courses = [...new Set(groups.map((g) => g.courseId))].sort().join('+')
+  return `extra|${courses}|${groups[0]?.classType ?? ''}`
+}
+
+// Grupy przedmiotu spoza planu jako jedne zajęcia do wyboru w optymalizatorze - rozpisane na
+// tygodnie planu z właściwą parzystością, jak zwykłe grupy z USOS.
+export function extraGroupsSlot(
+  groups: ExtraGroup[],
+  meetings: Pick<PlanMeeting, 'start' | 'cancelled'>[],
+  now: Date,
+): Slot | null {
+  const usable = groups.filter((g) => g.meetings.length > 0) // grupa bez terminów "pasowałaby" zawsze
+  if (usable.length === 0) return null
+  const active = meetings.filter((m) => !m.cancelled)
+  const weeks = upcomingWeeks(active, now).map((week) => ({ week, odd: semesterWeek(week, active)?.odd ?? null }))
+  const first = usable[0]
+  return {
+    id: extraSlotId(groups),
+    courseName: first.courseName,
+    classType: first.classType === 'FIZ' ? 'WF' : first.classType,
+    currentIndex: null,
+    extra: true,
+    options: usable.map((g) => ({
+      unitId: '',
+      groupNumber: g.groupNumber,
+      courseId: g.courseId,
+      courseName: g.courseName,
+      meetings: weeks
+        .flatMap(({ week, odd }) => extraGroupWeek(g, week, odd))
+        .map(({ start, end, room, building }) => ({ start, end, room, building })),
+    })),
+  }
+}
+
 // Obecny plan + grupa spoza planu we wszystkich tygodniach z zajęciami (od bieżącego).
 export function withExtraGroup(meetings: PlanMeeting[], group: ExtraGroup, now: Date): PlanMeeting[] {
   const active = meetings.filter((m) => !m.cancelled)
-  const weeks = [...new Set(active.map((m) => startOfWeek(m.start).getTime()))].filter((w) => w >= startOfWeek(now).getTime())
-  const extra = weeks.flatMap((w) => {
-    const week = new Date(w)
+  const extra = upcomingWeeks(active, now).flatMap((week) => {
     const sw = semesterWeek(week, active)
     return extraGroupWeek(group, week, sw ? sw.odd : null)
   })
