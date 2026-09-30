@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test": "vitest run",
     "e2e": "playwright test",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-planer \"vitest run --config vitest.rules.config.ts\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@playwright/test": "^1.63.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
@@ -24,6 +26,7 @@
     "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.1.1",
     "firebase-admin": "^14.5.0",
+    "firebase-tools": "^15.32.0",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",

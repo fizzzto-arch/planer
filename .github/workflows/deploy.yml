@@ -35,6 +35,14 @@ jobs:
         run: npm test
       - if: github.event_name != 'schedule'
         run: node scripts/check-server-imports.ts
+      # Testy reguł bazy na emulatorze Firestore (wymaga Javy) - kto może czytać i zmieniać co.
+      - if: github.event_name != 'schedule'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - if: github.event_name != 'schedule'
+        run: npm run test:rules
       # Testy klikające główne ścieżki (iPhone/WebKit, Android, komputer) na udawanej chmurze.
       - if: github.event_name != 'schedule'
         run: npx playwright install --with-deps chromium webkit
