@@ -20,6 +20,7 @@ import {
 import type { OptimizerSettings } from '../lib/optimizer'
 import { parseOptimizerSettings } from '../lib/optimizerSettings'
 import { parsePrefs, type Prefs } from '../lib/prefs'
+import { parseTesterTasks } from '../lib/testerTasks'
 import { parseTypeColors, type TypeColors } from '../lib/typeColors'
 import { RETRY_AFTER_MS } from './useCloud'
 
@@ -29,6 +30,7 @@ const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', '
 const COLORS_DOC = 'colors'
 const PREFS_DOC = 'prefs'
 const OPTIMIZER_DOC = 'optimizer'
+const TESTER_TASKS_DOC = 'testerTasks'
 
 export type RawCollections = Partial<Record<CollectionName, CloudDoc[]>>
 
@@ -54,6 +56,7 @@ function toExtras(raw: RawCollections): Extras {
     typeColors: parseTypeColors(raw.settings?.find((d) => d.id === COLORS_DOC)?.data ?? {}),
     prefs: prefsDoc ? parsePrefs(prefsDoc.data) : null,
     optimizer: optimizerDoc ? parseOptimizerSettings(optimizerDoc.data) : null,
+    testerTasks: parseTesterTasks(raw.settings?.find((d) => d.id === TESTER_TASKS_DOC)?.data),
   }
 }
 
@@ -199,6 +202,11 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  const saveTesterTasks = useCallback(
+    (done: string[]) => write((c, u) => c.setItem(u, 'settings', TESTER_TASKS_DOC, { done })),
+    [write],
+  )
+
   // Urządzenie z włączonymi przypomnieniami (subskrypcja push). test = poproś o próbne powiadomienie.
   const savePushDevice = useCallback(
     (id: string, subscription: PushSubscriptionJSON, device: string, test = false) =>
@@ -260,6 +268,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     saveTypeColors,
     savePrefs,
     saveOptimizer,
+    saveTesterTasks,
     savePushDevice,
     deletePushDevice,
     exportBackup,

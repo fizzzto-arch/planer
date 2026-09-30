@@ -16,6 +16,8 @@ import {
   type FeedbackStatus,
 } from '../lib/feedback'
 import { formatSize } from '../lib/localFiles'
+import type { TesterTask } from '../lib/testerTasks'
+import { TesterTasks } from './TesterTasks'
 
 interface Props {
   feedback: FeedbackApi
@@ -32,6 +34,13 @@ const formatWhen = (ms: number | null) =>
 
 // Zgłoszenia od testerów: co działa, co nie, czego brakuje, ze zdjęciami i nagraniami.
 export function FeedbackView({ feedback, admin, onBack }: Props) {
+  // "Problem?" przy zadaniu: nowy formularz (key) z rodzajem "Błąd" i nazwą zadania w opisie.
+  const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null)
+  const report = (task: TesterTask) => {
+    setPrefill({ text: `Zadanie „${task.title}”: `, nonce: Date.now() })
+    setTimeout(() => document.getElementById('feedback-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+  }
+
   return (
     <section className="help feedback">
       <button type="button" className="back-button" onClick={onBack}>
@@ -57,7 +66,8 @@ export function FeedbackView({ feedback, admin, onBack }: Props) {
       )}
 
       {admin && <Inbox feedback={feedback} />}
-      <FeedbackForm feedback={feedback} />
+      <TesterTasks onReport={report} />
+      <FeedbackForm key={prefill?.nonce ?? 0} feedback={feedback} initialText={prefill?.text ?? null} />
       {feedback.own.length > 0 && (
         <div className="panel">
           <h3 className="panel-title">Twoje zgłoszenia</h3>
@@ -77,12 +87,13 @@ interface Picked {
   url: string // podgląd
 }
 
-function FeedbackForm({ feedback }: { feedback: FeedbackApi }) {
-  const [kind, setKind] = useState<FeedbackKind>('opinion')
+// initialText: zgłoszenie problemu z zadaniem testera - od razu rodzaj "Błąd" z nazwą zadania.
+function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initialText: string | null }) {
+  const [kind, setKind] = useState<FeedbackKind>(initialText ? 'bug' : 'opinion')
   const [good, setGood] = useState('')
   const [bad, setBad] = useState('')
   const [missing, setMissing] = useState('')
-  const [text, setText] = useState('')
+  const [text, setText] = useState(initialText ?? '')
   const [withDevice, setWithDevice] = useState(true)
   const [picked, setPicked] = useState<Picked[]>([])
   const [preparing, setPreparing] = useState(false)
@@ -183,7 +194,7 @@ function FeedbackForm({ feedback }: { feedback: FeedbackApi }) {
   )
 
   return (
-    <form className="panel form-grid" onSubmit={(e) => void handleSubmit(e)}>
+    <form id="feedback-form" className="panel form-grid" onSubmit={(e) => void handleSubmit(e)}>
       <h3 className="panel-title">Nowe zgłoszenie</h3>
       <div className="segmented" role="radiogroup" aria-label="Rodzaj zgłoszenia">
         {FEEDBACK_KINDS.map((k) => (

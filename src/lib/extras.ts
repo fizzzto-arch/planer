@@ -101,6 +101,7 @@ export interface Extras {
   typeColors: TypeColors // własne kolory typów zajęć (puste = domyślne jak w USOS)
   prefs: Prefs | null // ustawienia zapisane na koncie; null = jeszcze nie zapisane
   optimizer: OptimizerSettings | null // ustawienia "Dobierz grupy"; null = jeszcze nie zapisane
+  testerTasks: string[] // zadania dla testerów oznaczone jako zrobione (lib/testerTasks.ts)
 }
 
 export const EMPTY_EXTRAS: Extras = {
@@ -112,6 +113,7 @@ export const EMPTY_EXTRAS: Extras = {
   typeColors: {},
   prefs: null,
   optimizer: null,
+  testerTasks: [],
 }
 
 // Id dokumentu Firestore nie może zawierać "/", więc kodujemy nazwę.

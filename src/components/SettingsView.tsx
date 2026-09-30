@@ -146,7 +146,7 @@ export function SettingsView({
             <span>
               {isAdmin
                 ? 'Co działa, co nie i czego brakuje - ze zdjęciami i nagraniami'
-                : 'Co działa, co nie, czego brakuje - możesz dołączyć zrzut ekranu lub nagranie'}
+                : 'Zadania do przetestowania i zgłoszenia - co działa, co nie, czego brakuje'}
             </span>
           </span>
           <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">

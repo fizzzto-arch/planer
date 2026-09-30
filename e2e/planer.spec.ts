@@ -138,3 +138,18 @@ test('lektorat: wklejony link z USOSweb znajduje przedmiot', async ({ page }) =>
   // Jeden wynik jest od razu zaznaczony - można dopasowywać grupy.
   await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeEnabled()
 })
+
+test('zadania dla testerów: odhaczanie i "Problem?" z nazwą zadania', async ({ page }) => {
+  await tab(page, 'Ustawienia').click()
+  await page.getByText('Zgłoszenia od testerów').click()
+  const tasks = page.locator('.tester-tasks')
+  await expect(tasks.getByText('0 z 10')).toBeVisible()
+  // Stan wraca z zapisu na koncie (chwilę po kliknięciu) - czekamy na niego zamiast check().
+  await tasks.getByRole('checkbox', { name: /Dodaj swój plan/ }).click()
+  await expect(tasks.getByRole('checkbox', { name: /Dodaj swój plan/ })).toBeChecked()
+  await expect(tasks.getByText('1 z 10')).toBeVisible()
+  await tasks.locator('li').filter({ hasText: 'Wyeksportuj plan' }).getByRole('button', { name: 'Problem?' }).click()
+  const form = page.locator('#feedback-form')
+  await expect(form.getByRole('radio', { name: 'Błąd' })).toHaveAttribute('aria-checked', 'true')
+  await expect(form.getByRole('textbox').first()).toHaveValue('Zadanie „Wyeksportuj plan”: ')
+})
