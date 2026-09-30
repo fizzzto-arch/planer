@@ -267,3 +267,25 @@ describe('dane serwera przypomnień', () => {
     }
   })
 })
+
+describe('tytuły prowadzących (people)', () => {
+  it('czytają zatwierdzeni; zgłosić można tylko osobę do doczytania, tytuł wpisuje serwer', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'people', '8596'), { title: 'dr inż.', position: 'adiunkt', unit: 'EiTI', pending: false }),
+    )
+    await assertSucceeds(getDoc(doc(as(ALICE), 'people', '8596')))
+    await assertFails(getDoc(doc(as(PENDING), 'people', '8596')))
+    await assertFails(getDoc(doc(anon(), 'people', '8596')))
+
+    const request = { pending: true, requestedAt: serverTimestamp() }
+    await assertSucceeds(setDoc(doc(as(ALICE), 'people', '228979'), request))
+    // Bez podrzucania tytułów, nadpisywania i dziwnych identyfikatorów.
+    await assertFails(setDoc(doc(as(ALICE), 'people', '97003'), { ...request, title: 'prof. dr hab.' }))
+    await assertFails(setDoc(doc(as(ALICE), 'people', '8596'), request)) // już jest - to byłaby zmiana
+    await assertFails(setDoc(doc(as(ALICE), 'people', '228979'), { title: 'prof.' }, { merge: true }))
+    await assertFails(setDoc(doc(as(ALICE), 'people', 'abc'), request))
+    await assertFails(setDoc(doc(as(ALICE), 'people', '97004'), { ...request, pending: false }))
+    await assertFails(setDoc(doc(as(PENDING), 'people', '97005'), request))
+    await assertFails(deleteDoc(doc(as(ALICE), 'people', '8596')))
+  })
+})

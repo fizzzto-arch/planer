@@ -20,6 +20,7 @@ import {
   Bytes,
   collection,
   deleteDoc,
+  documentId,
   doc,
   getDoc,
   getDocs,
@@ -35,6 +36,7 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 import { COLLECTION_NAMES, type AccessStatus, type Cloud } from './cloudTypes'
+import type { PersonInfo } from './usosPeople'
 
 // Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
 const ACCOUNT_COLLECTIONS = COLLECTION_NAMES
@@ -194,6 +196,45 @@ function createCloud(config: FirebaseOptions): Cloud {
 
     setOptimizerAccess: (uid, on) => wrap(() => setDoc(doc(db, 'access', uid), { optimizer: on }, { merge: true })),
     saveTesterProgress: (uid, done) => wrap(() => setDoc(doc(db, 'access', uid), { testerTasks: done }, { merge: true })),
+
+    // Firestore: "in" przyjmuje najwyżej 30 wartości - dzielimy listę na paczki.
+    watchPeople(ids, onPeople) {
+      const chunks: string[][] = []
+      for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30))
+      const results = chunks.map(() => new Map<string, Record<string, unknown>>())
+      const emit = () => {
+        const people: Record<string, PersonInfo> = {}
+        const requested: string[] = []
+        for (const map of results) {
+          for (const [id, data] of map) {
+            requested.push(id)
+            if (data.pending === true) continue
+            const str = (v: unknown) => (typeof v === 'string' && v ? v : null)
+            people[id] = { title: str(data.title), position: str(data.position), unit: str(data.unit) }
+          }
+        }
+        onPeople(people, requested)
+      }
+      const unsubscribers = chunks.map((chunk, i) =>
+        onSnapshot(
+          query(collection(db, 'people'), where(documentId(), 'in', chunk)),
+          (snap) => {
+            results[i] = new Map(snap.docs.map((d) => [d.id, d.data()]))
+            emit()
+          },
+          () => undefined, // bez tytułów - same nazwiska też wystarczą
+        ),
+      )
+      return () => unsubscribers.forEach((u) => u())
+    },
+
+    async requestPeople(ids) {
+      await Promise.all(
+        ids.map((id) =>
+          setDoc(doc(db, 'people', id), { pending: true, requestedAt: serverTimestamp() }).catch(() => undefined),
+        ),
+      )
+    },
 
     watchData(uid, onData, onError) {
       return onSnapshot(

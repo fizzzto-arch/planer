@@ -24,6 +24,7 @@ import {
 } from '../src/lib/planWatch.ts'
 import { isAutoReport } from '../src/lib/feedback.ts'
 import { NOTIFICATION_KEEP_DAYS, type NotificationKind } from '../src/lib/notifications.ts'
+import { USOSWEB_PERSON_URL, isPersonId, parsePersonPage } from '../src/lib/usosPeople.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
 
@@ -197,6 +198,24 @@ for (const f of replied.docs) {
   }
   await remember(uid, notice)
   for (const device of byUser.get(uid) ?? []) await send(device.ref, device.data(), notice)
+}
+
+// Tytuły prowadzących: Planer zgłasza osoby bez tytułu (people/{id}, pending), a my czytamy ich
+// publiczne strony w USOSweb (API USOS podaje tytuły tylko zarejestrowanym aplikacjom).
+const pendingPeople = await db.collection('people').where('pending', '==', true).limit(30).get()
+for (const person of pendingPeople.docs) {
+  if (!isPersonId(person.id)) {
+    await person.ref.delete()
+    continue
+  }
+  try {
+    const response = await fetch(`${USOSWEB_PERSON_URL}${person.id}`, { signal: AbortSignal.timeout(20_000) })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const info = parsePersonPage(await response.text())
+    await person.ref.set({ ...info, pending: false, fetchedAt: FieldValue.serverTimestamp() }, { merge: true })
+  } catch (e) {
+    console.log(`::warning::Nie udało się odczytać strony osoby ${person.id}: ${(e as Error).message}`)
+  }
 }
 
 // Zapamiętany plan trzymamy tylko u osób z włączonymi powiadomieniami - po wyłączeniu

@@ -121,6 +121,17 @@ service cloud.firestore {
       }
     }
 
+    // Tytuły prowadzących (z publicznych stron USOSweb): czytają wszyscy z dostępem. Planer może
+    // tylko zgłosić osobę do doczytania (pending) - tytuł wpisuje wyłącznie serwer przypomnień.
+    match /people/{personId} {
+      allow read: if hasAccess();
+      allow create: if hasAccess()
+        && personId.matches('^[0-9]{1,10}$')
+        && request.resource.data.keys().hasOnly(['pending', 'requestedAt'])
+        && request.resource.data.pending == true
+        && request.resource.data.requestedAt == request.time;
+    }
+
     // Wszystko inne (dziennik wysłanych przypomnień, zapamiętany plan do wykrywania zmian w USOS)
     // - niedostępne ze strony, korzysta z tego tylko serwer przypomnień.
   }

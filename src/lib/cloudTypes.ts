@@ -1,6 +1,7 @@
 // Wspólny interfejs chmury - prawdziwej (Firebase, cloud.ts) i udawanej do testów (cloudMock.ts).
 import type { FeedbackAttachment, FeedbackFile, FeedbackStatus, NewFeedback } from './feedback'
 import type { NewMaterial } from './materials'
+import type { PersonInfo } from './usosPeople'
 
 export interface CloudUser {
   uid: string
@@ -71,6 +72,10 @@ export interface Cloud {
   setOptimizerAccess(uid: string, on: boolean): Promise<void>
   // Kopia odhaczonych zadań testera w jego prośbie o dostęp (widzi ją administrator).
   saveTesterProgress(uid: string, done: string[]): Promise<void>
+  // Tytuły prowadzących (people/{id}, uzupełnia serwer). requested - osoby, o które już ktoś poprosił;
+  // brakujące zgłasza requestPeople, a serwer przypomnień doczytuje je ze stron USOSweb.
+  watchPeople(ids: string[], onPeople: (people: Record<string, PersonInfo>, requested: string[]) => void): Unsubscribe
+  requestPeople(ids: string[]): Promise<void>
 
   watchData(uid: string, onData: (data: CloudData) => void, onError: (message: string) => void): Unsubscribe
   saveIcalUrl(uid: string, url: string): Promise<void>

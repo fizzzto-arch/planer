@@ -480,6 +480,7 @@ function App() {
       openSettings: () => changeView('settings'),
       isAdmin: adminView,
       canOptimize,
+      cloud: cloud.uid ? cloud.client : null,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
         const customId = customMeetingId(m.id)
@@ -512,6 +513,8 @@ function App() {
       changeView,
       adminView,
       canOptimize,
+      cloud.uid,
+      cloud.client,
       deadlinesByDay,
       extras.customMeetings,
       prefs,

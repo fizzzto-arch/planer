@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import type { CustomMeeting, Deadline } from '../lib/extras'
 import type { PlanMeeting } from '../lib/edits'
 import type { Prefs } from '../lib/prefs'
+import type { Cloud } from '../lib/cloudTypes'
 import type { ExtrasApi } from './useExtras'
 import type { SharedMaterialsApi } from './useSharedMaterials'
 
@@ -31,6 +32,7 @@ export interface PlanUi {
   openSettings: () => void // zakładka Ustawienia (np. z "Pierwszych kroków")
   isAdmin: boolean // widok administratora (w podglądzie "jako zwykły użytkownik" - false)
   canOptimize: boolean // optymalizator: administrator albo osoba, której go przyznał
+  cloud: Cloud | null // zalogowane konto z dostępem (np. tytuły prowadzących); null = bez konta
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych
   addCustomMeeting: (draft: CustomMeetingDraft) => void

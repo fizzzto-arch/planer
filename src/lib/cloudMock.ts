@@ -3,6 +3,7 @@
 // Tryby: ?mock - administrator; ?mock=unverified - niepotwierdzony e-mail;
 // ?mock=pending - konto czeka na zatwierdzenie.
 import type { AccessRequest, AccessStatus, Cloud, CloudDoc, CloudUser, CollectionName } from './cloudTypes'
+import type { PersonInfo } from './usosPeople'
 
 const STORAGE_KEY = 'planer.mock-cloud'
 const MOCK_ADMIN_EMAIL = 'test@planer.local' // useCloud traktuje go jako administratora
@@ -62,6 +63,9 @@ function createMockCloud(): Cloud {
   const feedbackListeners = new Set<() => void>()
   const emitFeedback = () => setTimeout(() => feedbackListeners.forEach((cb) => cb()), 0)
   const emitAccess = () => setTimeout(() => accessListeners.forEach((cb) => cb()), 0)
+  const peopleStore = new Map<string, PersonInfo>()
+  const peopleRequested = new Set<string>()
+  const peopleListeners = new Set<() => void>()
 
   return {
     watchUser(onChange) {
@@ -148,6 +152,27 @@ function createMockCloud(): Cloud {
       const current = access.get(uid)
       if (current) access.set(uid, { ...current, status })
       emitAccess()
+    },
+    // Tytuły prowadzących: "serwer" uzupełnia je chwilę po prośbie (jak prawdziwy co kwadrans).
+    watchPeople(ids, onPeople) {
+      const emit = () => {
+        const people: Record<string, PersonInfo> = {}
+        for (const id of ids) {
+          const p = peopleStore.get(id)
+          if (p) people[id] = p
+        }
+        onPeople(people, ids.filter((id) => peopleStore.has(id) || peopleRequested.has(id)))
+      }
+      peopleListeners.add(emit)
+      setTimeout(emit, 0)
+      return () => peopleListeners.delete(emit)
+    },
+    async requestPeople(ids) {
+      for (const id of ids) peopleRequested.add(id)
+      setTimeout(() => {
+        for (const id of ids) peopleStore.set(id, { title: 'dr inż.', position: 'adiunkt', unit: 'Wydział testowy' })
+        peopleListeners.forEach((cb) => cb())
+      }, 300)
     },
     async saveTesterProgress(uid, done) {
       const current = access.get(uid)
