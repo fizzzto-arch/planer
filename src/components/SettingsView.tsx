@@ -51,6 +51,10 @@ export function SettingsView({
   const first = meetings[0]
   const last = meetings[meetings.length - 1]
   const signedIn = cloud.state.kind === 'signedIn'
+  // Ręczne zmiany planu (sala, godziny, odwołanie) - pojedyncze zajęcia i całe grupy.
+  const manualChanges = extras
+    ? [...extras.extras.meetingEdits.values()].filter((e) => e.override).length + extras.extras.seriesEdits.size
+    : 0
 
   async function handleReset() {
     const question = signedIn
@@ -101,6 +105,29 @@ export function SettingsView({
             <>
               <dt>{t('Aktualizacja')}</dt>
               <dd>{formatUpdatedAt(updatedAt, now)}</dd>
+            </>
+          )}
+          {manualChanges > 0 && extras && (
+            <>
+              <dt>{t('Ręczne zmiany')}</dt>
+              <dd>
+                {manualChanges}{' '}
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => {
+                    if (!window.confirm(t('Przywrócić cały plan z USOS? Znikną Twoje zmiany sal, godzin i odwołania. Notatki, terminy i własne zajęcia zostają.'))) return
+                    for (const [id, edit] of extras.extras.meetingEdits) {
+                      if (edit.override) extras.saveMeetingEdit(id, { override: null })
+                    }
+                    for (const id of extras.extras.seriesEdits.keys()) {
+                      extras.saveSeriesEdit({ id, room: null, startTime: null, endTime: null })
+                    }
+                  }}
+                >
+                  {t('Przywróć cały plan z USOS')}
+                </button>
+              </dd>
             </>
           )}
         </dl>

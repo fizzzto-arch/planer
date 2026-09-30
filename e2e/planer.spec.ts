@@ -65,6 +65,22 @@ test('konto: „Zmień hasło” wysyła link na e-mail konta', async ({ page })
   await expect(page.getByText(/Wysłaliśmy na test@planer.local link do ustawienia nowego hasła/)).toBeVisible()
 })
 
+test('ustawienia: „Przywróć cały plan z USOS” cofa wszystkie ręczne zmiany', async ({ page }) => {
+  const card = page.locator('.card', { hasText: 'Analiza matematyczna' }).first()
+  await card.click()
+  await card.getByRole('button', { name: 'Zmień', exact: true }).click()
+  await page.getByLabel('Sala').fill('999')
+  await page.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(card.getByText('zmienione')).toBeVisible()
+
+  await tab(page, 'Ustawienia').click()
+  page.once('dialog', (d) => void d.accept())
+  await page.getByRole('button', { name: 'Przywróć cały plan z USOS' }).click()
+  await expect(page.getByRole('button', { name: 'Przywróć cały plan z USOS' })).toHaveCount(0)
+  await tab(page, 'Dziś').click()
+  await expect(page.locator('.card', { hasText: 'Analiza matematyczna' }).first().getByText('zmienione')).toHaveCount(0)
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()
