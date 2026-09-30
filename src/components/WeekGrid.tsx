@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { formatShortDay, formatTime, isSameDay, toDateKey } from '../lib/dates'
-import { dayLabel } from '../lib/academicCalendar'
+import { dayLabel, shortDayLabel } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel } from '../lib/extras'
 import { usePlanUi } from '../hooks/planUi'
@@ -71,17 +71,23 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
   const nowMin = minuteOfDay(now)
 
   return (
-    <div className="week-grid" style={{ gridTemplateColumns: `3rem repeat(${days.length}, 1fr)` }}>
+    // minmax(0, 1fr): kolumny zawsze równe - długi tekst w nagłówku nie poszerza swojego dnia.
+    <div className="week-grid" style={{ gridTemplateColumns: `3rem repeat(${days.length}, minmax(0, 1fr))` }}>
       <div />
-      {days.map((day) => (
-        <div key={day.getTime()} className={`grid-day-head${isSameDay(day, now) ? ' is-today' : ''}`}>
-          {formatShortDay(day)}
-          {/* Święto, przerwa, sesja - z kalendarza akademickiego PW. */}
-          {dayLabel(calendarEvents, toDateKey(day)) && (
-            <span className="calendar-label">{dayLabel(calendarEvents, toDateKey(day))!.name}</span>
-          )}
-        </div>
-      ))}
+      {days.map((day) => {
+        // Święto, przerwa, sesja - krótko ("Święto"), pełna nazwa w podpowiedzi.
+        const special = dayLabel(calendarEvents, toDateKey(day))
+        return (
+          <div key={day.getTime()} className={`grid-day-head${isSameDay(day, now) ? ' is-today' : ''}`}>
+            {formatShortDay(day)}
+            {special && (
+              <span className="calendar-label" title={special.name}>
+                {shortDayLabel(special)}
+              </span>
+            )}
+          </div>
+        )
+      })}
 
       <div className="grid-hours" style={{ height: totalMin * PX_PER_MIN }}>
         {hours.map((h) => (

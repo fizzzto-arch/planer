@@ -3201,3 +3201,9 @@ label.setting-row {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Dzisiejszy (niebieski) nagłówek w siatce - etykieta jasna, żeby była czytelna na niebieskim. */
+.grid-day-head.is-today .calendar-label {
+  color: var(--accent-text);
+  opacity: 0.85;
+}

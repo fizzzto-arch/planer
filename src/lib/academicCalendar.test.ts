@@ -30,3 +30,15 @@ describe('kalendarz akademicki', () => {
     expect(dayLabel(events, '2026-10-20')).toBeNull()
   })
 })
+
+describe('krótkie etykiety do siatki', () => {
+  it('święto, sesja, wakacje, rejestracja, reszta "wolne"', async () => {
+    const { shortDayLabel } = await import('./academicCalendar')
+    const e = (type: string, name: string): CalendarEvent => ({ start: '2026-10-01', end: '2026-10-01', type, dayOff: true, name })
+    expect(shortDayLabel(e('public_holidays', 'Narodowe Święto Niepodległości'))).toBe('Święto')
+    expect(shortDayLabel(e('exam_session', 'Zimowa sesja egzaminacyjna'))).toBe('Sesja')
+    expect(shortDayLabel(e('break', 'Wakacje zimowe'))).toBe('Wakacje')
+    expect(shortDayLabel(e('break', 'Okres rejestracyjny'))).toBe('Rejestracja')
+    expect(shortDayLabel(e('rector', 'Uroczysta inauguracja roku akademickiego'))).toBe('Wolne')
+  })
+})

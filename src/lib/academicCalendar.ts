@@ -42,3 +42,12 @@ export function dayLabel(events: CalendarEvent[], dateKey: string): CalendarEven
   matching.sort((a, b) => (RANK[a.type] ?? 4) - (RANK[b.type] ?? 4))
   return matching[0] ?? null
 }
+
+// Krótka etykieta do wąskich miejsc (nagłówek kolumny w siatce tygodnia) - pełna nazwa w podpowiedzi.
+export function shortDayLabel(event: CalendarEvent): string {
+  if (event.type === 'exam_session') return 'Sesja'
+  if (event.type === 'public_holidays' || event.type === 'holidays') return 'Święto'
+  if (/rejestr/i.test(event.name)) return 'Rejestracja'
+  if (/wakacje|ferie/i.test(event.name)) return 'Wakacje'
+  return 'Wolne'
+}

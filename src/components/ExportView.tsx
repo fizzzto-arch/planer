@@ -35,7 +35,7 @@ const FORMATS: { id: Format; label: string; hint: string }[] = [
   { id: 'jpeg', label: 'Zdjęcie JPEG', hint: 'lżejsze, do komunikatorów' },
   { id: 'pdf', label: 'PDF', hint: 'strona A4, do druku' },
   { id: 'xlsx', label: 'Excel', hint: 'siatka z kolorami + lista' },
-  { id: 'ics', label: 'Kalendarz (.ics)', hint: 'Google / Apple, z Twoimi zmianami' },
+  { id: 'ics', label: 'Kalendarz (.ics)', hint: 'Google, Apple' },
 ]
 
 // Eksport planu: typowy tydzień albo konkretny tydzień jako zdjęcie, PDF, Excel albo kalendarz.
