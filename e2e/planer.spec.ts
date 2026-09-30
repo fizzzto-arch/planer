@@ -228,3 +228,10 @@ test('wspólne okienka: włączenie w ustawieniach, wybór znajomej, wynik w tyg
   // 14.10 (śr.): ja 10:15-12:00, Ala 8:15-10:00, 12:15-14:00, 16:15-18:00 - wspólnie wolni od 18:00.
   await expect(dialog.getByText('Wszyscy wolni od 18:00').first()).toBeVisible()
 })
+
+test('kalendarz akademicki: święto przy dniu w tygodniu', async ({ page }) => {
+  await tab(page, 'Tydzień').click()
+  // Tydzień 9-15.11 - 11.11 to święto (kalendarz podstawiony w fixtures.ts).
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Następny tydzień' }).click()
+  await expect(page.getByText('Narodowe Święto Niepodległości').first()).toBeVisible()
+})

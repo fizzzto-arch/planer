@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
-import { formatShortDay, formatTime, isSameDay } from '../lib/dates'
+import { formatShortDay, formatTime, isSameDay, toDateKey } from '../lib/dates'
+import { dayLabel } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel } from '../lib/extras'
 import { usePlanUi } from '../hooks/planUi'
@@ -58,7 +59,7 @@ function layoutLanes(dayMeetings: PlanMeeting[]): Map<string, { lane: number; la
 }
 
 export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }: Props) {
-  const { openCourse, deadlinesFor, displayName } = usePlanUi()
+  const { openCourse, deadlinesFor, displayName, calendarEvents } = usePlanUi()
   const firstHour = Math.min(
     DEFAULT_FIRST_HOUR,
     ...meetings.map((m) => Math.floor(minuteOfDay(m.start) / 60)),
@@ -75,6 +76,10 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
       {days.map((day) => (
         <div key={day.getTime()} className={`grid-day-head${isSameDay(day, now) ? ' is-today' : ''}`}>
           {formatShortDay(day)}
+          {/* Święto, przerwa, sesja - z kalendarza akademickiego PW. */}
+          {dayLabel(calendarEvents, toDateKey(day)) && (
+            <span className="calendar-label">{dayLabel(calendarEvents, toDateKey(day))!.name}</span>
+          )}
         </div>
       ))}
 

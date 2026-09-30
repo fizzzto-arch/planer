@@ -1,5 +1,6 @@
 import { usePlanUi } from '../hooks/planUi'
-import { addDays, daysBetween, formatDay, isSameDay } from '../lib/dates'
+import { addDays, daysBetween, formatDay, isSameDay, toDateKey } from '../lib/dates'
+import { dayLabel } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { semesterWeek } from '../lib/semesterWeek'
 import { DayTimeline } from './DayTimeline'
@@ -13,17 +14,21 @@ interface Props {
 
 // "Poniedziałek, 5 października" + numer tygodnia semestru (jeśli włączony w ustawieniach)
 function TodayTitle({ meetings, now }: Props) {
-  const { prefs } = usePlanUi()
+  const { prefs, calendarEvents } = usePlanUi()
   const week = prefs.showWeekNumber ? semesterWeek(now, meetings) : null
+  const special = dayLabel(calendarEvents, toDateKey(now)) // święto, przerwa, sesja
   return (
-    <h2 className="day-title">
-      {formatDay(now)}
-      {week && (
-        <span className="week-number">
-          tydz. {week.number} · {week.odd ? 'nieparzysty' : 'parzysty'}
-        </span>
-      )}
-    </h2>
+    <>
+      <h2 className="day-title">
+        {formatDay(now)}
+        {week && (
+          <span className="week-number">
+            tydz. {week.number} · {week.odd ? 'nieparzysty' : 'parzysty'}
+          </span>
+        )}
+      </h2>
+      {special && <p className="calendar-note">{special.name}</p>}
+    </>
   )
 }
 

@@ -3166,3 +3166,27 @@ label.setting-row {
 .free-window {
   font-weight: 600;
 }
+
+/* Kalendarz akademicki: święta, przerwy, sesja */
+.calendar-note {
+  margin: -4px 0 10px;
+  color: var(--warn);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.free-label.calendar-label {
+  color: var(--warn);
+}
+
+.grid-day-head .calendar-label {
+  display: block;
+  margin-top: 2px;
+  color: var(--warn);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

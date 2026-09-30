@@ -36,3 +36,4 @@ private/
 # Emulator Firebase (testy reguł)
 firestore-debug.log
 firebase-debug.log
+/public/calendar.json

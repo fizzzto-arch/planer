@@ -59,6 +59,11 @@ jobs:
       - run: npm run build
       # Plany grup WAT (Wydział Cybernetyki) jako pliki .ics obok strony - ok. 3 minuty.
       - run: node scripts/wat-plans.ts dist/wat
+      # Kalendarz akademicki PW (dni wolne, sesja) - API USOS z kluczem aplikacji (sekrety repozytorium).
+      - run: node scripts/usos-calendar.ts dist/calendar.json
+        env:
+          USOS_CONSUMER_KEY: ${{ secrets.USOS_CONSUMER_KEY }}
+          USOS_CONSUMER_SECRET: ${{ secrets.USOS_CONSUMER_SECRET }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

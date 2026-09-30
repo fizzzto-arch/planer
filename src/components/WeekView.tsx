@@ -4,6 +4,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { semesterWeek } from '../lib/semesterWeek'
+import { dayLabel } from '../lib/academicCalendar'
 import { DayTimeline } from './DayTimeline'
 import { FreeWindowsDialog } from './FreeWindowsDialog'
 import { WeekGrid } from './WeekGrid'
@@ -18,7 +19,7 @@ export function WeekView({ meetings, now }: Props) {
   // Z której strony ma wjechać nowy tydzień.
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
-  const { extras, addCustomMeeting, openExport, prefs } = usePlanUi()
+  const { extras, addCustomMeeting, openExport, prefs, calendarEvents } = usePlanUi()
   const [freeOpen, setFreeOpen] = useState(false) // wspólne okienka ze znajomymi
 
   function goTo(target: Date) {
@@ -117,13 +118,18 @@ export function WeekView({ meetings, now }: Props) {
           days.map((day) => {
             const dayMeetings = weekMeetings.filter((m) => isSameDay(m.start, day))
             const isToday = isSameDay(day, now)
+            const special = dayLabel(calendarEvents, toDateKey(day)) // święto, przerwa, sesja
             return (
               // Wolny dzień w jednej linii - tydzień z jednym dniem zajęć nie wymaga przewijania.
               <div key={day.getTime()} className={dayMeetings.length > 0 ? 'week-day' : 'week-day is-free'}>
                 <h3 className="day-title">
                   {formatDay(day)}
                   {isToday && <span className="today-pill">dziś</span>}
-                  {dayMeetings.length === 0 && <span className="free-label">wolne</span>}
+                  {special ? (
+                    <span className="free-label calendar-label">{special.name}</span>
+                  ) : (
+                    dayMeetings.length === 0 && <span className="free-label">wolne</span>
+                  )}
                 </h3>
                 {dayMeetings.length > 0 && <DayTimeline meetings={dayMeetings} now={now} />}
               </div>

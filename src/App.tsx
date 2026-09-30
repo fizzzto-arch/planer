@@ -21,6 +21,7 @@ import { useAccessRequests } from './hooks/useAccessRequests'
 import { useFeedback } from './hooks/useFeedback'
 import { useNotifications } from './hooks/useNotifications'
 import { useSharedBusy } from './hooks/useSharedBusy'
+import { useAcademicCalendar } from './hooks/useAcademicCalendar'
 import { NotificationsView } from './components/NotificationsView'
 import { setErrorSender } from './lib/errorReport'
 import { useExtras } from './hooks/useExtras'
@@ -267,6 +268,8 @@ function App() {
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
   const meetings = useMemo(() => applyEdits(plan.meetings, extras), [plan.meetings, extras])
   // Wspólne okienka: publikacja moich godzin zajęć (gdy włączone w ustawieniach) i znajomi.
+  // Kalendarz akademicki (dni wolne, sesja) - etykiety przy dniach.
+  const calendarEvents = useAcademicCalendar()
   const sharedBusy = useSharedBusy(
     cloud.uid ? cloud.client : null,
     cloud.uid,
@@ -493,6 +496,7 @@ function App() {
       canOptimize,
       cloud: cloud.uid ? cloud.client : null,
       sharedBusy,
+      calendarEvents,
       editDeadline: setDeadlineDraft,
       editMeeting: (m: PlanMeeting) => {
         const customId = customMeetingId(m.id)
@@ -528,6 +532,7 @@ function App() {
       cloud.uid,
       cloud.client,
       sharedBusy,
+      calendarEvents,
       deadlinesByDay,
       extras.customMeetings,
       prefs,

@@ -107,6 +107,16 @@ export const test = base.extend<{ errors: string[]; seedPlan: boolean }>({
     await page.route('https://apps.usos.pw.edu.pl/**', (route) =>
       route.fulfill({ contentType: 'application/json', body: route.request().url().includes('/services/tt/') ? '[]' : '{}' }),
     )
+    // Kalendarz akademicki (w wersji deweloperskiej go nie ma - publikuje go wdrożenie).
+    await page.route('**/calendar.json', (route) =>
+      route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          fetchedAt: '2026-10-14T00:00:00Z',
+          events: [{ start: '2026-11-11', end: '2026-11-11', type: 'public_holidays', dayOff: true, name: 'Narodowe Święto Niepodległości' }],
+        }),
+      }),
+    )
     await provide(errors)
     // Każdy test na koniec: żadnego błędu na stronie.
     expect(errors, 'błędy na stronie').toEqual([])
