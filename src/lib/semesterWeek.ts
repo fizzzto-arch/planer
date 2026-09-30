@@ -1,12 +1,18 @@
 // Numer tygodnia semestru liczony z planu. Tygodnie idą po kolei w kalendarzu od pierwszego
 // tygodnia z zajęciami - także przez przerwy (np. świąteczną), bo tak USOS układa zajęcia
 // "co dwa tygodnie": laboratorium w tygodnie nieparzyste zostaje w nieparzystych po przerwie.
-// Przerwa dłuższa niż 4 tygodnie oznacza nowy semestr.
+// Co najmniej 3 tygodnie bez zajęć oznaczają nowy semestr. Na PW między semestrami są dokładnie
+// 3 takie tygodnie (2 tygodnie sesji i tydzień rejestracji), a przerwa świąteczna ma najwyżej 2.
+// Egzaminy w sesji nie są zajęciami semestru - inaczej "skleiłyby" zimowy semestr z letnim.
 import { startOfWeek } from './dates'
 import type { Meeting } from './usos'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
-const NEW_SEMESTER_GAP_WEEKS = 4
+const NEW_SEMESTER_GAP_WEEKS = 3 // pełnych tygodni bez zajęć
+const NOT_CLASSES = new Set(['EGZ']) // egzamin (typ z USOS)
+
+type SemesterMeeting = Pick<Meeting, 'start' | 'cancelled'> & { type?: string }
+const countsForSemester = (m: SemesterMeeting) => !m.cancelled && !(m.type && NOT_CLASSES.has(m.type))
 
 export interface SemesterWeek {
   number: number
@@ -19,14 +25,14 @@ export interface Semester {
 }
 
 // Semestry z planu (rosnąco): ciągi tygodni z zajęciami bez przerwy dłuższej niż 4 tygodnie.
-export function semesters(meetings: Pick<Meeting, 'start' | 'cancelled'>[]): Semester[] {
-  const weeks = [
-    ...new Set(meetings.filter((m) => !m.cancelled).map((m) => startOfWeek(m.start).getTime())),
-  ].sort((a, b) => a - b)
+export function semesters(meetings: SemesterMeeting[]): Semester[] {
+  const weeks = [...new Set(meetings.filter(countsForSemester).map((m) => startOfWeek(m.start).getTime()))].sort(
+    (a, b) => a - b,
+  )
   const result: Semester[] = []
   for (let i = 0; i < weeks.length; i++) {
-    const gapWeeks = i > 0 ? Math.round((weeks[i] - weeks[i - 1]) / WEEK_MS) : Infinity
-    if (gapWeeks > NEW_SEMESTER_GAP_WEEKS) result.push({ firstWeek: new Date(weeks[i]), lastWeek: new Date(weeks[i]) })
+    const emptyWeeks = i > 0 ? Math.round((weeks[i] - weeks[i - 1]) / WEEK_MS) - 1 : Infinity
+    if (emptyWeeks >= NEW_SEMESTER_GAP_WEEKS) result.push({ firstWeek: new Date(weeks[i]), lastWeek: new Date(weeks[i]) })
     else result[result.length - 1].lastWeek = new Date(weeks[i])
   }
   return result
@@ -44,9 +50,9 @@ export function weekIndex(date: Date, semester: Semester): number {
 }
 
 // Numer i parzystość tygodnia - tylko dla tygodni z zajęciami (w przerwie nie ma czego oznaczać).
-export function semesterWeek(weekStart: Date, meetings: Pick<Meeting, 'start' | 'cancelled'>[]): SemesterWeek | null {
+export function semesterWeek(weekStart: Date, meetings: SemesterMeeting[]): SemesterWeek | null {
   const target = startOfWeek(weekStart)
-  const hasClasses = meetings.some((m) => !m.cancelled && startOfWeek(m.start).getTime() === target.getTime())
+  const hasClasses = meetings.some((m) => countsForSemester(m) && startOfWeek(m.start).getTime() === target.getTime())
   const semester = hasClasses ? semesterAt(target, semesters(meetings)) : null
   if (!semester) return null
   const number = weekIndex(target, semester)

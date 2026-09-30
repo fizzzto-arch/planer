@@ -31,6 +31,28 @@ describe('numer tygodnia semestru', () => {
     expect(semesterWeek(new Date(2027, 2, 1), withSummer)).toEqual({ number: 2, odd: false })
   })
 
+  it('przełom semestrów PW 2026/27: zimowy do 29.01, sesja z egzaminem, letni od 22.02 od tygodnia 1', () => {
+    // Zajęcia zimowe do czwartku 28.01, egzamin 5.02 (sesja 1-14.02), rejestracja 15-21.02, letni od 22.02.
+    const year = [
+      ...mondays(new Date(2026, 9, 5), new Date(2026, 11, 21)),
+      m(2027, 1, 7),
+      ...mondays(new Date(2027, 0, 11), new Date(2027, 0, 25)),
+      m(2027, 1, 28),
+      { ...m(2027, 2, 5), type: 'EGZ' },
+      ...mondays(new Date(2027, 1, 22), new Date(2027, 5, 14)),
+    ]
+    expect(semesters(year)).toHaveLength(2)
+    expect(semesterWeek(new Date(2027, 0, 25), year)).toEqual({ number: 17, odd: true })
+    expect(semesterWeek(new Date(2027, 1, 1), year)).toBeNull() // tydzień z samym egzaminem
+    expect(semesterWeek(new Date(2027, 1, 22), year)).toEqual({ number: 1, odd: true })
+    expect(semesterWeek(new Date(2027, 2, 1), year)).toEqual({ number: 2, odd: false })
+  })
+
+  it('dwa tygodnie przerwy (święta) to jeszcze ten sam semestr', () => {
+    const xmas = [...mondays(new Date(2029, 9, 1), new Date(2029, 11, 17)), ...mondays(new Date(2030, 0, 7), new Date(2030, 0, 28))]
+    expect(semesters(xmas)).toHaveLength(1)
+  })
+
   it('odwołane zajęcia nie tworzą tygodnia', () => {
     const only = [m(2026, 10, 5), { ...m(2026, 10, 12), cancelled: true }, m(2026, 10, 19)]
     expect(semesterWeek(new Date(2026, 9, 12), only)).toBeNull()
