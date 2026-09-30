@@ -22,7 +22,7 @@ import { TesterTasks } from './TesterTasks'
 interface Props {
   feedback: FeedbackApi
   admin: boolean // skrzynka ze wszystkimi zgłoszeniami
-  onBack: () => void
+  onBack?: () => void // brak = otwarte z zakładki (trójkąt na pasku), nie z podstrony
 }
 
 const kindLabel = (k: FeedbackKind) => FEEDBACK_KINDS.find((x) => x.id === k)?.label ?? k
@@ -43,12 +43,14 @@ export function FeedbackView({ feedback, admin, onBack }: Props) {
 
   return (
     <section className="help feedback">
-      <button type="button" className="back-button" onClick={onBack}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m15 6-6 6 6 6" />
-        </svg>
-        Wróć
-      </button>
+      {onBack && (
+        <button type="button" className="back-button" onClick={onBack}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 6-6 6 6 6" />
+          </svg>
+          Wróć
+        </button>
+      )}
 
       <header className="course-header">
         <h2>{admin ? 'Zgłoszenia' : 'Uwagi i pomysły'}</h2>

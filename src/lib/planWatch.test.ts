@@ -39,6 +39,17 @@ describe('zmiany w planie z USOS', () => {
     expect(changesText(changes, label).body).toBe('Radiologia (wt. 10.11 12:15) → śr. 11.11 12:15')
   })
 
+  it('sam nowy identyfikator (te same godziny i sala) to żadna zmiana - bez fałszywego alarmu', () => {
+    // USOS nadał wszystkim zajęciom nowe identyfikatory, nic więcej się nie zmieniło.
+    const renamed = prev.map((m) => ({ ...m, id: `${m.id}-nowe` }))
+    expect(diffPlans(prev, renamed, now, until)).toEqual([])
+    // Nowy identyfikator i inna sala - tylko zmiana sali, nie "przeniesienie".
+    const roomOnly = [lesson('a2', 10, 12, { room: '118' }), lesson('b', 12, 15), lesson('c', 13, 10), lesson('d', 17, 8)]
+    const changes = diffPlans(prev, roomOnly, now, until)
+    expect(changes.map((c) => c.kind)).toEqual(['room'])
+    expect(changesText(changes, label).body).toBe('Radiologia (wt. 10.11): sala 014 → 118')
+  })
+
   it('pusta albo niepełna odpowiedź USOS to nie "wszystko odwołane"', () => {
     expect(looksBroken(prev, [], now, until)).toBe(true)
     expect(looksBroken(prev, [lesson('a', 10, 12)], now, until)).toBe(true)
@@ -60,6 +71,7 @@ describe('zmiany w planie z USOS', () => {
     expect(changesText([changes.find((c) => c.kind === 'room')!], label)).toEqual({
       title: 'Zmiana w planie',
       body: 'Radiologia (czw. 12.11): sala 014 → 042',
+      details: ['Radiologia (czw. 12.11): sala 014 → 042'],
     })
   })
 })
@@ -78,5 +90,16 @@ describe('plan dnia i przed pierwszymi zajęciami', () => {
   it('przypomnienie liczy minuty w chwili wysyłki', () => {
     const first = lesson('x', 10, 12)
     expect(firstClassText(first, label, new Date(2026, 10, 10, 11, 57)).title).toBe('Za 18 min: Radiologia')
+  })
+})
+
+describe('pełna lista zmian do historii powiadomień', () => {
+  it('w powiadomieniu 3 zmiany, w historii wszystkie', () => {
+    const now = new Date(2026, 10, 9, 12, 0)
+    const prev = [10, 11, 12, 13, 16].map((d, i) => lesson(`x${i}`, d, 10))
+    const changes = diffPlans(prev, [], now, at(30, 0)) // wszystko odwołane
+    const text = changesText(changes, label)
+    expect(text.body.split('\n')).toHaveLength(4)
+    expect(text.details).toHaveLength(5)
   })
 })

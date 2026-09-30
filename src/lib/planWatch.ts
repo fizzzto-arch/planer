@@ -73,7 +73,15 @@ export function diffPlans(prev: WatchedMeeting[], next: WatchedMeeting[], now: D
     )
     if (!twin) continue
     changes.splice(changes.indexOf(twin), 1)
-    changes.splice(changes.indexOf(gone), 1, { kind: 'moved', before: gone.before, after: twin.after })
+    const b = gone.before
+    const a = twin.after
+    // Sam nowy identyfikator (USOS czasem je zmienia) - te same godziny i sala to żadna zmiana.
+    if (a.start === b.start && a.end === b.end) {
+      if ((a.room ?? '') === (b.room ?? '')) changes.splice(changes.indexOf(gone), 1)
+      else changes.splice(changes.indexOf(gone), 1, { kind: 'room', before: b, after: a })
+    } else {
+      changes.splice(changes.indexOf(gone), 1, { kind: 'moved', before: b, after: a })
+    }
   }
 
   const when = (c: PlanChange) => ('after' in c ? c.after.start : c.before.start)
@@ -120,10 +128,19 @@ function changeLine(c: PlanChange, label: (course: string) => string): string {
 
 const MAX_LINES = 3
 
-export function changesText(changes: PlanChange[], label: (course: string) => string): { title: string; body: string } {
-  const lines = changes.slice(0, MAX_LINES).map((c) => changeLine(c, label))
+// details: wszystkie zmiany - do historii powiadomień w Planerze (w powiadomieniu mieszczą się 3).
+export function changesText(
+  changes: PlanChange[],
+  label: (course: string) => string,
+): { title: string; body: string; details: string[] } {
+  const all = changes.map((c) => changeLine(c, label))
+  const lines = all.slice(0, MAX_LINES)
   if (changes.length > MAX_LINES) lines.push(`i jeszcze ${changes.length - MAX_LINES} - szczegóły w Planerze`)
-  return { title: changes.length === 1 ? 'Zmiana w planie' : `Zmiany w planie (${changes.length})`, body: lines.join('\n') }
+  return {
+    title: changes.length === 1 ? 'Zmiana w planie' : `Zmiany w planie (${changes.length})`,
+    body: lines.join('\n'),
+    details: all,
+  }
 }
 
 // Zajęcia danego dnia (bez odwołanych), od najwcześniejszych.

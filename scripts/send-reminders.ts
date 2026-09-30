@@ -23,6 +23,7 @@ import {
   type WatchedMeeting,
 } from '../src/lib/planWatch.ts'
 import { isAutoReport } from '../src/lib/feedback.ts'
+import { NOTIFICATION_KEEP_DAYS, type NotificationKind } from '../src/lib/notifications.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
 
@@ -39,6 +40,20 @@ interface Notice {
   title: string
   body: string
   tag: string
+  kind?: NotificationKind // do historii w Planerze; bez rodzaju (np. próbne) - tylko powiadomienie
+  details?: string[] // pełna treść do historii (np. wszystkie zmiany w planie)
+}
+
+// Historia powiadomień w Planerze (users/{uid}/notifications) - zapis raz na osobę, nie na urządzenie.
+async function remember(uid: string, notice: Notice) {
+  if (!notice.kind) return
+  await db.collection(`users/${uid}/notifications`).add({
+    kind: notice.kind,
+    title: notice.title,
+    body: notice.body,
+    details: notice.details ?? [],
+    createdAt: FieldValue.serverTimestamp(),
+  })
 }
 
 // trim(): przypadkowa spacja albo Enter przy wklejaniu sekretu nie psuje klucza.
@@ -86,9 +101,17 @@ for (const [uid, userDevices] of byUser) {
   for (const reminder of dueReminders(deadlines, kinds, now, LOOKBACK_MS)) {
     const key = `${uid}_${reminder.deadline.id}_${reminder.kind}_${reminder.at.getTime()}`
     if (!(await firstTime(key, uid))) continue
-    notices.push({ ...reminderText(reminder, courseLabel), tag: `${reminder.deadline.id}-${reminder.kind}` })
+    notices.push({ ...reminderText(reminder, courseLabel), tag: `${reminder.deadline.id}-${reminder.kind}`, kind: 'deadline' })
   }
   notices.push(...(await planNotices(uid, prefs, courseLabel)))
+  for (const notice of notices) await remember(uid, notice)
+
+  // Raz na godzinę: historia starsza niż NOTIFICATION_KEEP_DAYS znika.
+  if (now.getMinutes() < 15) {
+    const cutoff = new Date(now.getTime() - NOTIFICATION_KEEP_DAYS * 24 * 60 * 60 * 1000)
+    const old = await db.collection(`users/${uid}/notifications`).where('createdAt', '<', cutoff).get()
+    for (const doc of old.docs) await doc.ref.delete()
+  }
 
   for (const device of userDevices) {
     const data = device.data()
@@ -111,6 +134,7 @@ async function notifyAdmins(notice: Notice) {
     await Promise.all(ADMIN_EMAILS.map((email) => getAuth().getUserByEmail(email).then((u) => u.uid, () => null)))
   ).filter((uid): uid is string => uid !== null)
   for (const adminUid of adminUidsCache) {
+    await remember(adminUid, notice)
     for (const device of byUser.get(adminUid) ?? []) await send(device.ref, device.data(), notice)
   }
 }
@@ -124,6 +148,7 @@ for (const request of pending.docs) {
     title: 'Nowe konto czeka na zatwierdzenie',
     body: `${email} prosi o dostęp do Planera.`,
     tag: `access-${request.id}`,
+    kind: 'access',
   })
 }
 
@@ -137,7 +162,12 @@ for (const f of newFeedback.docs) {
   if (isAutoReport({ text: String(f.get('text') ?? '') })) {
     // Treść: "Automatyczne zgłoszenie błędu (widok)\nTypeError: ..." - w powiadomieniu sam komunikat.
     const message = String(f.get('text')).split('\n')[1] ?? ''
-    await notifyAdmins({ title: `Planer wywrócił się u ${email}`, body: message.slice(0, 140), tag: `feedback-${f.id}` })
+    await notifyAdmins({
+      title: `Planer wywrócił się u ${email}`,
+      body: message.slice(0, 140),
+      tag: `feedback-${f.id}`,
+      kind: 'feedback',
+    })
     continue
   }
   const kind = f.get('kind') === 'bug' ? 'Błąd' : f.get('kind') === 'idea' ? 'Pomysł' : 'Opinia'
@@ -145,6 +175,7 @@ for (const f of newFeedback.docs) {
     title: `${kind} od ${email}`,
     body: String(text ?? '').slice(0, 140) || 'Nowe zgłoszenie w Planerze.',
     tag: `feedback-${f.id}`,
+    kind: 'feedback',
   })
 }
 
@@ -153,16 +184,19 @@ const replied = await db.collection('feedback').where('reply', '!=', '').get()
 for (const f of replied.docs) {
   const uid = String(f.get('uid') ?? '')
   const reply = String(f.get('reply'))
-  const devicesOfAuthor = byUser.get(uid) ?? []
-  if (devicesOfAuthor.length === 0) continue
-  if (!(await firstTime(`reply_${f.id}_${createHash('sha1').update(reply).digest('hex').slice(0, 10)}`, uid))) continue
-  for (const device of devicesOfAuthor) {
-    await send(device.ref, device.data(), {
-      title: 'Odpowiedź na Twoje zgłoszenie',
-      body: reply.slice(0, 140),
-      tag: `reply-${f.id}`,
-    })
+  if (!uid || !(await firstTime(`reply_${f.id}_${createHash('sha1').update(reply).digest('hex').slice(0, 10)}`, uid))) {
+    continue
   }
+  // Do historii zawsze (cała odpowiedź), na telefon - jeśli autor ma włączone powiadomienia.
+  const notice: Notice = {
+    title: 'Odpowiedź na Twoje zgłoszenie',
+    body: reply.slice(0, 140),
+    tag: `reply-${f.id}`,
+    kind: 'reply',
+    details: reply.length > 140 ? [reply] : [],
+  }
+  await remember(uid, notice)
+  for (const device of byUser.get(uid) ?? []) await send(device.ref, device.data(), notice)
 }
 
 // Zapamiętany plan trzymamy tylko u osób z włączonymi powiadomieniami - po wyłączeniu
@@ -199,7 +233,7 @@ async function planNotices(uid: string, prefs: DocumentData, label: (course: str
         if (!broken) {
           if (plan && watch?.until && wantChanges) {
             const changes = diffPlans(plan, next, now, watch.until)
-            if (changes.length > 0) notices.push({ ...changesText(changes, label), tag: `plan-${now.getTime()}` })
+            if (changes.length > 0) notices.push({ ...changesText(changes, label), tag: `plan-${now.getTime()}`, kind: 'plan' })
           }
           plan = next
           await ref.set({ plan: next, until: now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000, checkedAt: now.getTime() })
@@ -218,13 +252,13 @@ async function planNotices(uid: string, prefs: DocumentData, label: (course: str
   // Plan dnia: między 7 a 10, póki zajęcia jeszcze trwają.
   if (wantMorning && now.getHours() >= 7 && now.getHours() < 10 && now.getTime() < last.end) {
     if (await firstTime(`morning_${uid}_${dateKey}`, uid)) {
-      notices.push({ ...daySummaryText(today, label), tag: `day-${dateKey}` })
+      notices.push({ ...daySummaryText(today, label), tag: `day-${dateKey}`, kind: 'day' })
     }
   }
   const first = today[0]
   const left = first.start - now.getTime()
   if (wantFirst && left > 0 && left <= FIRST_CLASS_WINDOW_MS && (await firstTime(`first_${uid}_${first.id}`, uid))) {
-    notices.push({ ...firstClassText(first, label, now), tag: `first-${first.id}` })
+    notices.push({ ...firstClassText(first, label, now), tag: `first-${first.id}`, kind: 'first' })
   }
   return notices
 }
@@ -245,7 +279,8 @@ async function send(ref: DocumentReference, data: DocumentData, notice: Notice) 
   try {
     await webpush.sendNotification(
       { endpoint: data.endpoint, keys: data.keys },
-      JSON.stringify({ ...notice, url: './' }),
+      // Do telefonu tylko to, co pokazuje powiadomienie (limit rozmiaru) - szczegóły są w historii.
+      JSON.stringify({ title: notice.title, body: notice.body, tag: notice.tag, url: './' }),
       { TTL: TTL_SECONDS },
     )
     sent++

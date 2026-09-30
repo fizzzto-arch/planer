@@ -2862,3 +2862,134 @@ label.setting-row {
   font-size: 0.85rem;
   padding-top: 2px;
 }
+
+/* Historia powiadomień */
+.notification-group {
+  margin-bottom: 16px;
+}
+
+.notification-day {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notification-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  animation: rise-in 0.2s ease-out;
+}
+
+.notification.is-new {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.notification-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.notification.kind-plan .notification-icon {
+  background: color-mix(in srgb, var(--warn) 15%, transparent);
+  color: var(--warn);
+}
+
+.notification.kind-deadline .notification-icon {
+  background: color-mix(in srgb, var(--now) 12%, transparent);
+  color: var(--now);
+}
+
+.notification-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notification-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.notification-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.notification-text p {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.notification-lines {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.notification-lines li {
+  overflow-wrap: anywhere;
+}
+
+.notification-kind {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* Zgłoszenia na pasku - czerwony trójkąt z wykrzyknikiem */
+.tab-icon.tab-icon-report {
+  stroke: var(--danger);
+}
+
+/* Sześć pozycji na pasku (3 napisy + koperta, zgłoszenia, zębatka) - na wąskim telefonie ciaśniej. */
+@media (max-width: 420px) {
+  .topbar .tabs {
+    gap: 2px;
+  }
+
+  .topbar .tab.is-icon {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@media (max-width: 350px) {
+  .topbar .tab {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 0.9rem;
+  }
+
+  .topbar .tab.is-icon {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}

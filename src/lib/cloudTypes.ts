@@ -40,6 +40,7 @@ export const COLLECTION_NAMES = [
   'customMeetings',
   'settings',
   'push',
+  'notifications', // historia powiadomień - zapisuje ją serwer przypomnień
 ] as const
 export type CollectionName = (typeof COLLECTION_NAMES)[number]
 

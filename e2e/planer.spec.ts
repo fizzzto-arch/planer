@@ -153,3 +153,31 @@ test('zadania dla testerów: odhaczanie i "Problem?" z nazwą zadania', async ({
   await expect(form.getByRole('radio', { name: 'Błąd' })).toHaveAttribute('aria-checked', 'true')
   await expect(form.getByRole('textbox').first()).toHaveValue('Zadanie „Wyeksportuj plan”: ')
 })
+
+test('koperta: historia powiadomień z pełną listą zmian, potem "przeczytane"', async ({ page }) => {
+  // Historia w udawanej chmurze - jak zapisałby ją serwer przypomnień.
+  await page.evaluate(() => {
+    const store = JSON.parse(localStorage.getItem('planer.mock-cloud') ?? '{}')
+    store.notifications = {
+      n1: {
+        kind: 'plan',
+        title: 'Zmiany w planie (4)',
+        body: 'skrót',
+        details: ['Fizyka (wt. 20.10): sala 418 → 120', 'Analiza (pon. 19.10) 8:15 - odwołane', 'Grafika (pt. 23.10) 12:15 - odwołane', 'Programowanie (wt. 27.10) 12:15 - dodatkowe zajęcia'],
+        createdAt: Date.now(),
+      },
+    }
+    localStorage.setItem('planer.mock-cloud', JSON.stringify(store))
+  })
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Powiadomienia (nowe: 1)' })).toBeVisible()
+  await page.getByRole('button', { name: 'Powiadomienia (nowe: 1)' }).click()
+  await expect(page.getByText('Programowanie (wt. 27.10) 12:15 - dodatkowe zajęcia')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Powiadomienia', exact: true })).toBeVisible()
+})
+
+test('trójkąt na pasku otwiera zgłoszenia', async ({ page }) => {
+  await page.getByRole('button', { name: /^(Zgłoś problem|Zgłoszenia)/ }).click()
+  await expect(page.getByText('Zadania do przetestowania')).toBeVisible()
+  await expect(page.locator('#feedback-form')).toBeVisible()
+})

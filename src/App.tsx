@@ -19,6 +19,8 @@ import { PlanUiContext, type CustomMeetingDraft, type DeadlineDraft, type Export
 import { useCloud } from './hooks/useCloud'
 import { useAccessRequests } from './hooks/useAccessRequests'
 import { useFeedback } from './hooks/useFeedback'
+import { useNotifications } from './hooks/useNotifications'
+import { NotificationsView } from './components/NotificationsView'
 import { setErrorSender } from './lib/errorReport'
 import { useExtras } from './hooks/useExtras'
 import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from './hooks/useHorizontalSwipe'
@@ -32,7 +34,7 @@ import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 
-type View = 'today' | 'week' | 'courses' | 'settings'
+type View = 'today' | 'week' | 'courses' | 'notifications' | 'report' | 'settings'
 
 // Eksport (rysowanie zdjęcia, PDF, Excel) ładuje się dopiero po wejściu w "Eksportuj plan".
 const ExportView = lazy(() => import('./components/ExportView').then((m) => ({ default: m.ExportView })))
@@ -49,7 +51,7 @@ const LOADING = (
 )
 
 // Kolejność zakładek - przesunięcie palcem w lewo idzie do następnej.
-const VIEW_ORDER: View[] = ['today', 'week', 'courses', 'settings']
+const VIEW_ORDER: View[] = ['today', 'week', 'courses', 'notifications', 'report', 'settings']
 
 // Pas przy krawędzi ekranu zostawiony gestom przeglądarki.
 const EDGE_PX = 24
@@ -95,14 +97,56 @@ function GearSvg() {
   )
 }
 
-function tabs(settingsAlert: boolean): { id: View; label: string; icon?: ReactNode }[] {
+// Powiadomienia: zamknięta koperta z kropką - są nieprzeczytane, otwarta - wszystko przeczytane.
+function EnvelopeIcon({ unread }: { unread: boolean }) {
+  return (
+    <span className="tab-icon-wrap">
+      <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        {unread ? (
+          <path d="M3 6h18v12H3zM3 7l9 6 9-6" />
+        ) : (
+          <path d="M3 10v9h18v-9L12 4zM3 10l9 6 9-6" />
+        )}
+      </svg>
+      {unread && <span className="tab-alert" />}
+    </span>
+  )
+}
+
+// Zgłoszenia: czerwony trójkąt z wykrzyknikiem; kropka - nowe zgłoszenia (administrator).
+function ReportIcon({ alert = false }: { alert?: boolean }) {
+  return (
+    <span className="tab-icon-wrap">
+      <svg className="tab-icon tab-icon-report" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3.5 2.5 20h19zM12 10v4.5M12 17.3v.2" />
+      </svg>
+      {alert && <span className="tab-alert" />}
+    </span>
+  )
+}
+
+function tabs(
+  settingsAlert: boolean,
+  unread: number,
+  newReports: number,
+): { id: View; label: string; icon?: ReactNode }[] {
   return [
     { id: 'today', label: 'Dziś' },
     { id: 'week', label: 'Tydzień' },
     { id: 'courses', label: 'Przedmioty' },
     {
+      id: 'notifications',
+      label: unread > 0 ? `Powiadomienia (nowe: ${unread})` : 'Powiadomienia',
+      icon: <EnvelopeIcon unread={unread > 0} />,
+    },
+    {
+      id: 'report',
+      label: newReports > 0 ? `Zgłoszenia (nowe: ${newReports})` : 'Zgłoś problem',
+      icon: <ReportIcon alert={newReports > 0} />,
+    },
+    {
       id: 'settings',
-      label: settingsAlert ? 'Ustawienia (coś czeka na Twoją uwagę)' : 'Ustawienia',
+      label: settingsAlert ? 'Ustawienia (nowe konta czekają na zatwierdzenie)' : 'Ustawienia',
       icon: <GearIcon alert={settingsAlert} />,
     },
   ]
@@ -187,6 +231,7 @@ function App() {
     window.scrollTo({ top: 0 })
   }, [])
   const admin = useAccessRequests(adminView ? cloud.adminClient : null)
+  const notifications = useNotifications(cloud.client, cloud.uid)
   const feedback = useFeedback(
     cloud.access === 'approved' ? cloud.client : null,
     cloud.uid,
@@ -574,6 +619,13 @@ function App() {
       {view === 'today' && <TodayView meetings={meetings} now={now} />}
       {view === 'week' && <WeekView meetings={meetings} now={now} />}
       {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
+      {view === 'notifications' && <NotificationsView notifications={notifications} now={now} />}
+      {view === 'report' &&
+        (cloud.uid ? (
+          <FeedbackView feedback={feedback} admin={adminView} />
+        ) : (
+          <p className="empty-state">Zaloguj się, żeby zgłosić problem albo pomysł.</p>
+        ))}
       {view === 'settings' && (
         <SettingsView
           plan={plan}
@@ -605,7 +657,7 @@ function App() {
         <header className="topbar">
           <h1 className="brand">Planer</h1>
           <Tabs
-            tabs={tabs((admin?.pendingCount ?? 0) > 0 || feedback.newCount > 0)}
+            tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount)}
             value={view}
             onChange={changeView}
             controlRef={tabsControl}
