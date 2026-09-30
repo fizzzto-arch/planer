@@ -90,6 +90,8 @@ export interface Cloud {
     onDocs: (docs: CloudDoc[]) => void,
     onError: (message: string) => void,
   ): Unsubscribe
+  // Historia powiadomień: tylko najnowsze (limit) - cała z 60 dni przy każdym otwarciu to zbędne odczyty.
+  watchNotifications(uid: string, max: number, onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
   // Zastępuje cały dokument (dokumenty są małe, zapisujemy je w całości).
   setItem(uid: string, name: CollectionName, id: string, data: Record<string, unknown>): Promise<void>
   deleteItem(uid: string, name: CollectionName, id: string): Promise<void>

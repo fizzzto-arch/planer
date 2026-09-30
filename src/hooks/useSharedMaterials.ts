@@ -9,6 +9,7 @@ import {
   uploaderNameFromEmail,
   type MaterialMeta,
 } from '../lib/materials'
+import { safeBlobType } from '../lib/safeBlob'
 import { RETRY_AFTER_MS } from './useCloud'
 
 export interface UploadProgress {
@@ -108,7 +109,8 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
         const chunks = await client.downloadMaterial(meta.id, meta.chunkCount, (done) =>
           setDownloading((d) => ({ ...d, [meta.id]: done / meta.chunkCount })),
         )
-        const blob = new Blob([joinChunks(chunks)], { type: meta.type })
+        // Typ z bazy wpisał autor pliku - otwieramy tylko bezpieczne (PDF, zdjęcia), resztę pobieramy.
+        const blob = new Blob([joinChunks(chunks)], { type: safeBlobType(meta.type) })
         const url = URL.createObjectURL(blob)
         blobs.current.set(meta.id, blob)
         setUrls((u) => ({ ...u, [meta.id]: url }))

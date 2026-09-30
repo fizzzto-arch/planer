@@ -1,8 +1,70 @@
-// Service worker Planera - tylko powiadomienia (przypomnienia o terminach).
-// Celowo bez obsługi "fetch": strona zawsze ładuje się z sieci, jak dotąd.
+// Service worker Planera: powiadomienia (przypomnienia o terminach) i start bez internetu.
+// Strona ładuje się zawsze z sieci, jak dotąd - kopia w pamięci telefonu służy tylko wtedy, gdy sieci
+// nie ma (sale w piwnicach, metro). Dane konta (Firebase) i plan z USOS to inne domeny - tych nie ruszamy.
 
-self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
+const CACHE = 'planer-offline-v1'
+const MAX_ENTRIES = 80 // stare pliki po aktualizacjach wypadają z pamięci
+const SHELL = new URL('./', self.registration.scope).href
+
+// Pliki strony wypisane w index.html (skrypty, style) - zapamiętane od razu przy instalacji,
+// żeby start bez sieci działał już po pierwszej wizycie.
+async function precacheShell() {
+  const cache = await caches.open(CACHE)
+  const response = await fetch(SHELL, { cache: 'no-store' })
+  if (!response.ok) return
+  const html = await response.clone().text()
+  await cache.put(SHELL, response)
+  const assets = [...html.matchAll(/(?:src|href)="(\.?\/?assets\/[^"]+)"/g)].map((m) => new URL(m[1], SHELL).href)
+  await Promise.all(assets.map((url) => cache.add(url).catch(() => undefined)))
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(precacheShell().catch(() => undefined))
+  self.skipWaiting()
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((names) => Promise.all(names.filter((n) => n.startsWith('planer-offline-') && n !== CACHE).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim()),
+  )
+})
+
+async function trim(cache) {
+  const keys = await cache.keys()
+  for (const request of keys.slice(0, Math.max(0, keys.length - MAX_ENTRIES))) {
+    if (request.url !== SHELL) await cache.delete(request)
+  }
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE)
+  const key = request.mode === 'navigate' ? SHELL : request
+  try {
+    const response = await fetch(request)
+    // Tylko pełne odpowiedzi z tej strony (206 przy wideo nie da się zapisać).
+    if (response.status === 200 && response.type === 'basic') {
+      await cache.put(key, response.clone())
+      void trim(cache)
+    }
+    return response
+  } catch (error) {
+    const cached = await cache.match(key)
+    if (cached) return cached
+    throw error
+  }
+}
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request
+  if (request.method !== 'GET') return
+  const url = new URL(request.url)
+  if (url.origin !== self.location.origin) return // Firebase, USOS - bez zmian
+  if (url.pathname.endsWith('/version.json')) return // sprawdzanie nowej wersji zawsze z sieci
+  event.respondWith(networkFirst(request))
+})
 
 self.addEventListener('push', (event) => {
   let data = {}

@@ -3,6 +3,7 @@ import type { Cloud, CloudDoc } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
 import { isAutoReport, parseFeedback, type Feedback, type FeedbackFile, type FeedbackStatus, type NewFeedback } from '../lib/feedback'
 import { joinChunks } from '../lib/materials'
+import { safeBlobType } from '../lib/safeBlob'
 
 const toList = (docs: CloudDoc[]) =>
   docs
@@ -52,7 +53,8 @@ export function useFeedback(client: Cloud | null, uid: string | null, email: str
       if (!client) throw new Error('Brak połączenia.')
       const a = f.attachments[index]
       const chunks = await client.downloadFeedbackFile(f.id, index, a.chunkCount)
-      return new Blob([joinChunks(chunks)], { type: a.type })
+      // Typ z bazy wpisał autor zgłoszenia - otwieramy tylko bezpieczne (zdjęcia, nagrania).
+      return new Blob([joinChunks(chunks)], { type: safeBlobType(a.type) })
     },
     [client],
   )

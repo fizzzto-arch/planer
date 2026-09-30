@@ -20,8 +20,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Otwarta stara wersja po wdrożeniu nowej - wystarczy przeładować, to nie błąd do zgłoszenia.
+    // Bez internetu ta część strony po prostu się nie wczytała - przeładowanie nic nie da.
     if (isStaleChunkError(error)) {
-      reloadForNewVersion()
+      if (navigator.onLine) reloadForNewVersion()
       return
     }
     reportError(error, 'widok', info.componentStack ?? undefined)
@@ -30,6 +31,20 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     const { error } = this.state
     if (!error) return this.props.children
+    if (isStaleChunkError(error) && !navigator.onLine) {
+      return (
+        <div className="panel crash" role="alert">
+          <h2 className="day-title">Brak internetu</h2>
+          <p className="muted">
+            Ta część Planera wczyta się po połączeniu. Plan, terminy i notatki działają bez sieci - wróć do innej
+            zakładki.
+          </p>
+          <button type="button" className="button" onClick={() => window.location.reload()}>
+            Spróbuj ponownie
+          </button>
+        </div>
+      )
+    }
     if (isStaleChunkError(error)) {
       return (
         <div className="panel crash" role="alert">

@@ -7,6 +7,7 @@ const PORT = 5199
 
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: 'offline.spec.ts', // osobno: playwright.offline.config.ts (zbudowana wersja)
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

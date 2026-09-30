@@ -87,7 +87,7 @@ export function NotificationsView({ notifications, now }: Props) {
           </div>
         ))
       )}
-      <p className="hint">Historia z ostatnich {NOTIFICATION_KEEP_DAYS} dni.</p>
+      <p className="hint">Ostatnie powiadomienia z {NOTIFICATION_KEEP_DAYS} dni.</p>
     </section>
   )
 }

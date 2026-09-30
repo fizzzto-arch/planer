@@ -25,8 +25,10 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  limit,
   initializeFirestore,
   onSnapshot,
+  orderBy,
   persistentLocalCache,
   persistentMultipleTabManager,
   query,
@@ -269,6 +271,14 @@ function createCloud(config: FirebaseOptions): Cloud {
       )
     },
 
+    watchNotifications(uid, max, onDocs, onError) {
+      return onSnapshot(
+        query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'), limit(max)),
+        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+        (e) => onError(describeError(e)),
+      )
+    },
+
     setItem: (uid, name, id, data) =>
       wrap(() => setDoc(doc(db, 'users', uid, name, id), { ...data, updatedAt: serverTimestamp() })),
 
@@ -364,7 +374,15 @@ function createCloud(config: FirebaseOptions): Cloud {
       )
     },
 
-    updateFeedback: (id, patch) => wrap(() => setDoc(doc(db, 'feedback', id), patch, { merge: true })),
+    // replyAt: serwer powiadamia autora tylko o świeżych odpowiedziach (nie czyta wszystkich co kwadrans).
+    updateFeedback: (id, patch) =>
+      wrap(() =>
+        setDoc(
+          doc(db, 'feedback', id),
+          patch.reply?.trim() ? { ...patch, replyAt: serverTimestamp() } : patch,
+          { merge: true },
+        ),
+      ),
 
     async downloadFeedbackFile(id, attachment, chunkCount) {
       const chunks: Uint8Array[] = []

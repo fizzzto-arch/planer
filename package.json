@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
-    "e2e": "playwright test",
+    "e2e": "playwright test && playwright test -c playwright.offline.config.ts",
     "test:rules": "firebase emulators:exec --only firestore --project demo-planer \"vitest run --config vitest.rules.config.ts\"",
     "preview": "vite preview"
   },

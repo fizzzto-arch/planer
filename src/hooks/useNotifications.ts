@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Cloud } from '../lib/cloudTypes'
 import { parseNotification, sortNotifications, unreadCount, type PlanerNotification } from '../lib/notifications'
 
+// Tyle najnowszych powiadomień czyta zakładka - starsze i tak nikt nie przewija, a każde to odczyt z bazy.
+const NOTIFICATIONS_SHOWN = 50
+
 const seenKey = (uid: string) => `planer.notifications-seen.${uid}`
 
 function loadSeen(uid: string | null): number {
@@ -21,9 +24,9 @@ export function useNotifications(client: Cloud | null, uid: string | null) {
 
   useEffect(() => {
     if (!client || !uid) return
-    return client.watchCollection(
+    return client.watchNotifications(
       uid,
-      'notifications',
+      NOTIFICATIONS_SHOWN,
       (docs) => setData({ uid, list: sortNotifications(docs.flatMap((d) => parseNotification(d.id, d.data) ?? [])) }),
       () => {
         // bez historii (np. brak sieci) - zakładka pokaże pustą listę, powiadomienia działają dalej

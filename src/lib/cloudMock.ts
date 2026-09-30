@@ -225,6 +225,17 @@ function createMockCloud(): Cloud {
     },
     saveIcalUrl: async () => {},
 
+    watchNotifications(_uid, max, onDocs) {
+      const listeners = collectionListeners.get('notifications') ?? new Set()
+      collectionListeners.set('notifications', listeners)
+      const emit = (docs: CloudDoc[]) => {
+        const created = (d: CloudDoc) => (typeof d.data.createdAt === 'number' ? d.data.createdAt : 0)
+        onDocs([...docs].sort((a, b) => created(b) - created(a)).slice(0, max))
+      }
+      listeners.add(emit)
+      setTimeout(() => emit(docsOf('notifications')), 0)
+      return () => listeners.delete(emit)
+    },
     watchCollection(_uid, name, onDocs) {
       const listeners = collectionListeners.get(name) ?? new Set()
       collectionListeners.set(name, listeners)

@@ -92,7 +92,16 @@ for (const [uid, userDevices] of byUser) {
   >
   const courseLabel = (name: string) => (typeof aliases[name] === 'string' ? (aliases[name] as string) : name)
 
-  const deadlines = (await db.collection(`users/${uid}/deadlines`).get()).docs.flatMap((doc) => {
+  // Tylko terminy od dziś do 8 dni naprzód - najdalsze przypomnienie jest tydzień wcześniej.
+  // Czytanie wszystkich (także sprzed miesięcy) co kwadrans zjadałoby darmowy limit odczytów.
+  const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const inEightDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 8)
+  const deadlineDocs = await db
+    .collection(`users/${uid}/deadlines`)
+    .where('date', '>=', dayKey(now))
+    .where('date', '<=', dayKey(inEightDays))
+    .get()
+  const deadlines = deadlineDocs.docs.flatMap((doc) => {
     const deadline = parseReminderDeadline(doc.id, doc.data())
     const updatedAt = doc.get('updatedAt')
     return deadline ? [{ deadline, updatedAt: updatedAt?.toDate ? (updatedAt.toDate() as Date) : null }] : []
@@ -181,10 +190,15 @@ for (const f of newFeedback.docs) {
 }
 
 // Odpowiedź administratora na zgłoszenie - powiadomienie dla autora (raz na każdą treść odpowiedzi).
-const replied = await db.collection('feedback').where('reply', '!=', '').get()
+// Tylko odpowiedzi z ostatnich godzin (replyAt zapisuje Planer przy odpowiedzi) - nie wszystkie co kwadrans.
+const replied = await db
+  .collection('feedback')
+  .where('replyAt', '>=', new Date(now.getTime() - LOOKBACK_MS))
+  .get()
 for (const f of replied.docs) {
   const uid = String(f.get('uid') ?? '')
-  const reply = String(f.get('reply'))
+  const reply = String(f.get('reply') ?? '')
+  if (!reply.trim()) continue // odpowiedź usunięta - nie ma o czym powiadamiać
   if (!uid || !(await firstTime(`reply_${f.id}_${createHash('sha1').update(reply).digest('hex').slice(0, 10)}`, uid))) {
     continue
   }
