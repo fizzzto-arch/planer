@@ -113,3 +113,28 @@ test('pomoc: otwiera się i wraca gestem wstecz przeglądarki', async ({ page })
   await page.goBack()
   await expect(page.getByRole('heading', { name: 'Pomoc i prywatność' })).toHaveCount(0)
 })
+
+test('lektorat: wklejony link z USOSweb znajduje przedmiot', async ({ page }) => {
+  // USOS podstawiony - test nie zależy od serwera uczelni.
+  await page.route('https://apps.usos.pw.edu.pl/services/**', async (route) => {
+    const url = new URL(route.request().url())
+    const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
+    if (url.pathname.endsWith('/courses/unit')) return json({ course_id: 'AN', term_id: '2026Z', classtype_id: 'WYK' })
+    if (url.pathname.endsWith('/courses/course')) {
+      return json({ name: { pl: 'Język angielski - poziom B2' }, terms: [{ id: '2026Z' }] })
+    }
+    return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
+  })
+
+  await tab(page, 'Przedmioty').click()
+  await page.getByRole('button', { name: /Dobierz grupy/ }).click()
+  await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
+  await page
+    .getByLabel('Nazwa, kod albo link przedmiotu')
+    .fill('https://usosweb.usos.pw.edu.pl/kontroler.php?_action=katalog2/przedmioty/pokazPrzedmiot&prz_kod=6420-EEH60-0SA-0008')
+  await page.getByRole('button', { name: 'Szukaj' }).click()
+  await expect(page.getByText('Język angielski - poziom B2')).toBeVisible()
+  await expect(page.getByText('6420-EEH60-0SA-0008')).toBeVisible()
+  // Jeden wynik jest od razu zaznaczony - można dopasowywać grupy.
+  await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeEnabled()
+})

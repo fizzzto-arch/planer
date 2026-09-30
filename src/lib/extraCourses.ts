@@ -121,29 +121,95 @@ interface SearchResult {
   next_page: boolean
 }
 
-const SEARCH_PAGES = 3 // do 60 wyników - dalej i tak trzeba doprecyzować nazwę
+// USOS oddaje najwyżej 100 wyników (5 stron po 20). Słowa łączy przez "lub" i sortuje
+// alfabetycznie - w SJO samych "angielski" jest ponad setka, więc "poziom B2" nie mieści się
+// w wynikach. Dlatego filtrujemy sami (wszystkie słowa) i pozwalamy wkleić kod albo link.
+const SEARCH_PAGES = 5
 
-// Przedmioty pasujące do nazwy, które mają zajęcia w danym semestrze.
-export async function searchCourses(query: string, source: ExtraSource, termId: string): Promise<ExtraCourse[]> {
+export interface CourseSearch {
+  courses: ExtraCourse[]
+  truncated: boolean // USOS uciął wyniki - szukanego przedmiotu może w nich nie być
+}
+
+// Kod przedmiotu z wpisanego tekstu: sam kod ("6420-EEH60-0SA-0008") albo link ze strony
+// przedmiotu w USOSweb (...&prz_kod=6420-EEH60-0SA-0008&...). Null = to zwykła nazwa.
+export function parseCourseRef(input: string): string | null {
+  const text = input.trim()
+  const fromUrl = /[?&]prz_kod=([^&#\s]+)/.exec(text)
+  const code = fromUrl ? decodeURIComponent(fromUrl[1]) : text
+  return /^\d{3,4}[A-Z0-9]?(-[A-Z0-9]+){2,}$/i.test(code) ? code.toUpperCase() : null
+}
+
+// Bez wielkości liter, polskich znaków i znaczników <b> z wyników USOS.
+const normalize = (s: string) =>
+  s
+    .replace(/<\/?b>/g, '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ł/g, 'l')
+
+// Każde wpisane słowo musi wystąpić w nazwie albo kodzie ("angielski B2" - nie pokazujemy C1).
+export function matchesAllWords(query: string, ...texts: string[]): boolean {
+  const hay = normalize(texts.join(' '))
+  return normalize(query)
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((word) => hay.includes(word))
+}
+
+type CourseInfo = { name: { pl: string }; terms?: { id: string }[] }
+
+const courseUrl = (id: string) => `${USOS_API}/courses/course?course_id=${encodeURIComponent(id)}&fields=name|terms`
+
+// Jeden przedmiot po kodzie - niezależnie od "Gdzie szukać".
+async function courseByCode(code: string, termId: string): Promise<ExtraCourse> {
+  let info: CourseInfo
+  try {
+    info = await getJson<CourseInfo>(courseUrl(code))
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('USOS odpowiedział błędem 4')) {
+      throw new Error(`Nie ma w USOS przedmiotu o kodzie ${code}. Sprawdź, czy skopiował się cały.`)
+    }
+    throw e
+  }
+  const name = info.name.pl.trim()
+  if (!(info.terms ?? []).some((t) => t.id === termId)) {
+    throw new Error(`„${name}” nie ma zajęć w semestrze ${termId}.`)
+  }
+  return { courseId: code, name }
+}
+
+// Przedmioty pasujące do nazwy (albo kodu / linku), które mają zajęcia w danym semestrze.
+export async function searchCourses(query: string, source: ExtraSource, termId: string): Promise<CourseSearch> {
+  const code = parseCourseRef(query)
+  if (code) return { courses: [await courseByCode(code, termId)], truncated: false }
+
   const facId = EXTRA_SOURCES.find((s) => s.id === source)?.facId
   const found: string[] = []
+  let total = 0
   for (let page = 0; page < SEARCH_PAGES; page++) {
     const r = await getJson<SearchResult>(
       `${USOS_API}/courses/search?name=${encodeURIComponent(query)}&lang=pl&num=20&start=${page * 20}` +
         (facId ? `&fac_id=${facId}` : ''),
     )
-    found.push(...r.items.map((i) => i.course_id))
+    total += r.items.length
+    found.push(...r.items.filter((i) => matchesAllWords(query, i.match, i.course_id)).map((i) => i.course_id))
     if (!r.next_page) break
   }
+  // Na setnym wyniku USOS mówi "nie ma więcej", nawet gdy jest - obcięcie poznajemy po liczbie.
+  const truncated = total >= SEARCH_PAGES * 20
   const details = await runLimited(
     found.map((id) => () =>
-      getJson<{ name: { pl: string }; terms?: { id: string }[] }>(
-        `${USOS_API}/courses/course?course_id=${encodeURIComponent(id)}&fields=name|terms`,
-      ).then((c) => ({ courseId: id, name: c.name.pl.trim(), active: (c.terms ?? []).some((t) => t.id === termId) })),
+      getJson<CourseInfo>(courseUrl(id)).then((c) => ({
+        courseId: id,
+        name: c.name.pl.trim(),
+        active: (c.terms ?? []).some((t) => t.id === termId),
+      })),
     ),
     () => undefined,
   )
-  return details.filter((d) => d.active).map(({ courseId, name }) => ({ courseId, name }))
+  return { courses: details.filter((d) => d.active).map(({ courseId, name }) => ({ courseId, name })), truncated }
 }
 
 // Semestr, z którego jest plan (np. "2026Z") - z pierwszych zajęć z USOS.

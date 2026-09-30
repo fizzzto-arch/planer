@@ -17,6 +17,9 @@ export default defineConfig({
     timezoneId: 'Europe/Warsaw',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // Service worker (tylko powiadomienia) - w testach wyłączony, bo w WebKit zapytania przez niego
+    // omijają podstawione odpowiedzi USOS (page.route).
+    serviceWorkers: 'block',
   },
   projects: [
     // Silnik Safari - najbliżej iPhone'a, na którym Planer jest używany najczęściej.

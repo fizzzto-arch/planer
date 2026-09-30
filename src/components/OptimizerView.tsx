@@ -125,7 +125,17 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
       )}
 
       {slots && slots.length === 0 && (
-        <p className="empty-state">W planie nie ma nadchodzących zajęć z USOS, dla których można dobierać grupy.</p>
+        <>
+          <p className="empty-state">W planie nie ma nadchodzących zajęć z USOS, dla których można dobierać grupy.</p>
+          {/* WF i lektorat da się dobrać także bez grup do zamiany w planie. */}
+          <ExtraCoursesPanel
+            planMeetings={planMeetings}
+            meetings={meetings}
+            now={now}
+            settings={settings}
+            gapThreshold={prefs.gapMinutes}
+          />
+        </>
       )}
 
       {slots && slots.length > 0 && results && (

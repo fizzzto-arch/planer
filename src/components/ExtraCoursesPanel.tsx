@@ -55,6 +55,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
   const [source, setSource] = useState<ExtraSource>('wf')
   const [termId, setTermId] = useState<string | null>(null)
   const [found, setFound] = useState<ExtraCourse[] | null>(null)
+  const [truncated, setTruncated] = useState(false) // USOS uciął wyniki (limit 100)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [searchStatus, setSearchStatus] = useState<Status>({ kind: 'idle' })
   const [groups, setGroups] = useState<ExtraGroup[] | null>(null)
@@ -81,14 +82,19 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
     e.preventDefault()
     const q = query.trim()
     if (q.length < 3) {
-      setSearchStatus({ kind: 'error', message: 'Wpisz co najmniej 3 litery, np. „siatkówka” albo „angielski B2”.' })
+      setSearchStatus({
+        kind: 'error',
+        message: 'Wpisz co najmniej 3 litery, np. „siatkówka” albo „angielski B2”, albo wklej kod przedmiotu.',
+      })
       return
     }
     setSearchStatus({ kind: 'loading' })
     setGroups(null)
+    setFound(null)
     try {
-      const courses = await searchCourses(q, source, await ensureTerm())
+      const { courses, truncated } = await searchCourses(q, source, await ensureTerm())
       setFound(courses)
+      setTruncated(truncated)
       setSelected(new Set(courses.length <= 3 ? courses.map((c) => c.courseId) : []))
       setSearchStatus({ kind: 'idle' })
     } catch (err) {
@@ -139,9 +145,11 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
           <input
             className="text-input"
             value={query}
-            placeholder={source === 'lang' ? 'np. angielski B2' : source === 'wf' ? 'np. siatkówka, pływanie' : 'nazwa przedmiotu'}
+            placeholder={
+              source === 'lang' ? 'np. angielski B2 albo kod / link z USOS' : source === 'wf' ? 'np. siatkówka, pływanie' : 'nazwa, kod albo link z USOSweb'
+            }
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Nazwa przedmiotu"
+            aria-label="Nazwa, kod albo link przedmiotu"
           />
           <button type="submit" className="button" disabled={searchStatus.kind === 'loading'}>
             {searchStatus.kind === 'loading' ? 'Szukam…' : 'Szukaj'}
@@ -151,7 +159,16 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
       {searchStatus.kind === 'error' && <p className="error">{searchStatus.message}</p>}
 
       {found && found.length === 0 && (
-        <p className="muted small">Nic nie znalazłem w tym semestrze. Spróbuj innej nazwy albo „Wszędzie”.</p>
+        <p className="muted small">
+          Nic nie znalazłem w tym semestrze. Spróbuj innej nazwy albo „Wszędzie” - albo wklej kod przedmiotu lub link do
+          niego z USOSweb.
+        </p>
+      )}
+      {found && found.length > 0 && truncated && (
+        <p className="setting-hint">
+          USOS pokazuje najwyżej 100 wyników, więc część mogła się nie zmieścić. Nie ma Twojego przedmiotu? Wklej jego
+          kod (np. 6420-EEH60-0SA-0008) albo link do strony przedmiotu z USOSweb.
+        </p>
       )}
       {found && found.length > 0 && (
         <>

@@ -51,7 +51,7 @@ function series(
       building: 'EiTI',
       address: null,
       groupNumber: group,
-      unitId: null,
+      unitId: `U-${id}`, // zajęcia z USOS - optymalizator pyta o nie (w testach odpowiedzi są podstawione)
       usosUrl: null,
       cancelled: false,
     })

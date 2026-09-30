@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { rankExtraGroups, type ExtraGroup } from './extraCourses'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { matchesAllWords, parseCourseRef, rankExtraGroups, searchCourses, type ExtraGroup } from './extraCourses'
 import { DEFAULT_OPTIMIZER_SETTINGS } from './optimizer'
 import type { TimetableEntry } from './timetable'
 
@@ -59,5 +59,65 @@ describe('dobór grupy spoza planu (np. WF)', () => {
     )
     expect(r.conflicts).toBe(2) // poniedziałek w trakcie wykładu; wtorek nieparzysty
     expect(r.fits.map((f) => f.group.groupNumber)).toEqual([3]) // wtorek parzysty jest wolny
+  })
+})
+
+describe('szukanie przedmiotu spoza planu', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('kod albo link z USOSweb zamiast nazwy', () => {
+    expect(parseCourseRef('6420-EEH60-0SA-0008')).toBe('6420-EEH60-0SA-0008')
+    expect(parseCourseRef(' 6420-eeh60-0sa-0008 ')).toBe('6420-EEH60-0SA-0008')
+    expect(parseCourseRef('1160-TR000-IZP-2JA')).toBe('1160-TR000-IZP-2JA')
+    expect(
+      parseCourseRef(
+        'https://usosweb.usos.pw.edu.pl/kontroler.php?_action=katalog2/przedmioty/pokazPlanZajecPrzedmiotu&prz_kod=6420-EEH60-0SA-0008&cdyd_kod=2026Z',
+      ),
+    ).toBe('6420-EEH60-0SA-0008')
+    expect(parseCourseRef('angielski B2')).toBeNull()
+    expect(parseCourseRef('siatkówka')).toBeNull()
+  })
+
+  it('wszystkie słowa muszą pasować - bez polskich znaków i wielkości liter', () => {
+    expect(matchesAllWords('angielski B2', 'Język <b>angielski</b> - egzamin: poziom <b>B2</b>')).toBe(true)
+    expect(matchesAllWords('angielski B2', 'Język <b>angielski</b> - Cuda Inżynierii - poziom C1')).toBe(false)
+    expect(matchesAllWords('jezyk niemiecki', 'Język niemiecki - poziom A1')).toBe(true)
+    expect(matchesAllWords('siatkowka', 'Wychowanie fizyczne - Siatkówka')).toBe(true)
+    expect(matchesAllWords('EEH60', 'Język angielski - poziom B2', '6420-EEH60-0SA-0008')).toBe(true)
+  })
+
+  it('wyniki USOS: filtr słów, tylko ten semestr, znacznik obcięcia na 100 wynikach', async () => {
+    const items = (page: number) =>
+      Array.from({ length: 20 }, (_, i) => ({
+        course_id: `6420-P${page}-0SA-${i}`,
+        match: i === 0 ? 'Język <b>angielski</b> - poziom <b>B2</b>' : 'Język <b>angielski</b> - poziom C1',
+      }))
+    vi.stubGlobal('fetch', async (url: string) => {
+      const u = new URL(url)
+      if (u.pathname.endsWith('/courses/search')) {
+        const page = Number(u.searchParams.get('start')) / 20
+        // Jak USOS: przy setnym wyniku next_page = false, choć wyników jest więcej.
+        return Response.json({ items: items(page), next_page: page < 4 })
+      }
+      const id = u.searchParams.get('course_id')!
+      return Response.json({ name: { pl: 'Język angielski - poziom B2 ' }, terms: [{ id: id.includes('P1') ? '2025Z' : '2026Z' }] })
+    })
+    const r = await searchCourses('angielski B2', 'lang', '2026Z')
+    // 5 stron, na każdej 1 pasujący; ze strony 1 przedmiot bez zajęć w 2026Z.
+    expect(r.courses.map((c) => c.courseId)).toEqual(['6420-P0-0SA-0', '6420-P2-0SA-0', '6420-P3-0SA-0', '6420-P4-0SA-0'])
+    expect(r.courses[0].name).toBe('Język angielski - poziom B2')
+    expect(r.truncated).toBe(true)
+  })
+
+  it('po kodzie: jedno zapytanie, czytelne błędy', async () => {
+    vi.stubGlobal('fetch', async (url: string) =>
+      url.includes('XXXXX')
+        ? new Response('{}', { status: 400 })
+        : Response.json({ name: { pl: 'Język angielski - poziom B2' }, terms: [{ id: '2025L' }] }),
+    )
+    await expect(searchCourses('6420-XXXXX-0SA-0000', 'lang', '2026Z')).rejects.toThrow('Nie ma w USOS przedmiotu o kodzie')
+    await expect(searchCourses('6420-EEH60-0SA-0008', 'lang', '2026Z')).rejects.toThrow(
+      '„Język angielski - poziom B2” nie ma zajęć w semestrze 2026Z.',
+    )
   })
 })
