@@ -87,47 +87,41 @@ const DEADLINE_SLACK_MIN = 15
 // Po tylu minutach w tle aplikacja wraca w zakładce Tydzień do bieżącego tygodnia (jak nowe otwarcie).
 const WEEK_RESET_AFTER_MS = 10 * 60_000
 
+// Ikony paska: pełne (nie kontury), żeby były czytelne w małym rozmiarze.
 // Zębatka ustawień; kropka = ktoś czeka na zatwierdzenie konta (tylko administrator).
 function GearIcon({ alert = false }: { alert?: boolean }) {
   return (
     <span className="tab-icon-wrap">
-      <GearSvg />
+      <svg className="tab-icon tab-icon-filled" viewBox="0 0 24 24" aria-hidden="true">
+        {/* Zębatka z ikon Material Design (Google, licencja Apache 2.0). */}
+        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" />
+      </svg>
       {alert && <span className="tab-alert" />}
     </span>
   )
 }
 
-function GearSvg() {
-  return (
-    <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-    </svg>
-  )
-}
-
-// Powiadomienia: zamknięta koperta z kropką - są nieprzeczytane, otwarta - wszystko przeczytane.
-function EnvelopeIcon({ unread }: { unread: boolean }) {
+// Powiadomienia: dzwonek; nieprzeczytane - czerwona plakietka z liczbą.
+function BellIcon({ unread }: { unread: number }) {
   return (
     <span className="tab-icon-wrap">
-      <svg className="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
-        {unread ? (
-          <path d="M3 6h18v12H3zM3 7l9 6 9-6" />
-        ) : (
-          <path d="M3 10v9h18v-9L12 4zM3 10l9 6 9-6" />
-        )}
+      <svg className="tab-icon tab-icon-filled" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="3.4" r="1.4" />
+        <path d="M12 4.6c-3.5 0-6 2.8-6 6.4v3.6l-1.7 2.2c-.45.58-.04 1.4.7 1.4h14c.74 0 1.15-.82.7-1.4L18 14.6V11c0-3.6-2.5-6.4-6-6.4zM9.5 19.4a2.5 2.5 0 0 0 5 0z" />
       </svg>
-      {unread && <span className="tab-alert" />}
+      {unread > 0 && <span className="tab-badge">{unread > 9 ? '9+' : unread}</span>}
     </span>
   )
 }
 
-// Zgłoszenia: czerwony trójkąt z wykrzyknikiem; kropka - nowe zgłoszenia (administrator).
+// Zgłoszenia: żółty trójkąt ostrzegawczy z ciemnym wykrzyknikiem; kropka - nowe zgłoszenia (administrator).
 function ReportIcon({ alert = false }: { alert?: boolean }) {
   return (
     <span className="tab-icon-wrap">
-      <svg className="tab-icon tab-icon-report" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3.5 2.5 20h19zM12 10v4.5M12 17.3v.2" />
+      <svg className="tab-icon tab-icon-warning" viewBox="0 0 24 24" aria-hidden="true">
+        <path className="warning-sign" d="M10.27 3.5 1.9 18a2 2 0 0 0 1.73 3h16.74a2 2 0 0 0 1.73-3L13.73 3.5a2 2 0 0 0-3.46 0z" />
+        <path className="warning-mark" d="M12 9v5" />
+        <circle className="warning-dot" cx="12" cy="17.3" r="1.25" />
       </svg>
       {alert && <span className="tab-alert" />}
     </span>
@@ -146,7 +140,7 @@ function tabs(
     {
       id: 'notifications',
       label: unread > 0 ? t('Powiadomienia (nowe: {n})', { n: unread }) : t('Powiadomienia'),
-      icon: <EnvelopeIcon unread={unread > 0} />,
+      icon: <BellIcon unread={unread} />,
     },
     {
       id: 'report',

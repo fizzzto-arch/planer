@@ -57,8 +57,8 @@
 }
 
 .tab-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -2969,8 +2969,48 @@ label.setting-row {
 }
 
 /* Zgłoszenia na pasku - czerwony trójkąt z wykrzyknikiem */
-.tab-icon.tab-icon-report {
-  stroke: var(--danger);
+/* Pełne ikony (dzwonek, zębatka) - kolor tekstu zakładki, także biały na aktywnej. */
+.tab-icon.tab-icon-filled {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* Znak ostrzegawczy: żółty, z ciemnym wykrzyknikiem - czytelny na jasnym, ciemnym i niebieskim tle. */
+.tab-icon.tab-icon-warning {
+  stroke: none;
+}
+
+.tab-icon-warning .warning-sign {
+  fill: #f5b800;
+}
+
+.tab-icon-warning .warning-mark {
+  fill: none;
+  stroke: #1d1d1f;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.tab-icon-warning .warning-dot {
+  fill: #1d1d1f;
+}
+
+/* Liczba nieprzeczytanych powiadomień na dzwonku. */
+.tab-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--surface);
 }
 
 /* Sześć pozycji na pasku (3 napisy + koperta, zgłoszenia, zębatka) - na wąskim telefonie ciaśniej. */
