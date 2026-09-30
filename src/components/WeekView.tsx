@@ -125,12 +125,10 @@ export function WeekView({ meetings, now }: Props) {
                 <h3 className="day-title">
                   {formatDay(day)}
                   {isToday && <span className="today-pill">dziś</span>}
-                  {special ? (
-                    <span className="free-label calendar-label">{special.name}</span>
-                  ) : (
-                    dayMeetings.length === 0 && <span className="free-label">wolne</span>
-                  )}
+                  {!special && dayMeetings.length === 0 && <span className="free-label">wolne</span>}
                 </h3>
+                {/* Święto, przerwa, sesja - pod datą, żeby długa nazwa nie łamała nagłówka. */}
+                {special && <p className="day-calendar-note">{special.name}</p>}
                 {dayMeetings.length > 0 && <DayTimeline meetings={dayMeetings} now={now} />}
               </div>
             )

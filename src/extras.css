@@ -1885,7 +1885,11 @@ label.setting-row {
 }
 
 .check-row input {
-  margin-top: 3px;
+  /* Stały rozmiar - przy długim tekście obok flex ściskał pole (nierówne checkboxy). */
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
   accent-color: var(--accent);
 }
 
@@ -3175,8 +3179,15 @@ label.setting-row {
   font-weight: 600;
 }
 
-.free-label.calendar-label {
+.day-calendar-note {
+  margin: 2px 0 0;
   color: var(--warn);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.week-day:not(.is-free) .day-calendar-note {
+  margin-bottom: 8px;
 }
 
 .grid-day-head .calendar-label {
