@@ -1,7 +1,7 @@
 // Kalendarz akademicki PW (dni wolne, przerwy, sesja) z USOS API. API wymaga klucza aplikacji,
 // którego nie wolno umieszczać w stronie - kalendarz pobiera wdrożenie (scripts/usos-calendar.ts)
 // i publikuje obok strony jako calendar.json. Czyta go też Node - importy tylko z .ts.
-import { getLanguage, t } from './i18n.ts'
+import { getLanguage, msg, t, tk } from './i18n.ts'
 
 export interface CalendarEvent {
   start: string // "2026-11-11"
@@ -58,7 +58,34 @@ export function shortDayLabel(event: CalendarEvent): string {
   return t('Wolne')
 }
 
-// Pełna nazwa w języku interfejsu (angielska z USOS, gdy jest).
+// Nazwy z kalendarza PW - USOS nie podaje ich po angielsku, więc tłumaczymy sami (słownik).
+// Lista tylko po to, żeby test wymagał tłumaczenia każdej z nich.
+export const KNOWN_EVENT_NAMES = [
+  msg('Wakacje letnie'),
+  msg('Święto Wojska Polskiego, Wniebowzięcie Najświętszej Maryi Panny'),
+  msg('Jesienna sesja egzaminacyjna'),
+  msg('Okres rejestracyjny'),
+  msg('Ostatni dzień roku akademickiego'),
+  msg('Uroczysta inauguracja roku akademickiego'),
+  msg('Dzień Wszystkich Świętych'),
+  msg('Narodowe Święto Niepodległości'),
+  msg('Dzień PW'),
+  msg('Wigilia'),
+  msg('Wakacje zimowe'),
+  msg('Boże Narodzenie, pierwszy dzień świąt'),
+  msg('Boże Narodzenie, drugi dzień świąt'),
+  msg('Nowy Rok'),
+  msg('Trzech Króli (Objawienie Pańskie)'),
+  msg('Zimowa sesja egzaminacyjna'),
+  msg('Wakacje wiosenne'),
+  msg('Letnia sesja egzaminacyjna'),
+]
+
+// Pełna nazwa w języku interfejsu: angielska z USOS, nasze tłumaczenie albo - dla nazwy, której
+// jeszcze nie znamy - rodzaj dnia po angielsku z polską nazwą w nawiasie.
 export function eventName(event: CalendarEvent): string {
-  return getLanguage() === 'en' && event.nameEn ? event.nameEn : event.name
+  if (getLanguage() !== 'en') return event.name
+  if (event.nameEn) return event.nameEn
+  const translated = tk(event.name)
+  return translated !== event.name ? translated : `${shortDayLabel(event)} (${event.name})`
 }

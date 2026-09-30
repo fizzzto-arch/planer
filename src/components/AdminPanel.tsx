@@ -1,3 +1,4 @@
+import { t, tk } from '../lib/i18n'
 import { useSyncExternalStore } from 'react'
 import type { AccessRequestsApi } from '../hooks/useAccessRequests'
 import type { AccessRequest } from '../lib/cloudTypes'
@@ -24,16 +25,16 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<P
       <span className="access-main">
         <span className="access-email">{email}</span>
         <span className="access-meta">
-          {status === 'pending' ? 'czeka na zatwierdzenie' : status === 'approved' ? 'ma dostęp' : 'odrzucone'}
-          {status === 'approved' && optimizer && ' · optymalizator'}
-          {requestedAt && ` · zgłoszenie ${formatUpdatedAt(new Date(requestedAt), now)}`}
+          {status === 'pending' ? t('czeka na zatwierdzenie') : status === 'approved' ? t('ma dostęp') : t('odrzucone')}
+          {status === 'approved' && optimizer && ' · ' + t('optymalizator')}
+          {requestedAt && ' · ' + t('zgłoszenie {when}', { when: formatUpdatedAt(new Date(requestedAt), now) })}
         </span>
         {status === 'approved' && (
           <span
             className="access-meta"
-            title={tasksDone.length > 0 ? `Zrobione: ${tasksDone.map((t) => t.title).join(', ')}` : undefined}
+            title={tasksDone.length > 0 ? t('Zrobione: {tasks}', { tasks: tasksDone.map((task) => tk(task.title)).join(', ') }) : undefined}
           >
-            zadania testera: {tasksDone.length}/{tasks.length}
+            {t('zadania testera: {done}/{total}', { done: tasksDone.length, total: tasks.length })}
             {tasksDone.length === tasks.length && ' ✓'}
           </span>
         )}
@@ -45,20 +46,20 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<P
             type="button"
             className={`button small ${optimizer ? '' : 'secondary'}`}
             aria-pressed={optimizer}
-            title="Dostęp do optymalizatora (wersja testowa)"
+            title={t('Dostęp do optymalizatora (wersja testowa)')}
             onClick={() => admin.setOptimizer(uid, !optimizer)}
           >
-            {optimizer ? 'Optymalizator ✓' : 'Optymalizator'}
+            {optimizer ? t('Optymalizator ✓') : t('Optymalizator')}
           </button>
         )}
         {status !== 'approved' && (
           <button type="button" className="button small" onClick={() => admin.setStatus(uid, 'approved')}>
-            Zatwierdź
+            {t('Zatwierdź')}
           </button>
         )}
         {status === 'pending' && (
           <button type="button" className="button small secondary" onClick={() => admin.setStatus(uid, 'rejected')}>
-            Odrzuć
+            {t('Odrzuć')}
           </button>
         )}
         {status === 'approved' && (
@@ -66,12 +67,12 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<P
             type="button"
             className="button small danger"
             onClick={() => {
-              if (window.confirm(`Cofnąć dostęp dla ${email}? Straci synchronizację i wspólne materiały.`)) {
+              if (window.confirm(t('Cofnąć dostęp dla {email}? Straci synchronizację i wspólne materiały.', { email }))) {
                 admin.setStatus(uid, 'rejected')
               }
             }}
           >
-            Cofnij dostęp
+            {t('Cofnij dostęp')}
           </button>
         )}
       </span>
@@ -89,25 +90,24 @@ export function AdminPanel({ admin, now, onViewAsUser }: Props) {
   return (
     <div className="panel">
       <h3 className="panel-title">
-        Dostęp do Planera
+        {t('Dostęp do Planera')}
         {admin.pendingCount > 0 && <span className="count-pill">{admin.pendingCount}</span>}
       </h3>
       <p className="hint">
-        Nowe konta pojawiają się tu po potwierdzeniu e-maila. Dostęp do synchronizacji i wspólnych materiałów mają
-        tylko zatwierdzone. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”.
+        {t('Nowe konta pojawiają się tu po potwierdzeniu e-maila. Dostęp do synchronizacji i wspólnych materiałów mają tylko zatwierdzone. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”.')}
       </p>
       <button type="button" className="button small secondary view-as-user" onClick={onViewAsUser}>
-        Zobacz Planera jako zwykły użytkownik
+        {t('Zobacz Planera jako zwykły użytkownik')}
       </button>
       {admin.error ? (
         <p className="error">{admin.error}</p>
       ) : !admin.loaded ? (
         <p className="muted loading-line">
           <span className="spinner" aria-hidden="true" />
-          Ładowanie…
+          {t('Ładowanie…')}
         </p>
       ) : sorted.length === 0 ? (
-        <p className="muted">Nikt jeszcze nie prosił o dostęp.</p>
+        <p className="muted">{t('Nikt jeszcze nie prosił o dostęp.')}</p>
       ) : (
         <ul className="access-list">
           {sorted.map((r) => (
@@ -116,8 +116,8 @@ export function AdminPanel({ admin, now, onViewAsUser }: Props) {
         </ul>
       )}
       <SwitchSetting
-        label="Diagnostyka gestów"
-        hint="Pokazuje na dole ekranu, co telefon wysyła przy przesuwaniu palcem. Tylko na tym urządzeniu."
+        label={t('Diagnostyka gestów')}
+        hint={t('Pokazuje na dole ekranu, co telefon wysyła przy przesuwaniu palcem. Tylko na tym urządzeniu.')}
         checked={debugGestures}
         onChange={setSwipeDebug}
       />

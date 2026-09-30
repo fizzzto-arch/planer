@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useCourseStaff } from '../hooks/useCourseStaff'
@@ -58,35 +59,35 @@ export function GroupChangeDialog({ courseName, classType, from, to, fromWhen, t
     target.length > 0 && target.every((p) => lecturersOf(from.groupNumber).some((q) => q.id === p.id))
 
   return (
-    <Dialog title="Prośba o zmianę grupy" onClose={onClose}>
+    <Dialog title={t('Prośba o zmianę grupy')} onClose={onClose}>
       <div className="group-change">
         <p className="muted">
-          {displayName(courseName)} · {typeLabel(classType)}: gr. {from.groupNumber} ({fromWhen}) →{' '}
+          {displayName(courseName)} · {typeLabel(classType)}: {t('gr. {n}', { n: from.groupNumber })} ({fromWhen}) →{' '}
           <strong>
-            gr. {to.groupNumber} ({toWhen})
+            {t('gr. {n}', { n: to.groupNumber })} ({toWhen})
           </strong>
         </p>
 
-        {status.kind === 'loading' && <p className="muted loading-line">Sprawdzam prowadzących w USOS…</p>}
-        {status.kind === 'error' && <p className="muted">Nie udało się pobrać prowadzących z USOS.</p>}
+        {status.kind === 'loading' && <p className="muted loading-line">{t('Sprawdzam prowadzących w USOS…')}</p>}
+        {status.kind === 'error' && <p className="muted">{t('Nie udało się pobrać prowadzących z USOS.')}</p>}
 
         <details className="collapsible" open={askForData}>
-          <summary>Twoje dane do maili (zostają tylko w tej przeglądarce)</summary>
+          <summary>{t('Twoje dane do maili (zostają tylko w tej przeglądarce)')}</summary>
           <div className="form-grid">
             <label className="field">
-              <span className="field-label">Imię i nazwisko</span>
+              <span className="field-label">{t('Imię i nazwisko')}</span>
               <input className="text-input" value={me.name} onChange={(e) => update({ name: e.target.value })} />
             </label>
             <label className="field">
-              <span className="field-label">Nr albumu</span>
+              <span className="field-label">{t('Nr albumu')}</span>
               <input className="text-input" inputMode="numeric" value={me.album} onChange={(e) => update({ album: e.target.value })} />
             </label>
             <label className="field">
-              <span className="field-label">Jestem…</span>
+              <span className="field-label">{t('Jestem…')}</span>
               <input
                 className="text-input"
                 value={me.intro}
-                placeholder="studentem 3. semestru Inżynierii Biomedycznej"
+                placeholder="studentem 3. semestru Inżynierii Biomedycznej" // wchodzi do maila po polsku
                 onChange={(e) => update({ intro: e.target.value })}
               />
             </label>
@@ -95,22 +96,21 @@ export function GroupChangeDialog({ courseName, classType, from, to, fromWhen, t
 
         <ol className="group-change-steps">
           <li>
-            <strong>Zgoda prowadzącego grupy {to.groupNumber}</strong>
-            {sameTeacher && <span className="muted"> - ta sama osoba prowadzi też Twoją obecną grupę</span>}
+            <strong>{t('Zgoda prowadzącego grupy {n}', { n: to.groupNumber })}</strong>
+            {sameTeacher && <span className="muted"> {t('- ta sama osoba prowadzi też Twoją obecną grupę')}</span>}
             <People list={target} people={people} />
             <MailBox subject={subject(request)} body={lecturerMail(request, me)} />
           </li>
           <li>
-            <strong>Wpis w USOS u koordynatora</strong>
-            <span className="muted"> - jeśli prowadzący sam nie może zmienić grupy (dołącz jego odpowiedź)</span>
+            <strong>{t('Wpis w USOS u koordynatora')}</strong>
+            <span className="muted"> {t('- jeśli prowadzący sam nie może zmienić grupy (dołącz jego odpowiedź)')}</span>
             <People list={staff?.coordinators ?? []} people={people} />
             <MailBox subject={subject(request)} body={coordinatorMail(request, me)} />
           </li>
         </ol>
 
         <p className="hint">
-          Adres e-mail znajdziesz w Outlooku PW po nazwisku albo wyślij wiadomość z profilu w USOSweb („wyślij wiadomość
-          do użytkownika”).
+          {t('Adres e-mail znajdziesz w Outlooku PW po nazwisku albo wyślij wiadomość z profilu w USOSweb („wyślij wiadomość do użytkownika”).')}
         </p>
       </div>
     </Dialog>
@@ -145,15 +145,15 @@ function MailBox({ subject, body }: { subject: string; body: string }) {
   return (
     <div className="mail-box">
       <div className="mail-subject">
-        <span className="muted small">Temat:</span> {subject}
+        <span className="muted small">{t('Temat:')}</span> {subject}
       </div>
       <pre className="mail-body">{body}</pre>
       <div className="button-row">
         <button type="button" className="button small secondary" onClick={() => void copy('subject', subject)}>
-          {copied === 'subject' ? 'Skopiowano ✓' : 'Kopiuj temat'}
+          {copied === 'subject' ? t('Skopiowano ✓') : t('Kopiuj temat')}
         </button>
         <button type="button" className="button small" onClick={() => void copy('body', body)}>
-          {copied === 'body' ? 'Skopiowano ✓' : 'Kopiuj treść'}
+          {copied === 'body' ? t('Skopiowano ✓') : t('Kopiuj treść')}
         </button>
       </div>
     </div>

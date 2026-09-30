@@ -19,12 +19,16 @@ test('angielski: interfejs po angielsku, nazwy przedmiotów bez zmian, powrót d
   await tab(page, 'Week').click()
   await expect(page.getByText(/week 2 · even/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Export timetable' })).toBeVisible()
+  // Nazwa święta z kalendarza PW - nasze tłumaczenie (USOS nie ma angielskich nazw).
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next week' }).click()
+  await expect(page.getByText('Independence Day').or(page.getByTitle('Independence Day')).first()).toBeVisible()
 
   await tab(page, 'Courses').click()
   await expect(page.getByRole('heading', { name: 'Upcoming deadlines' })).toBeVisible()
   await expect(page.getByText('Grafika komputerowa', { exact: true }).first()).toBeVisible()
 
   await tab(page, 'Settings').click()
+  await expect(page.getByRole('heading', { name: 'Access to Planer' })).toBeVisible() // panel administratora
   await page.getByRole('radio', { name: 'Polski' }).click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl')
   await expect(tab(page, 'Dziś')).toBeVisible()
