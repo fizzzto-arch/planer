@@ -31,14 +31,17 @@ export interface CloudData {
 
 // Kolekcje z dodatkami użytkownika: users/{uid}/{nazwa}/{id}
 // 'push' - urządzenia z włączonymi przypomnieniami (czyta je skrypt wysyłający, nie aplikacja).
-export type CollectionName =
-  | 'courses'
-  | 'deadlines'
-  | 'meetingEdits'
-  | 'seriesEdits'
-  | 'customMeetings'
-  | 'settings'
-  | 'push'
+// Jedna lista: nowa kolekcja dopisana tutaj od razu znika też przy usuwaniu konta.
+export const COLLECTION_NAMES = [
+  'courses',
+  'deadlines',
+  'meetingEdits',
+  'seriesEdits',
+  'customMeetings',
+  'settings',
+  'push',
+] as const
+export type CollectionName = (typeof COLLECTION_NAMES)[number]
 
 export interface CloudDoc {
   id: string

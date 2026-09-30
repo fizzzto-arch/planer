@@ -34,10 +34,10 @@ import {
   where,
   type Firestore,
 } from 'firebase/firestore'
-import type { AccessStatus, Cloud, CollectionName } from './cloudTypes'
+import { COLLECTION_NAMES, type AccessStatus, type Cloud } from './cloudTypes'
 
 // Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
-const ACCOUNT_COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings', 'push']
+const ACCOUNT_COLLECTIONS = COLLECTION_NAMES
 import { chunkCountFor, feedbackChunkId } from './feedback'
 import { chunkId, splitIntoChunks } from './materials'
 
