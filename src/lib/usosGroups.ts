@@ -2,12 +2,25 @@
 // (bez logowania; serwer pozwala na zapytania z przeglądarki).
 import { addDays, startOfWeek, toDateKey } from './dates'
 import type { GroupOption, OptMeeting, Slot } from './optimizer'
+import { semesters, weekIndex } from './semesterWeek'
 import type { Meeting } from './usos'
 
 export const USOS_API = 'https://apps.usos.pw.edu.pl/services'
 const PARALLEL = 8 // tyle zapytań naraz - szybko, a bez zasypywania serwera USOS
 const CACHE_KEY = 'planer.groups.v1'
-export const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
+export const CACHE_MAX_AGE_MS = 7 * DAY_MS
+const FRESH_MAX_AGE_MS = DAY_MS
+
+// Jak długo ufać zapamiętanym planom grup. Na początku semestru (od 4 tygodni przed
+// do 3. tygodnia zajęć) USOS zmienia grupy, sale i terminy co chwilę - wtedy tylko dobę.
+export function groupsCacheMaxAge(planMeetings: Pick<Meeting, 'start' | 'cancelled'>[], now: Date): number {
+  const starting = semesters(planMeetings).some((s) => {
+    const week = weekIndex(now, s)
+    return week >= -3 && week <= 3
+  })
+  return starting ? FRESH_MAX_AGE_MS : CACHE_MAX_AGE_MS
+}
 
 interface Activity {
   start_time: string // "2026-10-07 08:15:00" (czas warszawski)

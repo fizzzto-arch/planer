@@ -69,7 +69,7 @@ service cloud.firestore {
       }
     }
 
-    // Zgłoszenia od testerów: autor widzi swoje (i może wycofać nowe), administrator widzi wszystkie,
+    // Zgłoszenia od testerów: autor widzi i może usunąć swoje (też przy usuwaniu konta), administrator widzi wszystkie,
     // odpowiada i zmienia status. Załączniki w kawałkach, jak materiały.
     match /feedback/{id} {
       function isAuthor() {

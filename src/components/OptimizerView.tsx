@@ -6,6 +6,7 @@ import { formatUpdatedAt, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { deanFilter, deanGroupOf, deanGroups, optimize, type Candidate } from '../lib/optimizer'
 import type { Meeting } from '../lib/usos'
+import { groupsCacheMaxAge } from '../lib/usosGroups'
 import { candidateMeetings } from '../lib/candidatePlan'
 import { CandidateCard, MetricsGrid } from './CandidateCard'
 import { ExtraCoursesPanel } from './ExtraCoursesPanel'
@@ -29,7 +30,8 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   // Liczy się tylko to, co przed nami: od początku bieżącego tygodnia.
   const weekStart = startOfWeek(now).getTime()
   const upcoming = useMemo(() => planMeetings.filter((m) => m.start.getTime() >= weekStart), [planMeetings, weekStart])
-  const { slots, fetchedAt, status, refresh } = useGroupOptions(upcoming)
+  const maxAge = useMemo(() => groupsCacheMaxAge(planMeetings, now), [planMeetings, now])
+  const { slots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
 
   const fixed = useMemo(
     () =>

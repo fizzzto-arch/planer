@@ -3,7 +3,6 @@ import { errorMessage } from '../lib/errors'
 import type { Slot } from '../lib/optimizer'
 import type { Meeting } from '../lib/usos'
 import {
-  CACHE_MAX_AGE_MS,
   fetchSlots,
   loadCachedSlots,
   saveCachedSlots,
@@ -16,8 +15,8 @@ type Status =
   | { kind: 'ready' }
   | { kind: 'error'; message: string }
 
-// Plany wszystkich grup dla przedmiotów z planu - z pamięci (do tygodnia) albo świeżo z USOS.
-export function useGroupOptions(meetings: Meeting[]) {
+// Plany wszystkich grup dla przedmiotów z planu - z pamięci (młodsze niż maxAgeMs) albo świeżo z USOS.
+export function useGroupOptions(meetings: Meeting[], maxAgeMs: number) {
   const key = slotsCacheKey(meetings)
   const [data, setData] = useState<{ key: string; slots: Slot[]; fetchedAt: number } | null>(() => {
     const cached = loadCachedSlots(key)
@@ -31,8 +30,8 @@ export function useGroupOptions(meetings: Meeting[]) {
   const fetchedAt = current?.fetchedAt ?? null
 
   useEffect(() => {
-    // Dane z pamięci młodsze niż tydzień wystarczą (chyba że użytkownik kliknął "Odśwież").
-    if (reload === 0 && fetchedAt !== null && Date.now() - fetchedAt < CACHE_MAX_AGE_MS) return
+    // Dane z pamięci wystarczą, dopóki są świeże (chyba że użytkownik kliknął "Odśwież").
+    if (reload === 0 && fetchedAt !== null && Date.now() - fetchedAt < maxAgeMs) return
     let cancelled = false
     fetchSlots(meetings, (p) => {
       if (!cancelled) setProgress(p)
