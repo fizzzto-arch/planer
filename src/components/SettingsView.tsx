@@ -15,6 +15,7 @@ import { ColorsPanel } from './ColorsPanel'
 import { AliasesPanel, AppearancePanel, PlanPrefsPanel } from './PreferencesPanels'
 import { RemindersPanel } from './RemindersPanel'
 import { SourceForm } from './SourceForm'
+import { SharingPanel } from './SharingPanel'
 import { watGroupFromUrl } from '../lib/wat'
 
 interface Props {
@@ -65,6 +66,7 @@ export function SettingsView({
       <AccountPanel cloud={cloud} />
       {admin && <AdminPanel admin={admin} now={now} onViewAsUser={onViewAsUser} />}
       <RemindersPanel extras={extras} prefsApi={prefsApi} />
+      {signedIn && <SharingPanel prefsApi={prefsApi} email={cloud.state.kind === 'signedIn' ? cloud.state.user.email : null} />}
       <AppearancePanel prefsApi={prefsApi} signedIn={signedIn} />
       <PlanPrefsPanel prefsApi={prefsApi} />
       <ColorsPanel typeColors={typeColors} signedIn={signedIn} />

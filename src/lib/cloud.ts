@@ -197,6 +197,17 @@ function createCloud(config: FirebaseOptions): Cloud {
     setOptimizerAccess: (uid, on) => wrap(() => setDoc(doc(db, 'access', uid), { optimizer: on }, { merge: true })),
     saveTesterProgress: (uid, done) => wrap(() => setDoc(doc(db, 'access', uid), { testerTasks: done }, { merge: true })),
 
+    watchSharedBusy(onDocs, onError) {
+      return onSnapshot(
+        collection(db, 'sharedBusy'),
+        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+        (e) => onError(describeError(e)),
+      )
+    },
+    saveSharedBusy: (uid, name, busy) =>
+      wrap(() => setDoc(doc(db, 'sharedBusy', uid), { name, busy, updatedAt: serverTimestamp() })),
+    deleteSharedBusy: (uid) => wrap(() => deleteDoc(doc(db, 'sharedBusy', uid))),
+
     // Firestore: "in" przyjmuje najwyżej 30 wartości - dzielimy listę na paczki.
     watchPeople(ids, onPeople) {
       const chunks: string[][] = []
@@ -407,6 +418,8 @@ function createCloud(config: FirebaseOptions): Cloud {
         } catch {
           // brak uprawnień - zostają do usunięcia przez administratora
         }
+        // Udostępnione godziny zajęć (wspólne okienka) - jeśli były.
+        await deleteDoc(doc(db, 'sharedBusy', uid)).catch(() => undefined)
         // Starsze reguły nie pozwalały usunąć własnej prośby - wtedy zostaje (sam e-mail i status).
         await deleteDoc(doc(db, 'access', uid)).catch(() => undefined)
         await deleteUser(user)

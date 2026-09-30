@@ -66,6 +66,20 @@ function createMockCloud(): Cloud {
   const peopleStore = new Map<string, PersonInfo>()
   const peopleRequested = new Set<string>()
   const peopleListeners = new Set<() => void>()
+  const sharedBusy = new Map<string, Record<string, unknown>>()
+  const sharedBusyListeners = new Set<() => void>()
+  const mockFriendBusy = () => {
+    const busy: number[] = []
+    const today = new Date()
+    for (let d = 0; d < 14; d++) {
+      const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + d)
+      if (day.getDay() === 0 || day.getDay() === 6) continue
+      for (const [h1, m1, h2, m2] of [[8, 15, 10, 0], [12, 15, 14, 0], [16, 15, 18, 0]]) {
+        busy.push(new Date(day).setHours(h1, m1, 0, 0), new Date(day).setHours(h2, m2, 0, 0))
+      }
+    }
+    return { name: 'Ala (przykład)', busy, updatedAt: Date.now() }
+  }
 
   return {
     watchUser(onChange) {
@@ -147,6 +161,26 @@ function createMockCloud(): Cloud {
       accessListeners.add(emitAll)
       setTimeout(emitAll, 0)
       return () => accessListeners.delete(emitAll)
+    },
+    // Wspólne okienka: przykładowa znajoma (zajęcia 8:15-10:00, 12:15-14:00, 16:15-18:00 w dni robocze).
+    // Jak reguły bazy: cudze godziny widać dopiero po udostępnieniu własnych.
+    watchSharedBusy(onDocs) {
+      const emit = () => {
+        const mine = user ? sharedBusy.get(user.uid) : undefined
+        const all = mine ? [...sharedBusy.entries(), ['u-ala', mockFriendBusy()] as const] : [...sharedBusy.entries()]
+        onDocs(all.map(([id, data]) => ({ id, data: { ...data } })))
+      }
+      sharedBusyListeners.add(emit)
+      setTimeout(emit, 0)
+      return () => sharedBusyListeners.delete(emit)
+    },
+    async saveSharedBusy(uid, name, busy) {
+      sharedBusy.set(uid, { name, busy, updatedAt: Date.now() })
+      sharedBusyListeners.forEach((cb) => setTimeout(cb, 0))
+    },
+    async deleteSharedBusy(uid) {
+      sharedBusy.delete(uid)
+      sharedBusyListeners.forEach((cb) => setTimeout(cb, 0))
     },
     async setAccessStatus(uid, status: AccessStatus) {
       const current = access.get(uid)

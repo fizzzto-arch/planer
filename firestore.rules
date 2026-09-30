@@ -132,6 +132,22 @@ service cloud.firestore {
         && request.resource.data.requestedAt == request.time;
     }
 
+    // Wspólne okienka: każdy zapisuje tylko swoje godziny zajęć (bez nazw i sal). Cudze widzi
+    // wyłącznie ten, kto sam udostępnia (wzajemność) - i tylko z dostępem do Planera.
+    match /sharedBusy/{uid} {
+      allow read: if hasAccess()
+        && exists(/databases/$(database)/documents/sharedBusy/$(request.auth.uid));
+      allow create, update: if hasAccess()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'busy', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.busy is list
+        && request.resource.data.busy.size() <= 400
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
     // Wszystko inne (dziennik wysłanych przypomnień, zapamiętany plan do wykrywania zmian w USOS)
     // - niedostępne ze strony, korzysta z tego tylko serwer przypomnień.
   }

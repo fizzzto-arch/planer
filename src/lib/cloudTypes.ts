@@ -72,6 +72,10 @@ export interface Cloud {
   setOptimizerAccess(uid: string, on: boolean): Promise<void>
   // Kopia odhaczonych zadań testera w jego prośbie o dostęp (widzi ją administrator).
   saveTesterProgress(uid: string, done: string[]): Promise<void>
+  // Wspólne okienka: udostępnione godziny zajęć (sharedBusy/{uid}) - widzą je tylko udostępniający.
+  watchSharedBusy(onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
+  saveSharedBusy(uid: string, name: string, busy: number[]): Promise<void>
+  deleteSharedBusy(uid: string): Promise<void>
   // Tytuły prowadzących (people/{id}, uzupełnia serwer). requested - osoby, o które już ktoś poprosił;
   // brakujące zgłasza requestPeople, a serwer przypomnień doczytuje je ze stron USOSweb.
   watchPeople(ids: string[], onPeople: (people: Record<string, PersonInfo>, requested: string[]) => void): Unsubscribe

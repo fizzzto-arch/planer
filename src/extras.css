@@ -3116,3 +3116,53 @@ label.setting-row {
   font-size: 0.88rem;
   line-height: 1.45;
 }
+
+/* Wspólne okienka */
+.free-windows {
+  display: grid;
+  gap: 12px;
+}
+
+.friend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.friend-chips .chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.friend-chips .chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.free-days {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.free-days li {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.free-days li:last-child {
+  border-bottom: 0;
+}
+
+.free-window {
+  font-weight: 600;
+}

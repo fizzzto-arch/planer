@@ -23,6 +23,8 @@ export interface Prefs {
   planChanges: boolean // powiadomienie o zmianie w planie z USOS
   morningSummary: boolean // plan dnia rano (7:00)
   beforeFirstClass: boolean // przypomnienie 30 min przed pierwszymi zajęciami dnia
+  shareBusy: boolean // wspólne okienka: udostępniaj znajomym same godziny zajęć (bez nazw i sal)
+  shareName: string // jak widzą mnie znajomi (puste = początek e-maila)
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -42,6 +44,8 @@ export const DEFAULT_PREFS: Prefs = {
   planChanges: true,
   morningSummary: false,
   beforeFirstClass: false,
+  shareBusy: false,
+  shareName: '',
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -90,6 +94,8 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     planChanges: bool(raw.planChanges, DEFAULT_PREFS.planChanges),
     morningSummary: bool(raw.morningSummary, DEFAULT_PREFS.morningSummary),
     beforeFirstClass: bool(raw.beforeFirstClass, DEFAULT_PREFS.beforeFirstClass),
+    shareBusy: bool(raw.shareBusy, DEFAULT_PREFS.shareBusy),
+    shareName: typeof raw.shareName === 'string' ? raw.shareName.slice(0, 40) : DEFAULT_PREFS.shareName,
   }
 }
 

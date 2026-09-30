@@ -5,6 +5,7 @@ import type { Prefs } from '../lib/prefs'
 import type { Cloud } from '../lib/cloudTypes'
 import type { ExtrasApi } from './useExtras'
 import type { SharedMaterialsApi } from './useSharedMaterials'
+import type { SharedBusyApi } from './useSharedBusy'
 
 // Termin do edycji: bez id = nowy (pola mogą być wstępnie wypełnione).
 export type DeadlineDraft = Partial<Deadline>
@@ -33,6 +34,7 @@ export interface PlanUi {
   isAdmin: boolean // widok administratora (w podglądzie "jako zwykły użytkownik" - false)
   canOptimize: boolean // optymalizator: administrator albo osoba, której go przyznał
   cloud: Cloud | null // zalogowane konto z dostępem (np. tytuły prowadzących); null = bez konta
+  sharedBusy: SharedBusyApi // wspólne okienka ze znajomymi
   editDeadline: (draft: DeadlineDraft) => void
   editMeeting: (meeting: PlanMeeting) => void // zmiana zajęć z USOS albo własnych
   addCustomMeeting: (draft: CustomMeetingDraft) => void

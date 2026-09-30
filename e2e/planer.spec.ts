@@ -212,3 +212,19 @@ test('strona przedmiotu: prowadzący z tytułem i postęp spotkań', async ({ pa
   await expect(progress.getByText('1 z 15 za Tobą')).toBeVisible()
   await expect(progress.getByRole('link', { name: 'Przedmiot w USOSweb ↗' })).toHaveAttribute('href', /prz_kod=AN-1$/)
 })
+
+test('wspólne okienka: włączenie w ustawieniach, wybór znajomej, wynik w tygodniu', async ({ page }) => {
+  // Bez udostępnienia własnych godzin - tylko zachęta (cudzych nie widać).
+  await tab(page, 'Tydzień').click()
+  await page.getByRole('button', { name: 'Wspólne okienka' }).click()
+  await expect(page.getByRole('dialog').getByText('Pokazuj znajomym, kiedy mam zajęcia', { exact: false })).toBeVisible()
+  await page.getByRole('dialog').getByRole('button', { name: 'Przejdź do ustawień' }).click()
+
+  await page.getByRole('switch', { name: /Pokazuj znajomym/ }).check()
+  await tab(page, 'Tydzień').click()
+  await page.getByRole('button', { name: 'Wspólne okienka' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Ala (przykład)' }).click()
+  // 14.10 (śr.): ja 10:15-12:00, Ala 8:15-10:00, 12:15-14:00, 16:15-18:00 - wspólnie wolni od 18:00.
+  await expect(dialog.getByText('Wszyscy wolni od 18:00').first()).toBeVisible()
+})

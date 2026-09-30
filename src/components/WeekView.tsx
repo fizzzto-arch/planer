@@ -5,6 +5,7 @@ import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey 
 import type { PlanMeeting } from '../lib/edits'
 import { semesterWeek } from '../lib/semesterWeek'
 import { DayTimeline } from './DayTimeline'
+import { FreeWindowsDialog } from './FreeWindowsDialog'
 import { WeekGrid } from './WeekGrid'
 
 interface Props {
@@ -18,6 +19,7 @@ export function WeekView({ meetings, now }: Props) {
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
   const { extras, addCustomMeeting, openExport, prefs } = usePlanUi()
+  const [freeOpen, setFreeOpen] = useState(false) // wspólne okienka ze znajomymi
 
   function goTo(target: Date) {
     if (target.getTime() === weekStart.getTime()) return
@@ -98,7 +100,13 @@ export function WeekView({ meetings, now }: Props) {
         <button type="button" className="button small secondary" onClick={() => openExport(weekStart)}>
           Eksportuj plan
         </button>
+        {extras && (
+          <button type="button" className="button small secondary" onClick={() => setFreeOpen(true)}>
+            Wspólne okienka
+          </button>
+        )}
       </div>
+      {freeOpen && <FreeWindowsDialog weekStart={weekStart} now={now} onClose={() => setFreeOpen(false)} />}
 
       <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
         {weekMeetings.length === 0 ? (

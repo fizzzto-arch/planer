@@ -289,3 +289,42 @@ describe('tytuły prowadzących (people)', () => {
     await assertFails(deleteDoc(doc(as(ALICE), 'people', '8596')))
   })
 })
+
+describe('wspólne okienka (sharedBusy)', () => {
+  const busy = (who: Who, over: Record<string, unknown> = {}) => ({
+    name: who.email.split('@')[0],
+    busy: [1, 2, 3, 4],
+    updatedAt: serverTimestamp(),
+    ...over,
+  })
+
+  it('każdy zapisuje tylko swoje godziny, bez dodatkowych pól (np. nazw przedmiotów)', async () => {
+    await assertSucceeds(setDoc(doc(as(ALICE), 'sharedBusy', ALICE.uid), busy(ALICE)))
+    await assertFails(setDoc(doc(as(ALICE), 'sharedBusy', BOB.uid), busy(BOB)))
+    await assertFails(setDoc(doc(as(ALICE), 'sharedBusy', ALICE.uid), busy(ALICE, { courses: ['Radiologia'] })))
+    await assertFails(setDoc(doc(as(ALICE), 'sharedBusy', ALICE.uid), busy(ALICE, { name: 'x'.repeat(41) })))
+    await assertFails(setDoc(doc(as(ALICE), 'sharedBusy', ALICE.uid), busy(ALICE, { busy: Array(401).fill(1) })))
+    await assertFails(setDoc(doc(as(PENDING), 'sharedBusy', PENDING.uid), busy(PENDING)))
+  })
+
+  it('cudze godziny widzi tylko ten, kto sam udostępnia (wzajemność)', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'sharedBusy', ALICE.uid), { name: 'alice', busy: [1, 2], updatedAt: new Date() }),
+    )
+    // Bob nic nie udostępnia - nie widzi Alice.
+    await assertFails(getDoc(doc(as(BOB), 'sharedBusy', ALICE.uid)))
+    await assertFails(getDocs(collection(as(BOB), 'sharedBusy')))
+    // Bob udostępnia - widzi.
+    await assertSucceeds(setDoc(doc(as(BOB), 'sharedBusy', BOB.uid), busy(BOB)))
+    await assertSucceeds(getDocs(collection(as(BOB), 'sharedBusy')))
+    await assertFails(getDocs(collection(anon(), 'sharedBusy')))
+  })
+
+  it('usunąć może tylko właściciel (wyłączenie opcji, usunięcie konta)', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'sharedBusy', ALICE.uid), { name: 'alice', busy: [1, 2], updatedAt: new Date() }),
+    )
+    await assertFails(deleteDoc(doc(as(BOB), 'sharedBusy', ALICE.uid)))
+    await assertSucceeds(deleteDoc(doc(as(ALICE), 'sharedBusy', ALICE.uid)))
+  })
+})
