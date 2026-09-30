@@ -51,7 +51,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
       <header className="course-header">
         <h2>Pomoc i prywatność</h2>
         <p className="muted">
-          Planer to nieoficjalny, darmowy organizer planu zajęć dla studentów PW. Poniżej wszystko o tym, co dzieje
+          Planer to nieoficjalny, darmowy organizer planu zajęć dla studentów PW i WAT (Wydział Cybernetyki). Poniżej wszystko o tym, co dzieje
           się z Twoimi danymi, i odpowiedzi na najczęstsze pytania.
         </p>
       </header>
@@ -148,20 +148,26 @@ export function HelpView({ onBack, onFeedback }: Props) {
           </li>
           <li>
             W przeglądarce na komputerze (F12 → Sieć) zobaczysz, że strona łączy się tylko z trzema miejscami: tą
-            stroną (github.io), usługami Google Firebase (konto i dane) i USOS-em PW (plan zajęć).
+            stroną (github.io - tu są też plany grup WAT), usługami Google Firebase (konto i dane) i USOS-em PW
+            (plan zajęć).
           </li>
         </ul>
       </div>
 
       <div className="panel">
         <h3 className="panel-title">Najczęstsze pytania</h3>
-        <Question q="Czy to oficjalna aplikacja Politechniki?">
-          Nie. Planer jest nieoficjalny - korzysta z Twojego linku do planu z USOSweb i publicznych danych USOS. W razie
-          wątpliwości co do terminu zajęć rozstrzyga USOS.
+        <Question q="Czy to oficjalna aplikacja uczelni?">
+          Nie. Planer jest nieoficjalny - korzysta z Twojego linku do planu z USOSweb (PW) albo z publicznego planu grup
+          WAT. W razie wątpliwości co do terminu zajęć rozstrzyga USOS albo plan na stronie WAT.
+        </Question>
+        <Question q="Studiuję na WAT - jak dodać plan?">
+          Zamiast linku z USOS wpisz kod swojej grupy, np. WCY26IY4S1 (jest na planzajec.wcy.wat.edu.pl). Działa
+          wszystko poza „Dobierz grupy”, które korzysta z USOS PW. Na razie tylko Wydział Cybernetyki - plany innych
+          wydziałów WAT są w osobnych systemach. Plan odświeża się co noc, po aktualizacji planów przez WAT.
         </Question>
         <Question q="Czy muszę zakładać konto?">
-          Nie. Sam plan działa bez konta - wystarczy wkleić link z USOSweb. Konto przydaje się do notatek, terminów,
-          przypomnień, wspólnych plików i do tego, żeby ten sam plan był na telefonie i komputerze.
+          Nie. Sam plan działa bez konta - wystarczy wkleić link z USOSweb albo kod grupy WAT. Konto przydaje się do
+          notatek, terminów, przypomnień, wspólnych plików i do tego, żeby ten sam plan był na telefonie i komputerze.
         </Question>
         <Question q="Czy mogę zalogować się przez Google?">
           Konto zakładasz na dowolny adres e-mail - także Gmail - z własnym hasłem. Osobnego przycisku „Zaloguj przez
@@ -184,7 +190,8 @@ export function HelpView({ onBack, onFeedback }: Props) {
         </Question>
         <Question q="Plan się zmienił w USOS - co z Planerem?">
           Planer pobiera plan z USOS przy każdym otwarciu, więc zmiany pojawią się same. Twoje ręczne zmiany i notatki
-          zostają. Stan widać pod zakładkami („Zaktualizowano…”), tam też jest „Odśwież”.
+          zostają. Stan widać pod zakładkami („Zaktualizowano…”), tam też jest „Odśwież”. Plan WAT zmienia się w
+          Planerze następnej nocy.
         </Question>
         <Question q="Skąd Planer wie, który tydzień jest parzysty?">
           Liczy tygodnie po kolei od pierwszego tygodnia z zajęciami, także przez przerwy - tak samo, jak USOS układa

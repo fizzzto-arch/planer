@@ -596,7 +596,7 @@ function App() {
             <section className="panel view-enter">
               <h2 className="day-title">{signedOut ? 'Albo dodaj plan bez konta' : 'Dodaj swój plan'}</h2>
               <p className="muted">
-                Wystarczy raz wkleić link. Potem plan będzie aktualizował się sam, także w kolejnych
+                Wystarczy raz wkleić link (albo kod grupy WAT). Potem plan będzie aktualizował się sam, także w kolejnych
                 semestrach.
                 {cloud.state.kind === 'signedIn' && ' Zapiszemy go też na Twoim koncie.'}
               </p>

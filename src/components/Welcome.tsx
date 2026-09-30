@@ -2,7 +2,7 @@
 const FEATURES = [
   {
     title: 'Plan sam się aktualizuje',
-    text: 'Raz wklejasz link z USOSweb - zmiany z USOS pojawiają się same.',
+    text: 'Raz wklejasz link z USOSweb albo kod grupy WAT - zmiany w planie pojawiają się same.',
     icon: 'M7 3v3M17 3v3M4 8h16M5 5h14v15H5zM9 13h2M13 13h2M9 16h2',
   },
   {
@@ -22,7 +22,7 @@ export function Welcome() {
     <header className="welcome view-enter">
       <img className="welcome-icon" src="icons/icon-192.png" alt="" width="64" height="64" />
       <h1 className="welcome-title">Planer</h1>
-      <p className="welcome-lead">Czytelny plan zajęć z USOS PW - w telefonie i na komputerze.</p>
+      <p className="welcome-lead">Czytelny plan zajęć dla PW i WAT - w telefonie i na komputerze.</p>
       <ul className="welcome-features">
         {FEATURES.map((f) => (
           <li key={f.title}>
