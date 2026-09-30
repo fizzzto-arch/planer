@@ -28,6 +28,17 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: node scripts/check-server-imports.ts
+      # Testy klikające główne ścieżki (iPhone/WebKit, Android, komputer) na udawanej chmurze.
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raport-testow-e2e
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

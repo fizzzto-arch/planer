@@ -26,3 +26,8 @@ dist-ssr
 # Prywatne pliki planu (zawierają osobisty klucz USOS) - nigdy do repo
 *.ics
 private/
+
+# Playwright - wyniki testów klikających
+/test-results/
+/playwright-report/
+/playwright/.cache/

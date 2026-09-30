@@ -43,5 +43,7 @@ export default defineConfig({
     // Testy zawsze w polskiej strefie (z przejściem na czas zimowy) - także na serwerze GitHuba,
     // który liczy w UTC i przepuściłby błędy zmiany czasu.
     env: { TZ: 'Europe/Warsaw' },
+    // Testy klikające (e2e/) uruchamia Playwright, nie Vitest.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })
