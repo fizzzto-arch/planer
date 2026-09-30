@@ -102,6 +102,11 @@ export const test = base.extend<{ errors: string[]; seedPlan: boolean }>({
       if (m.type() === 'error' && !/Download the React DevTools|favicon/.test(m.text())) errors.push(m.text())
     })
     await prepare(page, seedPlan)
+    // Testy nie pytają prawdziwego USOS (nie zależą od serwera uczelni i go nie obciążają):
+    // domyślnie pusta odpowiedź, a test może podstawić własną (page.route później ma pierwszeństwo).
+    await page.route('https://apps.usos.pw.edu.pl/**', (route) =>
+      route.fulfill({ contentType: 'application/json', body: route.request().url().includes('/services/tt/') ? '[]' : '{}' }),
+    )
     await provide(errors)
     // Każdy test na koniec: żadnego błędu na stronie.
     expect(errors, 'błędy na stronie').toEqual([])

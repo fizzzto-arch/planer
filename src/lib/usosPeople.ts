@@ -34,9 +34,11 @@ export function parsePersonPage(html: string): PersonInfo {
   const title = /<div>\s*Stopnie i tytuły\s*<\/div>\s*<div>([\s\S]*?)<\/div>/.exec(html)
   // Pierwsze zatrudnienie: "adiunkt w jednostce <a ...>Wydział Mechatroniki</a>".
   const job = /<div class='uwb-primary'>([^<]*?)w jednostce\s*<a[^>]*>([\s\S]*?)<\/a>/.exec(html)
+  // Bez zatrudnienia w jednostce (np. prowadzący spoza uczelni): "aktywny pracownik nieetatowy".
+  const status = job ? null : /<div class='uwb-primary'>\s*([^<]*?pracownik[^<]*?)\s*<\/div>/.exec(html)
   return {
     title: title ? clean(title[1]) || null : null,
-    position: job ? clean(job[1]) || null : null,
+    position: job ? clean(job[1]) || null : status ? clean(status[1]).replace(/^aktywny\s+/, '') || null : null,
     unit: job ? clean(job[2]) || null : null,
   }
 }

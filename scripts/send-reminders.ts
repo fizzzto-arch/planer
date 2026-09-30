@@ -202,8 +202,19 @@ for (const f of replied.docs) {
 
 // Tytuły prowadzących: Planer zgłasza osoby bez tytułu (people/{id}, pending), a my czytamy ich
 // publiczne strony w USOSweb (API USOS podaje tytuły tylko zarejestrowanym aplikacjom).
-const pendingPeople = await db.collection('people').where('pending', '==', true).limit(30).get()
-for (const person of pendingPeople.docs) {
+const PEOPLE_MAX_ATTEMPTS = 5 // potem odpuszczamy (np. usunięty profil) - bez ostrzeżeń co kwadrans
+const PEOPLE_REFRESH_MS = 180 * 24 * 60 * 60 * 1000 // stopnie się zmieniają (habilitacja, profesura)
+const pendingPeople = (await db.collection('people').where('pending', '==', true).limit(30).get()).docs
+// Raz na dobę (ok. 3:00) także kilka najstarszych - odświeżenie tytułów sprzed pół roku.
+if (now.getHours() === 3 && now.getMinutes() < 15) {
+  const stale = await db
+    .collection('people')
+    .where('fetchedAt', '<', new Date(now.getTime() - PEOPLE_REFRESH_MS))
+    .limit(10)
+    .get()
+  pendingPeople.push(...stale.docs)
+}
+for (const person of pendingPeople) {
   if (!isPersonId(person.id)) {
     await person.ref.delete()
     continue
@@ -212,9 +223,15 @@ for (const person of pendingPeople.docs) {
     const response = await fetch(`${USOSWEB_PERSON_URL}${person.id}`, { signal: AbortSignal.timeout(20_000) })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const info = parsePersonPage(await response.text())
-    await person.ref.set({ ...info, pending: false, fetchedAt: FieldValue.serverTimestamp() }, { merge: true })
+    await person.ref.set({ ...info, pending: false, attempts: 0, fetchedAt: FieldValue.serverTimestamp() }, { merge: true })
   } catch (e) {
-    console.log(`::warning::Nie udało się odczytać strony osoby ${person.id}: ${(e as Error).message}`)
+    const attempts = Number(person.get('attempts') ?? 0) + 1
+    const giveUp = attempts >= PEOPLE_MAX_ATTEMPTS
+    await person.ref.set(
+      giveUp ? { pending: false, attempts, fetchedAt: FieldValue.serverTimestamp() } : { attempts },
+      { merge: true },
+    )
+    if (giveUp) console.log(`::warning::Strona osoby ${person.id} nie odpowiada (${(e as Error).message}) - odpuszczam.`)
   }
 }
 

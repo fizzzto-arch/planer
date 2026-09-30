@@ -181,3 +181,34 @@ test('trójkąt na pasku otwiera zgłoszenia', async ({ page }) => {
   await expect(page.getByText('Zadania do przetestowania')).toBeVisible()
   await expect(page.locator('#feedback-form')).toBeVisible()
 })
+
+test('strona przedmiotu: prowadzący z tytułem i postęp spotkań', async ({ page }) => {
+  // USOS: koordynatorka prowadzi też wykład; ćwiczenia prowadzi ktoś inny.
+  await page.route('https://apps.usos.pw.edu.pl/services/**', (route) => {
+    const url = new URL(route.request().url())
+    const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
+    const nowak = { id: '11', first_name: 'Anna', last_name: 'Nowak' }
+    const kowal = { id: '22', first_name: 'Jan', last_name: 'Kowalski' }
+    if (url.pathname.endsWith('/courses/unit')) return json({ course_id: 'AN-1', term_id: '2026Z' })
+    if (url.pathname.endsWith('/courses/course_edition')) return json({ coordinators: [nowak], lecturers: [nowak, kowal] })
+    if (url.pathname.endsWith('/tt/classgroup_dates2')) {
+      return json([{ lecturer_ids: [url.searchParams.get('unit_id') === 'U-an-w' ? '11' : '22'] }])
+    }
+    return json({})
+  })
+
+  await tab(page, 'Przedmioty').click()
+  await page.getByText('Analiza matematyczna', { exact: true }).first().click()
+  const staff = page.locator('.staff')
+  await expect(staff.getByText('Koordynator przedmiotu · Wykład gr. 1')).toBeVisible()
+  await expect(staff.getByText('Ćwiczenia gr. 101')).toBeVisible()
+  // Tytuł doczytuje serwer (w udawanej chmurze - po chwili).
+  await expect(staff.getByText('dr inż.').first()).toBeVisible()
+  await expect(staff.getByRole('link', { name: /Anna Nowak/ })).toHaveAttribute('href', /os_id=11$/)
+
+  // 14.10, 9:00: wykłady 5 i 12.10 za nami, ćwiczenia 7.10 za nami (14.10 o 10:15 jeszcze nie).
+  const progress = page.locator('.course-info')
+  await expect(progress.getByText('2 z 15 za Tobą')).toBeVisible()
+  await expect(progress.getByText('1 z 15 za Tobą')).toBeVisible()
+  await expect(progress.getByRole('link', { name: 'Przedmiot w USOSweb ↗' })).toHaveAttribute('href', /prz_kod=AN-1$/)
+})

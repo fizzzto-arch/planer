@@ -40,3 +40,12 @@ describe('strona osoby w USOSweb', () => {
     expect(isPersonId('')).toBe(false)
   })
 })
+
+describe('prowadzący spoza etatu', () => {
+  it('bez tytułu i jednostki - status z nagłówka strony jako stanowisko', () => {
+    const page = `<div class='uwb-primary'>
+      aktywny pracownik nieetatowy
+    </div>`
+    expect(parsePersonPage(page)).toEqual({ title: null, position: 'pracownik nieetatowy', unit: null })
+  })
+})

@@ -104,7 +104,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
             </div>
           )}
 
-          <StaffSection meetings={courseMeetings} />
+          {/* Prowadzący bieżących zajęć - przedmiot o tej samej nazwie z poprzedniego semestru ma inne grupy. */}
+          <StaffSection meetings={upcoming.some((m) => m.unitId) ? upcoming : courseMeetings} />
 
           <MaterialsSection courseName={courseName} />
 
