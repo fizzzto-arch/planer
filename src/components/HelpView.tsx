@@ -88,8 +88,8 @@ export function HelpView({ onBack, onFeedback }: Props) {
           </dd>
           <dt>Na Twoim koncie (Google Firebase)</dt>
           <dd>
-            Adres e-mail, link do planu z USOS, notatki, terminy, zmiany w planie, własne zajęcia, ustawienia i lista
-            urządzeń z włączonymi przypomnieniami. Tylko dla Ciebie.
+            Adres e-mail, link do planu z USOS, notatki, terminy, zmiany w planie, własne zajęcia, ustawienia, lista
+            urządzeń z włączonymi przypomnieniami i historia powiadomień z ostatnich 60 dni. Tylko dla Ciebie.
           </dd>
           <dt>Widoczne dla innych</dt>
           <dd>
@@ -97,7 +97,10 @@ export function HelpView({ onBack, onFeedback }: Props) {
             razem z początkiem Twojego e-maila (część przed @) jako autorem.
           </dd>
           <dt>Widoczne dla administratora</dt>
-          <dd>Lista kont proszących o dostęp: e-mail i status (czeka / zatwierdzone), żeby mógł je zatwierdzać.</dd>
+          <dd>
+            Lista kont proszących o dostęp: e-mail i status (czeka / zatwierdzone), żeby mógł je zatwierdzać, oraz to,
+            które zadania dla testerów odhaczyłeś. Do tego zgłoszenia, które sam wyślesz.
+          </dd>
         </dl>
       </div>
 
