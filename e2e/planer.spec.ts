@@ -59,6 +59,12 @@ test('zmiana sali i „Przywróć z USOS” prosto z karty zajęć', async ({ pa
   await expect(card.getByText('s. 121')).toBeVisible()
 })
 
+test('konto: „Zmień hasło” wysyła link na e-mail konta', async ({ page }) => {
+  await tab(page, 'Ustawienia').click()
+  await page.getByRole('button', { name: 'Zmień hasło' }).click()
+  await expect(page.getByText(/Wysłaliśmy na test@planer.local link do ustawienia nowego hasła/)).toBeVisible()
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()

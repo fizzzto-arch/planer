@@ -1,6 +1,7 @@
 import { t } from '../lib/i18n'
 import { useState } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
+import { errorMessage } from '../lib/errors'
 import { AuthForm } from './AuthForm'
 import { DeleteAccountDialog } from './DeleteAccountDialog'
 
@@ -11,6 +12,7 @@ interface Props {
 export function AccountPanel({ cloud }: Props) {
   const { state, syncError } = cloud
   const [deleting, setDeleting] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<{ ok: boolean; text: string } | null>(null)
   if (state.kind === 'disabled') return null
 
   return (
@@ -40,10 +42,35 @@ export function AccountPanel({ cloud }: Props) {
             <button type="button" className="button secondary" onClick={() => void cloud.signOut()}>
               {t('Wyloguj się')}
             </button>
+            {/* Nowe hasło przez link w mailu - tak samo jak "Nie pamiętam hasła", bez podawania starego. */}
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => {
+                const email = state.user.email
+                if (!email) return
+                cloud
+                  .resetPassword(email)
+                  .then(() =>
+                    setPasswordMessage({
+                      ok: true,
+                      text: t('Wysłaliśmy na {email} link do ustawienia nowego hasła. Nie widzisz maila? Zajrzyj do spamu.', { email }),
+                    }),
+                  )
+                  .catch((e) => setPasswordMessage({ ok: false, text: errorMessage(e) }))
+              }}
+            >
+              {t('Zmień hasło')}
+            </button>
             <button type="button" className="link-button danger-link" onClick={() => setDeleting(true)}>
               {t('Usuń konto')}
             </button>
           </div>
+          {passwordMessage && (
+            <p className={passwordMessage.ok ? 'success' : 'error'} role="status">
+              {passwordMessage.text}
+            </p>
+          )}
           {deleting && <DeleteAccountDialog cloud={cloud} onClose={() => setDeleting(false)} />}
         </>
       )}

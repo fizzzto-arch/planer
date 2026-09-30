@@ -1,4 +1,4 @@
-// Test startu bez internetu na zbudowanej wersji (jak na stronie) - wersja deweloperska ładuje
+// Testy na zbudowanej wersji (start bez internetu, Content-Security-Policy) (jak na stronie) - wersja deweloperska ładuje
 // setki modułów przez serwer Vite i nie odpowiada temu, co dostaje telefon.
 // Uruchomienie: npm run e2e (po zwykłych testach klikających).
 import { defineConfig, devices } from '@playwright/test'
@@ -8,7 +8,7 @@ const PORT = 5197
 
 export default defineConfig({
   ...base,
-  testMatch: 'offline.spec.ts',
+  testMatch: ['offline.spec.ts', 'csp.spec.ts'],
   testIgnore: [],
   use: { ...base.use, baseURL: `http://localhost:${PORT}`, serviceWorkers: 'allow' },
   // Tylko Chromium: WebKit Playwrighta na Windowsie nie przeładowuje strony offline przy service

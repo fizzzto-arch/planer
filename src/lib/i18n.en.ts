@@ -58,6 +58,8 @@ export const EN: Record<string, string> = {
   'Zaloguj się albo załóż konto, żeby ten sam plan był na telefonie i komputerze.': 'Sign in or create an account to have the same timetable on your phone and computer.',
   'Plan synchronizuje się między Twoimi urządzeniami.': 'Your timetable syncs between your devices.',
   'Wyloguj się': 'Sign out',
+  'Wysłaliśmy na {email} link do ustawienia nowego hasła. Nie widzisz maila? Zajrzyj do spamu.': 'We sent a link to set a new password to {email}. No email? Check your spam folder.',
+  'Zmień hasło': 'Change password',
   'Usuń konto': 'Delete account',
 
   // src/components/AdminPanel.tsx
@@ -468,7 +470,7 @@ export const EN: Record<string, string> = {
   'Twoje dane widzisz tylko Ty': 'Only you can see your data',
   'Notatki, terminy, zmiany w planie i ustawienia są przypisane do Twojego konta. Reguły bazy nie wpuszczają do nich nikogo innego - także administratora Planera. Wyjątek to zgłoszenia (uwagi, zrzuty ekranu), które sam wysyłasz - te czyta administrator. Gdy Planer się wywróci, sam wysyła mu techniczny opis błędu (komunikat, wersja, telefon) - bez notatek, planu ani innych Twoich danych.': 'Notes, deadlines, timetable changes and settings belong to your account. The database rules let nobody else in - including the Planer administrator. The exception is reports (feedback, screenshots) that you send yourself - the administrator reads those. When Planer crashes, it sends the administrator a technical error description (message, version, phone) - without notes, your timetable or any other data.',
   'Hasło zna tylko Google': 'Only Google knows your password',
-  'Logowaniem zajmuje się Google Firebase. Hasło jest przechowywane w postaci zaszyfrowanej - nie widzi go nikt, łącznie z administratorem.': 'Sign-in is handled by Google Firebase. Your password is stored encrypted - nobody can see it, including the administrator.',
+  'Logowaniem zajmuje się Google Firebase. Hasło nie jest nigdzie zapisane wprost - tylko jego skrót (hasz scrypt), którego nie da się odwrócić. Nie zna go nikt, łącznie z administratorem.': 'Sign-in is handled by Google Firebase. Your password is never stored as is - only its hash (scrypt), which cannot be reversed. Nobody knows it, including the administrator.',
   'Bez reklam i śledzenia': 'No ads, no tracking',
   'Planer nie ma reklam, analityki ani ciasteczek śledzących. Nic nie jest sprzedawane ani udostępniane dalej.': 'Planer has no ads, analytics or tracking cookies. Nothing is sold or passed on.',
   'Możesz wszystko usunąć': 'You can delete everything',

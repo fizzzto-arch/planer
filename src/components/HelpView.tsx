@@ -63,7 +63,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
             {t('Notatki, terminy, zmiany w planie i ustawienia są przypisane do Twojego konta. Reguły bazy nie wpuszczają do nich nikogo innego - także administratora Planera. Wyjątek to zgłoszenia (uwagi, zrzuty ekranu), które sam wysyłasz - te czyta administrator. Gdy Planer się wywróci, sam wysyła mu techniczny opis błędu (komunikat, wersja, telefon) - bez notatek, planu ani innych Twoich danych.')}
           </Fact>
           <Fact icon={icon('M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z')} title={t('Hasło zna tylko Google')}>
-            {t('Logowaniem zajmuje się Google Firebase. Hasło jest przechowywane w postaci zaszyfrowanej - nie widzi go nikt, łącznie z administratorem.')}
+            {t('Logowaniem zajmuje się Google Firebase. Hasło nie jest nigdzie zapisane wprost - tylko jego skrót (hasz scrypt), którego nie da się odwrócić. Nie zna go nikt, łącznie z administratorem.')}
           </Fact>
           <Fact icon={icon('M4 4l16 16M9.9 5.1A9 9 0 0 1 21 12a9 9 0 0 1-2 3.3M6.3 6.3A9 9 0 0 0 3 12a9 9 0 0 0 14 5.7')} title={t('Bez reklam i śledzenia')}>
             {t('Planer nie ma reklam, analityki ani ciasteczek śledzących. Nic nie jest sprzedawane ani udostępniane dalej.')}

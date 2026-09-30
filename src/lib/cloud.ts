@@ -8,6 +8,8 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
   onIdTokenChanged,
   reauthenticateWithCredential,
   sendEmailVerification,
@@ -15,6 +17,7 @@ import {
   setPersistence,
   signInWithEmailAndPassword,
   signOut,
+  type Auth,
 } from 'firebase/auth'
 import {
   Bytes,
@@ -110,7 +113,17 @@ function openFirestore(app: ReturnType<typeof getApp>): Firestore {
 function createCloud(config: FirebaseOptions): Cloud {
   // getApps() chroni przed podwójną inicjalizacją (React w trybie deweloperskim montuje dwa razy).
   const app = getApps().length > 0 ? getApp() : initializeApp(config)
-  const auth = getAuth(app)
+  // Bez obsługi logowania wyskakującym oknem (Google itp.) - mamy tylko e-mail i hasło, a ta obsługa
+  // wczytuje skrypt z apis.google.com (blokowany przez Content-Security-Policy). Zapamiętywanie
+  // sesji jak w getAuth(), więc zalogowani wcześniej zostają zalogowani.
+  let auth: Auth
+  try {
+    auth = initializeAuth(app, {
+      persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+    })
+  } catch {
+    auth = getAuth(app) // już zainicjowane (React w trybie deweloperskim montuje dwa razy)
+  }
   auth.languageCode = getLanguage() // maile (np. reset hasła) w języku interfejsu
   const db = openFirestore(app)
 

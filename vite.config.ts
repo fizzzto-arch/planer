@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 
@@ -30,9 +31,51 @@ function versionFile(): Plugin {
   }
 }
 
+// Content-Security-Policy: przeglądarka wykona tylko nasze skrypty i połączy się tylko z miejscami
+// z listy - nawet gdyby w kodzie znalazła się luka, obcy skrypt nic nie wyśle na zewnątrz.
+// Tylko w zbudowanej stronie (tryb deweloperski wstrzykuje własne skrypty). Skrypt motywu
+// w index.html jest dopuszczony po skrócie SHA-256 - liczonym tu, więc zmiana skryptu nic nie psuje.
+const CSP_CONNECT = [
+  "'self'",
+  'https://*.googleapis.com', // Firebase: logowanie i baza
+  'https://apps.usos.pw.edu.pl', // USOS API (grupy, przedmioty, prowadzący)
+  'https://usosweb.usos.pw.edu.pl', // plan z linku iCal
+  'blob:',
+  'data:',
+]
+
+function contentSecurityPolicy(): Plugin {
+  return {
+    name: 'planer-csp',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+          (m) => `'sha256-${createHash('sha256').update(m[1]).digest('base64')}'`,
+        )
+        const policy = [
+          "default-src 'self'",
+          `script-src 'self' ${hashes.join(' ')}`,
+          "style-src 'self' 'unsafe-inline'", // style={{...}} w React
+          "img-src 'self' data: blob:",
+          "media-src 'self' blob:",
+          `connect-src ${CSP_CONNECT.join(' ')}`,
+          "frame-src 'self' https://*.firebaseapp.com", // logowanie Firebase (ramka pomocnicza)
+          "worker-src 'self'",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+        ].join('; ')
+        return html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`)
+      },
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), versionFile()],
+  plugins: [react(), versionFile(), contentSecurityPolicy()],
   // Względne ścieżki: strona działa pod dowolnym adresem (np. nick.github.io/planer/)
   base: './',
   define: {
