@@ -10,6 +10,7 @@ import { MaterialsSection } from './MaterialsSection'
 import { MeetingCard } from './MeetingCard'
 import { NoteField } from './NoteField'
 import { StaffSection } from './StaffSection'
+import { CourseInfoSection } from './CourseInfoSection'
 
 interface Props {
   courseName: string
@@ -102,6 +103,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
               )}
             </div>
           )}
+
+          <CourseInfoSection meetings={courseMeetings} now={now} />
 
           <StaffSection meetings={courseMeetings} />
 

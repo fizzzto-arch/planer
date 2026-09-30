@@ -3042,3 +3042,36 @@ label.setting-row {
 .staff-roles {
   font-size: 0.85rem;
 }
+
+/* O przedmiocie */
+.course-counts {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.course-counts li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  font-size: 0.9rem;
+}
+
+.course-counts .opt-progress {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.course-text {
+  margin: 6px 0 0;
+  white-space: pre-line;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.course-info .link-button {
+  display: inline-block;
+  margin-top: 8px;
+}
