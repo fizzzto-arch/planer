@@ -3064,12 +3064,6 @@ label.setting-row {
   margin: 0;
 }
 
-.course-text {
-  margin: 6px 0 0;
-  white-space: pre-line;
-  font-size: 0.88rem;
-  line-height: 1.45;
-}
 
 .course-info .link-button {
   display: inline-block;

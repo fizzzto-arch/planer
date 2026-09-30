@@ -104,11 +104,11 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
             </div>
           )}
 
-          <CourseInfoSection meetings={courseMeetings} now={now} />
-
           <StaffSection meetings={courseMeetings} />
 
           <MaterialsSection courseName={courseName} />
+
+          <CourseInfoSection meetings={courseMeetings} now={now} />
 
           {extras && (
             <div className="panel">
