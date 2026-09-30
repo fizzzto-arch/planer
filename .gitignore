@@ -31,3 +31,4 @@ private/
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/public/wat/

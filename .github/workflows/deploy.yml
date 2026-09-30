@@ -1,9 +1,12 @@
 # Po każdym pushu na main buduje stronę i publikuje ją na GitHub Pages.
+# Co noc publikuje ją ponownie ze świeżymi planami grup WAT (WAT generuje je ok. 0:40).
 name: Deploy na GitHub Pages
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '15 0 * * *' # 1:15 zimą, 2:15 latem (czasu polskiego) - po nocnej aktualizacji planów WAT
   workflow_dispatch:
 
 permissions:
@@ -25,12 +28,18 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm test
-      - run: node scripts/check-server-imports.ts
+      # Sprawdzenia tylko przy zmianie kodu - nocne wdrożenie to ten sam, już sprawdzony kod.
+      - if: github.event_name != 'schedule'
+        run: npm run lint
+      - if: github.event_name != 'schedule'
+        run: npm test
+      - if: github.event_name != 'schedule'
+        run: node scripts/check-server-imports.ts
       # Testy klikające główne ścieżki (iPhone/WebKit, Android, komputer) na udawanej chmurze.
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm run e2e
+      - if: github.event_name != 'schedule'
+        run: npx playwright install --with-deps chromium webkit
+      - if: github.event_name != 'schedule'
+        run: npm run e2e
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -40,6 +49,8 @@ jobs:
             test-results
           retention-days: 7
       - run: npm run build
+      # Plany grup WAT (Wydział Cybernetyki) jako pliki .ics obok strony - ok. 3 minuty.
+      - run: node scripts/wat-plans.ts dist/wat
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

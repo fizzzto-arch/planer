@@ -46,6 +46,8 @@ jobs:
     permissions:
       actions: write
     steps:
-      - run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/reminders.yml/enable"
+      - run: |
+          gh api -X PUT "repos/${{ github.repository }}/actions/workflows/reminders.yml/enable"
+          gh api -X PUT "repos/${{ github.repository }}/actions/workflows/deploy.yml/enable"
         env:
           GH_TOKEN: ${{ github.token }}

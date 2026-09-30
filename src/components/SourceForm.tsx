@@ -1,11 +1,12 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import type { PlanApi } from '../hooks/usePlan'
 import { errorMessage } from '../lib/errors'
+import { parseWatGroup, watPlanUrl } from '../lib/wat'
 
 const USOSWEB_PLAN_URL = 'https://usosweb.usos.pw.edu.pl/kontroler.php?_action=home/plan'
 
 function validateUrl(url: string): string | null {
-  if (!url) return 'Wklej odnośnik do planu.'
+  if (!url) return 'Wklej odnośnik do planu albo wpisz kod grupy WAT.'
   if (!/^https:\/\//i.test(url)) return 'Odnośnik powinien zaczynać się od https://'
   if (/usosweb\.usos\.pw\.edu\.pl/i.test(url)) {
     return 'To adres strony USOSweb. Potrzebny jest „Odnośnik do planu” z okna eksportu (krok 2).'
@@ -50,6 +51,20 @@ export function SourceForm({ plan, onDone }: Props) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const value = url.trim()
+    // WAT (Wydział Cybernetyki): kod grupy zamiast linku - plan leży obok Planera (scripts/wat-plans.ts).
+    const watGroup = parseWatGroup(value)
+    if (watGroup) {
+      void run(async () => {
+        try {
+          await plan.connectUrl(watPlanUrl(watGroup, document.baseURI))
+        } catch {
+          throw new Error(
+            `Nie mam planu grupy ${watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl - plany nowych grup pojawiają się tu następnej nocy.`,
+          )
+        }
+      })
+      return
+    }
     const problem = validateUrl(value)
     if (problem) {
       setError(problem)
@@ -79,15 +94,18 @@ export function SourceForm({ plan, onDone }: Props) {
         </li>
         <li>Skopiuj „Odnośnik do planu” i wklej go poniżej.</li>
       </ol>
+      <p className="hint">
+        Studiujesz na WAT (Wydział Cybernetyki)? Zamiast linku wpisz kod swojej grupy, np. WCY26IY4S1.
+      </p>
 
       <form onSubmit={handleSubmit}>
         <label className="field-label" htmlFor="ical-url">
-          Odnośnik do planu
+          Odnośnik do planu (albo kod grupy WAT)
         </label>
         <div className="input-row">
           <input
             id="ical-url"
-            type="url"
+            type="text"
             inputMode="url"
             autoComplete="off"
             spellCheck={false}

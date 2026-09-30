@@ -549,7 +549,7 @@ function App() {
               </section>
             )}
             <section className="panel view-enter">
-              <h2 className="day-title">{signedOut ? 'Albo dodaj plan bez konta' : 'Dodaj swój plan z USOS'}</h2>
+              <h2 className="day-title">{signedOut ? 'Albo dodaj plan bez konta' : 'Dodaj swój plan'}</h2>
               <p className="muted">
                 Wystarczy raz wkleić link. Potem plan będzie aktualizował się sam, także w kolejnych
                 semestrach.

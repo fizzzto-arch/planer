@@ -4,13 +4,16 @@ import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 
-// Wersja widoczna w Ustawieniach: skrót commita i data budowania - przy zgłoszeniu problemu
+// Wersja widoczna w Ustawieniach: skrót i data commita - przy zgłoszeniu problemu
 // od razu wiadomo, którą wersję ktoś ma (telefon z ekranu początkowego bywa nieodświeżony).
+// Data commita, nie budowania: nocne wdrożenie (świeże plany WAT) to ta sama wersja aplikacji
+// i nie może pokazywać wszystkim paska "nowa wersja".
 function appVersion(): string {
-  const date = new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
   try {
-    return `${execSync('git rev-parse --short HEAD', { cwd: fileURLToPath(new URL('.', import.meta.url)) }).toString().trim()} (${date})`
+    const cwd = fileURLToPath(new URL('.', import.meta.url))
+    return execSync('git log -1 --format="%h (%cd)" --date=format:%d.%m.%Y', { cwd }).toString().trim()
   } catch {
+    const date = new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' })
     return `dev (${date})`
   }
 }

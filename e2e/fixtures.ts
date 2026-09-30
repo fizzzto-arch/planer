@@ -75,31 +75,33 @@ export function testPlan() {
   }
 }
 
-async function prepare(page: Page) {
+async function prepare(page: Page, seedPlan: boolean) {
   await page.clock.setFixedTime(NOW)
   await page.addInitScript(
-    ({ plan, series }) => {
+    ({ plan, series, seedPlan }) => {
       // Plan tylko przy pierwszym wejściu - po przeładowaniu zostaje to, co zapisała aplikacja.
-      if (!localStorage.getItem('planer.plan.v1')) {
+      if (seedPlan && !localStorage.getItem('planer.plan.v1')) {
         const build = new Function(`${series}; return (${plan})()`) as () => unknown
         localStorage.setItem('planer.plan.v1', JSON.stringify(build()))
       }
       // Zapis pliku: bez arkusza "Udostępnij" (w teście go nie ma kto zamknąć) - zwykłe pobranie.
       Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined, configurable: true })
     },
-    { plan: testPlan.toString(), series: series.toString() },
+    { plan: testPlan.toString(), series: series.toString(), seedPlan },
   )
 }
 
-export const test = base.extend<{ errors: string[] }>({
+export const test = base.extend<{ errors: string[]; seedPlan: boolean }>({
+  // false = pierwsze wejście nowej osoby, bez planu (test.use({ seedPlan: false })).
+  seedPlan: [true, { option: true }],
   // "provide" to zwykle "use" z dokumentacji Playwrighta - inna nazwa, bo lint bierze "use" za hook Reacta.
-  errors: async ({ page }, provide) => {
+  errors: async ({ page, seedPlan }, provide) => {
     const errors: string[] = []
     page.on('pageerror', (e) => errors.push(e.message))
     page.on('console', (m) => {
       if (m.type() === 'error' && !/Download the React DevTools|favicon/.test(m.text())) errors.push(m.text())
     })
-    await prepare(page)
+    await prepare(page, seedPlan)
     await provide(errors)
     // Każdy test na koniec: żadnego błędu na stronie.
     expect(errors, 'błędy na stronie').toEqual([])

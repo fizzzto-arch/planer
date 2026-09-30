@@ -3,6 +3,7 @@ import { MINUTE_MS } from '../lib/dates'
 import { errorMessage } from '../lib/errors'
 import { EMPTY_PLAN, clearPlan, loadPlan, savePlan, type SavedPlan } from '../lib/storage'
 import { mergeWithHistory, parseUsosCalendar } from '../lib/usos'
+import { watGroupFromUrl } from '../lib/wat'
 
 export type RefreshStatus = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string }
 
@@ -10,14 +11,20 @@ export type RefreshStatus = { kind: 'idle' } | { kind: 'loading' } | { kind: 'er
 const STALE_AFTER_MIN = 30
 
 async function downloadCalendar(url: string): Promise<string> {
+  // Plan WAT leży obok Planera (pobiera go nasz serwer) - komunikat nie może mówić o USOS.
+  const wat = watGroupFromUrl(url)
   let response: Response
   try {
     response = await fetch(url, { cache: 'no-store' })
   } catch {
-    throw new Error('Nie udało się połączyć z USOS. Sprawdź internet.')
+    throw new Error(wat ? 'Nie udało się pobrać planu. Sprawdź internet.' : 'Nie udało się połączyć z USOS. Sprawdź internet.')
   }
   if (!response.ok) {
-    throw new Error(`USOS odpowiedział błędem ${response.status}. Sprawdź, czy link jest aktualny.`)
+    throw new Error(
+      wat
+        ? `Nie mam planu grupy ${wat} (błąd ${response.status}).`
+        : `USOS odpowiedział błędem ${response.status}. Sprawdź, czy link jest aktualny.`,
+    )
   }
   return response.text()
 }

@@ -1,4 +1,4 @@
-// Główne ścieżki Plannera, tak jak przejdzie je tester. Każdy test kończy się sprawdzeniem,
+// Główne ścieżki Planera, tak jak przejdzie je tester. Każdy test kończy się sprawdzeniem,
 // że na stronie nie było żadnego błędu (fixtures.ts).
 import { readFileSync } from 'node:fs'
 import { expect, tab, test } from './fixtures.ts'

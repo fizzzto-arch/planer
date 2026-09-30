@@ -15,6 +15,7 @@ import { ColorsPanel } from './ColorsPanel'
 import { AliasesPanel, AppearancePanel, PlanPrefsPanel } from './PreferencesPanels'
 import { RemindersPanel } from './RemindersPanel'
 import { SourceForm } from './SourceForm'
+import { watGroupFromUrl } from '../lib/wat'
 
 interface Props {
   plan: PlanApi
@@ -73,7 +74,13 @@ export function SettingsView({
         <h3 className="panel-title">Źródło planu</h3>
         <dl className="facts">
           <dt>Źródło</dt>
-          <dd>{source?.kind === 'url' ? 'Link iCal z USOS (klucz ukryty)' : `Plik ${source?.name ?? ''}`}</dd>
+          <dd>
+            {source?.kind === 'url'
+              ? watGroupFromUrl(source.url)
+                ? `Plan grupy ${watGroupFromUrl(source.url)} (WAT, odświeżany co noc)`
+                : 'Link iCal z USOS (klucz ukryty)'
+              : `Plik ${source?.name ?? ''}`}
+          </dd>
           <dt>W planie</dt>
           <dd>
             {courseCount} {plural(courseCount, 'przedmiot', 'przedmioty', 'przedmiotów')},{' '}
