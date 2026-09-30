@@ -131,3 +131,16 @@ describe('drobne formatowanie', () => {
     expect(formatWeekRange(new Date(2026, 9, 5))).toBe('5 – 11 października')
   })
 })
+
+describe('typy zajęć z USOS', () => {
+  it('WF z USOS ("FIZ") ma nazwę i kolor WF, a nie szare "Inne"', async () => {
+    const { typeLabel, typeSlug, colorType } = await import('./usos')
+    expect(typeLabel('FIZ')).toBe('WF')
+    expect(typeSlug('FIZ')).toBe('wf')
+    expect(colorType('SED')).toBe('SEM')
+    expect(typeLabel('ZKO')).toBe('Zajęcia komputerowe')
+    expect(typeSlug('ZKO')).toBe('lab')
+    expect(typeSlug('EGZ')).toBe('inne')
+    expect(typeLabel('XYZ')).toBe('XYZ')
+  })
+})

@@ -4,6 +4,7 @@ import { diagnostics } from '../lib/diagnostics'
 import { errorMessage } from '../lib/errors'
 import {
   checkAttachments,
+  FEEDBACK_KIND_LABELS,
   FEEDBACK_KINDS,
   FEEDBACK_STATUS_LABELS,
   isAutoReport,
@@ -25,7 +26,7 @@ interface Props {
   onBack?: () => void // brak = otwarte z zakładki (trójkąt na pasku), nie z podstrony
 }
 
-const kindLabel = (k: FeedbackKind) => FEEDBACK_KINDS.find((x) => x.id === k)?.label ?? k
+const kindLabel = (k: FeedbackKind) => FEEDBACK_KIND_LABELS[k] ?? k
 
 const formatWhen = (ms: number | null) =>
   ms === null

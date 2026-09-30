@@ -28,8 +28,25 @@ const TYPE_LABELS: Record<string, string> = {
   WF: 'WF',
 }
 
+// Pozostałe kody typów zajęć z USOS PW (courses/classtypes_index) - nazwy zamiast skrótów.
+const OTHER_LABELS: Record<string, string> = {
+  FIZ: 'WF', // wychowanie fizyczne - w USOS "FIZ"
+  SED: 'Seminarium dyplomowe',
+  ZKO: 'Zajęcia komputerowe',
+  EGZ: 'Egzamin',
+  KON: 'Konsultacje',
+  PRA: 'Praktyka',
+  DOM: 'Praca własna',
+  PPR: 'Praca przejściowa',
+  TST: 'Test',
+  ZIN: 'Zajęcia zintegrowane',
+}
+
+// Kody, które dzielą kolor z głównym typem (WF z USOS jako "FIZ" - kolor WF, nie szary "Inne").
+const COLOR_ALIASES: Record<string, string> = { FIZ: 'WF', SED: 'SEM', ZKO: 'LAB' }
+
 export function typeLabel(type: string): string {
-  return TYPE_LABELS[type] ?? (type === 'INNE' ? 'Inne' : type)
+  return TYPE_LABELS[type] ?? OTHER_LABELS[type] ?? (type === 'INNE' ? 'Inne' : type)
 }
 
 // Typy do wyboru przy dodawaniu własnych zajęć.
@@ -38,9 +55,15 @@ export const MEETING_TYPES: { id: string; label: string }[] = [
   { id: 'INNE', label: 'Inne' },
 ]
 
+// Typ, którego kolor ma dostać dany kod (FIZ -> WF); nieznane - "INNE".
+export function colorType(type: string): string {
+  const main = COLOR_ALIASES[type] ?? type
+  return main in TYPE_LABELS ? main : 'INNE'
+}
+
 // Klasa CSS koloru; nieznane typy dostają kolor neutralny.
 export function typeSlug(type: string): string {
-  return type in TYPE_LABELS ? type.toLowerCase() : 'inne'
+  return colorType(type).toLowerCase()
 }
 
 const BUILDING_SHORT: [RegExp, string][] = [

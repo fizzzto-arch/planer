@@ -2621,7 +2621,7 @@ label.setting-row {
 }
 
 .feedback .form-grid .segmented {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .feedback-thumbs {

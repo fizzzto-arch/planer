@@ -5,11 +5,18 @@ import { CHUNK_BYTES, chunkId } from './materials.ts'
 export type FeedbackKind = 'bug' | 'idea' | 'opinion'
 export type FeedbackStatus = 'new' | 'seen' | 'done'
 
+// Do wyboru w formularzu: błąd albo opinia (pomysły to pole "Czego brakuje?" w opinii).
 export const FEEDBACK_KINDS: { id: FeedbackKind; label: string }[] = [
   { id: 'bug', label: 'Błąd' },
-  { id: 'idea', label: 'Pomysł' },
-  { id: 'opinion', label: 'Opinia' },
+  { id: 'opinion', label: 'Opinia lub pomysł' },
 ]
+
+// Nazwy rodzajów do wyświetlania - także "Pomysł" ze starszych zgłoszeń.
+export const FEEDBACK_KIND_LABELS: Record<FeedbackKind, string> = {
+  bug: 'Błąd',
+  idea: 'Pomysł',
+  opinion: 'Opinia lub pomysł',
+}
 
 export const FEEDBACK_STATUS_LABELS: Record<FeedbackStatus, string> = {
   new: 'Nowe',
@@ -63,7 +70,7 @@ const str = (v: unknown, max = MAX_TEXT) => (typeof v === 'string' ? v.slice(0, 
 
 export function parseFeedback(id: string, raw: Record<string, unknown>): Feedback | null {
   if (typeof raw.uid !== 'string') return null
-  const kinds = FEEDBACK_KINDS.map((k) => k.id)
+  const kinds = Object.keys(FEEDBACK_KIND_LABELS) // też 'idea' ze starszych zgłoszeń
   const created = raw.createdAt as { toMillis?: () => number } | number | undefined
   return {
     id,

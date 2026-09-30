@@ -17,7 +17,7 @@ import {
   type TimetableNote,
 } from './timetable'
 import { DEFAULT_TYPE_COLORS, type TypeColors } from './typeColors'
-import { shortBuilding, typeLabel } from './usos'
+import { colorType, shortBuilding, typeLabel } from './usos'
 
 export interface ExportOptions {
   scope: 'typical' | 'week' // typowy tydzień semestru albo konkretny tydzień
@@ -198,7 +198,8 @@ interface BuildInput {
 export function buildExportModel({ timetable, meetings, options, weekStart, hiddenNotes, label, colors }: BuildInput): ExportModel {
   const week = options.scope === 'week'
   const base = week ? weekEntries(meetings, startOfWeek(weekStart)) : filterByParity(timetable.entries, options.parity)
-  const colorOf = (type: string) => colors[type] ?? DEFAULT_TYPE_COLORS[type] ?? DEFAULT_TYPE_COLORS.INNE
+  // Kolor po typie głównym (WF z USOS jako "FIZ" - kolor WF).
+  const colorOf = (type: string) => colors[colorType(type)] ?? DEFAULT_TYPE_COLORS[colorType(type)] ?? DEFAULT_TYPE_COLORS.INNE
 
   // Zajęcia na zmianę zajmują jeden pas (jako jedna pozycja), a w nim dzielą wysokość.
   const alternating = week ? new Map<string, { key: string; index: number; count: number }>() : alternatingGroups(base)
