@@ -26,6 +26,25 @@ test('plan: dziś, tydzień i przedmioty', async ({ page }) => {
   }
 })
 
+test('tydzień: wybrany tydzień zostaje po wejściu w przedmiot, a wraca do bieżącego po zmianie zakładki', async ({ page }) => {
+  await tab(page, 'Tydzień').click()
+  await page.getByRole('button', { name: 'Następny tydzień' }).click()
+  await page.getByRole('button', { name: 'Następny tydzień' }).click()
+  await expect(page.getByText('26 października – 1 listopada')).toBeVisible()
+
+  // Wejście w przedmiot: na komputerze kafelek w siatce, na telefonie karta → „Przedmiot →”.
+  await page.getByText('Grafika komputerowa').first().click()
+  const courseLink = page.getByRole('button', { name: 'Przedmiot →' })
+  if (await courseLink.isVisible()) await courseLink.click()
+  await page.getByRole('button', { name: 'Wróć' }).click()
+  await expect(page.getByText('26 października – 1 listopada')).toBeVisible()
+
+  await tab(page, 'Dziś').click()
+  await tab(page, 'Tydzień').click()
+  await expect(page.getByText('12 – 18 października')).toBeVisible()
+  await expect(page.getByText('ten tydzień')).toBeVisible()
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()

@@ -83,6 +83,9 @@ const ENTER_CLASS = { rise: 'view-enter', left: 'view-enter-left', right: 'view-
 
 const DEADLINE_SLACK_MIN = 15
 
+// Po tylu minutach w tle aplikacja wraca w zakładce Tydzień do bieżącego tygodnia (jak nowe otwarcie).
+const WEEK_RESET_AFTER_MS = 10 * 60_000
+
 // Zębatka ustawień; kropka = ktoś czeka na zatwierdzenie konta (tylko administrator).
 function GearIcon({ alert = false }: { alert?: boolean }) {
   return (
@@ -269,6 +272,18 @@ function App() {
   const [deadlineDraft, setDeadlineDraft] = useState<DeadlineDraft | null>(null)
   const [editingMeeting, setEditingMeeting] = useState<PlanMeeting | null>(null)
   const [customDraft, setCustomDraft] = useState<CustomMeetingDraft | null>(null)
+  // Tydzień wybrany w zakładce Tydzień (null = bieżący). Zostaje po wejściu w przedmiot i powrocie;
+  // wraca do bieżącego po zmianie zakładki i po powrocie do aplikacji po dłuższej przerwie.
+  const [selectedWeek, setSelectedWeek] = useState<Date | null>(null)
+  useEffect(() => {
+    let hiddenAt: number | null = null
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') hiddenAt = Date.now()
+      else if (hiddenAt !== null && Date.now() - hiddenAt > WEEK_RESET_AFTER_MS) setSelectedWeek(null)
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
 
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
   const meetings = useMemo(() => applyEdits(plan.meetings, extras), [plan.meetings, extras])
@@ -370,6 +385,7 @@ function App() {
       if (page) closePage()
       const step = VIEW_ORDER.indexOf(next) - VIEW_ORDER.indexOf(view)
       setEnter(step > 0 ? 'right' : step < 0 ? 'left' : 'rise')
+      if (next !== view) setSelectedWeek(null)
       setView(next)
     },
     [view, page, closePage],
@@ -644,7 +660,9 @@ function App() {
   const mainView = (
     <>
       {view === 'today' && <TodayView meetings={meetings} now={now} />}
-      {view === 'week' && <WeekView meetings={meetings} now={now} />}
+      {view === 'week' && (
+        <WeekView meetings={meetings} now={now} selectedWeek={selectedWeek} onSelectWeek={setSelectedWeek} />
+      )}
       {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
       {view === 'notifications' && <NotificationsView notifications={notifications} now={now} />}
       {view === 'report' &&

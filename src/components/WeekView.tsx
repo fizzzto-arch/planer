@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
@@ -13,10 +13,14 @@ import { WeekGrid } from './WeekGrid'
 interface Props {
   meetings: PlanMeeting[]
   now: Date
+  // Wybrany tydzień trzyma App - zostaje po wejściu w przedmiot i powrocie (null = bieżący).
+  selectedWeek: Date | null
+  onSelectWeek: (weekStart: Date | null) => void
 }
 
-export function WeekView({ meetings, now }: Props) {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(now))
+export function WeekView({ meetings, now, selectedWeek, onSelectWeek }: Props) {
+  const weekStart = selectedWeek ?? startOfWeek(now)
+  const rootRef = useRef<HTMLElement>(null)
   // Z której strony ma wjechać nowy tydzień.
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const wide = useMediaQuery('(min-width: 900px)')
@@ -26,7 +30,7 @@ export function WeekView({ meetings, now }: Props) {
   function goTo(target: Date) {
     if (target.getTime() === weekStart.getTime()) return
     setDirection(target > weekStart ? 'next' : 'prev')
-    setWeekStart(target)
+    onSelectWeek(isSameDay(target, startOfWeek(now)) ? null : target)
   }
 
   // Na komputerze strzałki ← → zmieniają tydzień (poza polami tekstowymi i oknami).
@@ -36,13 +40,16 @@ export function WeekView({ meetings, now }: Props) {
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
       if (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]')) return
       if (document.querySelector('dialog[open]')) return
+      // Kopia planu pod podstroną (do gestu "wstecz") nie reaguje na klawisze.
+      if (rootRef.current?.closest('.swipe-under')) return
       e.preventDefault()
+      const target = addDays(weekStart, e.key === 'ArrowRight' ? 7 : -7)
       setDirection(e.key === 'ArrowRight' ? 'next' : 'prev')
-      setWeekStart((w) => addDays(w, e.key === 'ArrowRight' ? 7 : -7))
+      onSelectWeek(isSameDay(target, startOfWeek(now)) ? null : target)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [weekStart, now, onSelectWeek])
 
   const weekEnd = addDays(weekStart, 7)
   const weekMeetings = meetings.filter((m) => m.start >= weekStart && m.start < weekEnd)
@@ -53,7 +60,7 @@ export function WeekView({ meetings, now }: Props) {
   const semWeek = prefs.showWeekNumber ? semesterWeek(weekStart, meetings) : null
 
   return (
-    <section>
+    <section ref={rootRef}>
       <div className="week-nav">
         <button
           type="button"
