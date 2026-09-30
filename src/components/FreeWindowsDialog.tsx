@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { addDays, formatDay, formatDuration, formatTime } from '../lib/dates'
@@ -46,13 +47,12 @@ export function FreeWindowsDialog({ weekStart, now, onClose }: Props) {
 
   let body
   if (!available) {
-    body = <p className="empty-state">Zaloguj się, żeby szukać wspólnych okienek ze znajomymi.</p>
+    body = <p className="empty-state">{t('Zaloguj się, żeby szukać wspólnych okienek ze znajomymi.')}</p>
   } else if (!sharing) {
     body = (
       <div className="empty-state">
         <p>
-          Włącz „Pokazuj znajomym, kiedy mam zajęcia” - wtedy zobaczysz godziny znajomych, którzy też to włączyli.
-          Udostępniane są tylko godziny, bez nazw przedmiotów i sal.
+          {t('Włącz „Pokazuj znajomym, kiedy mam zajęcia” - wtedy zobaczysz godziny znajomych, którzy też to włączyli. Udostępniane są tylko godziny, bez nazw przedmiotów i sal.')}
         </p>
         <button
           type="button"
@@ -62,16 +62,16 @@ export function FreeWindowsDialog({ weekStart, now, onClose }: Props) {
             openSettings()
           }}
         >
-          Przejdź do ustawień
+          {t('Przejdź do ustawień')}
         </button>
       </div>
     )
   } else if (friends.length === 0) {
-    body = <p className="empty-state">Nikt ze znajomych jeszcze nie udostępnia godzin zajęć. Daj im znać o tej opcji.</p>
+    body = <p className="empty-state">{t('Nikt ze znajomych jeszcze nie udostępnia godzin zajęć. Daj im znać o tej opcji.')}</p>
   } else {
     body = (
       <>
-        <div className="friend-chips" role="group" aria-label="Znajomi">
+        <div className="friend-chips" role="group" aria-label={t('Znajomi')}>
           {friends.map((f) => (
             <button
               key={f.uid}
@@ -85,9 +85,9 @@ export function FreeWindowsDialog({ weekStart, now, onClose }: Props) {
           ))}
         </div>
         {chosen.length === 0 ? (
-          <p className="hint">Wybierz znajomych, z którymi chcesz się spotkać.</p>
+          <p className="hint">{t('Wybierz znajomych, z którymi chcesz się spotkać.')}</p>
         ) : beyondShared ? (
-          <p className="hint">Znajomi udostępniają godziny na {SHARE_DAYS} dni do przodu - ten tydzień jest dalej.</p>
+          <p className="hint">{t('Znajomi udostępniają godziny na {n} dni do przodu - ten tydzień jest dalej.', { n: SHARE_DAYS })}</p>
         ) : (
           <ul className="free-days">
             {days.map((day) => {
@@ -95,18 +95,18 @@ export function FreeWindowsDialog({ weekStart, now, onClose }: Props) {
               const anyone = people.some((busy) => commonWindows([busy], day, 0).everyonePresent)
               if (!anyone) return null
               const absent = [
-                ...(commonWindows([myBusy], day, 0).everyonePresent ? [] : ['Ty']),
+                ...(commonWindows([myBusy], day, 0).everyonePresent ? [] : [t('Ty')]),
                 ...chosen.filter((f) => !commonWindows([f.busy], day, 0).everyonePresent).map((f) => f.name),
               ]
               return (
                 <li key={day.getTime()}>
                   <strong>{formatDay(day)}</strong>
                   {!result.everyonePresent ? (
-                    <span className="muted">Nie wszyscy są na uczelni ({absent.join(', ')} - bez zajęć)</span>
+                    <span className="muted">{t('Nie wszyscy są na uczelni ({names} - bez zajęć)', { names: absent.join(', ') })}</span>
                   ) : (
                     <>
                       {result.windows.length === 0 ? (
-                        <span className="muted">Brak wspólnych okienek</span>
+                        <span className="muted">{t('Brak wspólnych okienek')}</span>
                       ) : (
                         result.windows.map((w) => (
                           <span key={w.start} className="free-window">
@@ -115,7 +115,7 @@ export function FreeWindowsDialog({ weekStart, now, onClose }: Props) {
                         ))
                       )}
                       {result.allFreeFrom && (
-                        <span className="muted">Wszyscy wolni od {formatTime(new Date(result.allFreeFrom))}</span>
+                        <span className="muted">{t('Wszyscy wolni od {time}', { time: formatTime(new Date(result.allFreeFrom)) })}</span>
                       )}
                     </>
                   )}
@@ -129,11 +129,10 @@ export function FreeWindowsDialog({ weekStart, now, onClose }: Props) {
   }
 
   return (
-    <Dialog title="Wspólne okienka" onClose={onClose}>
+    <Dialog title={t('Wspólne okienka')} onClose={onClose}>
       <div className="free-windows">
         <p className="muted small">
-          Chwile, gdy wszyscy jesteście na uczelni i nikt nie ma zajęć (od {prefs.gapMinutes} min). Tylko godziny - bez
-          nazw przedmiotów.
+          {t('Chwile, gdy wszyscy jesteście na uczelni i nikt nie ma zajęć (od {n} min). Tylko godziny - bez nazw przedmiotów.', { n: prefs.gapMinutes })}
         </p>
         {body}
       </div>

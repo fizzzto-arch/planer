@@ -1,3 +1,4 @@
+import { t, tk } from '../lib/i18n'
 import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { tasksFor, type TesterTask } from '../lib/testerTasks'
@@ -14,7 +15,7 @@ export function TesterTasks({ onReport }: Props) {
 
   const tasks = tasksFor(canOptimize)
   const done = new Set(extras.extras.testerTasks)
-  const count = tasks.filter((t) => done.has(t.id)).length
+  const count = tasks.filter((item) => done.has(item.id)).length
   const allDone = count === tasks.length
 
   const toggle = (id: string) => {
@@ -25,33 +26,32 @@ export function TesterTasks({ onReport }: Props) {
   return (
     <div className="panel tester-tasks">
       <div className="section-head">
-        <h3 className="panel-title">Zadania do przetestowania</h3>
+        <h3 className="panel-title">{t('Zadania do przetestowania')}</h3>
         <span className="muted small">
-          {count} z {tasks.length}
+          {t('{done} z {total}', { done: count, total: tasks.length })}
         </span>
       </div>
-      <progress className="opt-progress" value={count} max={tasks.length} aria-label="Postęp zadań" />
+      <progress className="opt-progress" value={count} max={tasks.length} aria-label={t('Postęp zadań')} />
       {allDone ? (
-        <p className="success">Wszystko sprawdzone - dzięki! Każda uwaga niżej dalej się przyda.</p>
+        <p className="success">{t('Wszystko sprawdzone - dzięki! Każda uwaga niżej dalej się przyda.')}</p>
       ) : (
         <p className="hint">
-          Przejdź po kolei i odhacz, co działa. Coś nie tak? Kliknij „Problem?” przy zadaniu - zgłoszenie od razu
-          będzie wiedziało, o co chodzi.
+          {t('Przejdź po kolei i odhacz, co działa. Coś nie tak? Kliknij „Problem?” przy zadaniu - zgłoszenie od razu będzie wiedziało, o co chodzi.')}
         </p>
       )}
       {(!allDone || showDone) && (
         <ul className="tester-task-list">
-          {tasks.map((t) => (
-            <li key={t.id} className={done.has(t.id) ? 'is-done' : undefined}>
+          {tasks.map((task) => (
+            <li key={task.id} className={done.has(task.id) ? 'is-done' : undefined}>
               <label className="check-row">
-                <input type="checkbox" checked={done.has(t.id)} onChange={() => toggle(t.id)} />
+                <input type="checkbox" checked={done.has(task.id)} onChange={() => toggle(task.id)} />
                 <span>
-                  <strong>{t.title}</strong>
-                  <span className="setting-hint">{t.how}</span>
+                  <strong>{tk(task.title)}</strong>
+                  <span className="setting-hint">{tk(task.how)}</span>
                 </span>
               </label>
-              <button type="button" className="link-button" onClick={() => onReport(t)}>
-                Problem?
+              <button type="button" className="link-button" onClick={() => onReport(task)}>
+                {t('Problem?')}
               </button>
             </li>
           ))}
@@ -59,7 +59,7 @@ export function TesterTasks({ onReport }: Props) {
       )}
       {allDone && (
         <button type="button" className="link-button" onClick={() => setShowDone(!showDone)}>
-          {showDone ? 'Schowaj zadania' : 'Pokaż zadania'}
+          {showDone ? t('Schowaj zadania') : t('Pokaż zadania')}
         </button>
       )}
     </div>

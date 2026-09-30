@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Cloud, CloudDoc, CollectionName } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
@@ -291,15 +292,15 @@ export interface BackupFile {
 
 // Sprawdza, czy wczytany plik to kopia Planera; zwraca ją albo powód odrzucenia.
 export function parseBackup(value: unknown): BackupFile | string {
-  if (typeof value !== 'object' || value === null) return 'To nie jest plik kopii Planera.'
+  if (typeof value !== 'object' || value === null) return t('To nie jest plik kopii Planera.')
   const v = value as Record<string, unknown>
-  if (v.app !== 'planer' || v.version !== 1) return 'To nie jest plik kopii Planera (albo pochodzi z nowszej wersji).'
-  if (typeof v.collections !== 'object' || v.collections === null) return 'Plik kopii jest uszkodzony.'
+  if (v.app !== 'planer' || v.version !== 1) return t('To nie jest plik kopii Planera (albo pochodzi z nowszej wersji).')
+  if (typeof v.collections !== 'object' || v.collections === null) return t('Plik kopii jest uszkodzony.')
   const collections: Record<string, CloudDoc[]> = {}
   for (const name of COLLECTIONS) {
     const docs = (v.collections as Record<string, unknown>)[name]
     if (docs === undefined) continue
-    if (!Array.isArray(docs)) return 'Plik kopii jest uszkodzony.'
+    if (!Array.isArray(docs)) return t('Plik kopii jest uszkodzony.')
     collections[name] = docs.filter(
       (d): d is CloudDoc =>
         typeof d === 'object' && d !== null && typeof d.id === 'string' && d.id.length > 0 && !d.id.includes('/') &&

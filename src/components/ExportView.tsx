@@ -1,3 +1,5 @@
+import { t } from '../lib/i18n'
+import { tx } from '../lib/i18nReact'
 import { useEffect, useMemo, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { addDays, formatWeekRange, startOfWeek } from '../lib/dates'
@@ -30,13 +32,13 @@ interface Props {
 
 type Format = 'png' | 'jpeg' | 'pdf' | 'xlsx' | 'ics'
 
-const FORMATS: { id: Format; label: string; hint: string }[] = [
-  { id: 'png', label: 'Zdjęcie PNG', hint: 'najostrzejsze' },
-  { id: 'jpeg', label: 'Zdjęcie JPEG', hint: 'lżejsze, do komunikatorów' },
-  { id: 'pdf', label: 'PDF', hint: 'strona A4, do druku' },
-  { id: 'xlsx', label: 'Excel', hint: 'siatka z kolorami + lista' },
-  { id: 'ics', label: 'Kalendarz (.ics)', hint: 'Google, Apple' },
-]
+const FORMATS = (): { id: Format; label: string; hint: string }[] => ([
+  { id: 'png', label: t('Zdjęcie PNG'), hint: t('najostrzejsze') },
+  { id: 'jpeg', label: t('Zdjęcie JPEG'), hint: t('lżejsze, do komunikatorów') },
+  { id: 'pdf', label: 'PDF', hint: t('strona A4, do druku') },
+  { id: 'xlsx', label: 'Excel', hint: t('siatka z kolorami + lista') },
+  { id: 'ics', label: t('Kalendarz (.ics)'), hint: t('Google, Apple') },
+])
 
 // Eksport planu: typowy tydzień albo konkretny tydzień jako zdjęcie, PDF, Excel albo kalendarz.
 export function ExportView({ meetings, now, initialWeek, colors, source, onBack }: Props) {
@@ -118,8 +120,8 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
         )
       }
       const result = await saveFile(blob, `${model.fileBase}.${format === 'jpeg' ? 'jpg' : format}`)
-      if (result === 'downloaded') setStatus({ ok: true, text: 'Zapisano w pobranych plikach.' })
-      else if (result === 'shared') setStatus({ ok: true, text: 'Gotowe.' })
+      if (result === 'downloaded') setStatus({ ok: true, text: t('Zapisano w pobranych plikach.') })
+      else if (result === 'shared') setStatus({ ok: true, text: t('Gotowe.') })
     } catch (e) {
       setStatus({ ok: false, text: errorMessage(e) })
     } finally {
@@ -141,49 +143,49 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m15 6-6 6 6 6" />
         </svg>
-        Wróć
+        {t('Wróć')}
       </button>
 
       <header className="course-header">
-        <h2>Eksport planu</h2>
-        <p className="muted">Zdjęcie do galerii albo dla znajomych, PDF do druku, Excel albo plik do kalendarza.</p>
+        <h2>{t('Eksport planu')}</h2>
+        <p className="muted">{t('Zdjęcie do galerii albo dla znajomych, PDF do druku, Excel albo plik do kalendarza.')}</p>
         {source !== null && (
           <p className="export-source">
-            Eksportujesz propozycję z optymalizatora: <strong>{source}</strong> - nie swój obecny plan.
+            {tx('Eksportujesz propozycję z optymalizatora: {name} - nie swój obecny plan.', { name: <strong>{source}</strong> })}
           </p>
         )}
       </header>
 
       {!timetable || !model ? (
-        <p className="empty-state">W planie nie ma zajęć do wyeksportowania.</p>
+        <p className="empty-state">{t('W planie nie ma zajęć do wyeksportowania.')}</p>
       ) : (
         <div className="export-layout">
           <div className="export-options">
             <div className="panel">
-              <h3 className="panel-title">Co eksportować</h3>
+              <h3 className="panel-title">{t('Co eksportować')}</h3>
               <ChoiceSetting
-                label="Zakres"
+                label={t('Zakres')}
                 hint={
                   options.scope === 'typical'
-                    ? `${semesterTitle(timetable.semester)} - każde zajęcia raz, z oznaczeniem tygodni.`
-                    : 'Dokładnie tak, jak wypada wybrany tydzień.'
+                    ? t('{semester} - każde zajęcia raz, z oznaczeniem tygodni.', { semester: semesterTitle(timetable.semester) })
+                    : t('Dokładnie tak, jak wypada wybrany tydzień.')
                 }
                 value={options.scope}
                 options={[
-                  { value: 'typical', label: 'Typowy tydzień' },
-                  { value: 'week', label: 'Konkretny tydzień' },
+                  { value: 'typical', label: t('Typowy tydzień') },
+                  { value: 'week', label: t('Konkretny tydzień') },
                 ]}
                 onChange={(scope) => update({ scope })}
               />
               {options.scope === 'typical' ? (
                 <ChoiceSetting
-                  label="Tygodnie"
-                  hint="Nieparzyste/parzyste: bez zajęć z drugiego rodzaju tygodnia."
+                  label={t('Tygodnie')}
+                  hint={t('Nieparzyste/parzyste: bez zajęć z drugiego rodzaju tygodnia.')}
                   value={options.parity}
                   options={[
-                    { value: 'both', label: 'Oba' },
-                    { value: 'odd', label: 'Nieparzyste' },
-                    { value: 'even', label: 'Parzyste' },
+                    { value: 'both', label: t('Oba') },
+                    { value: 'odd', label: t('Nieparzyste') },
+                    { value: 'even', label: t('Parzyste') },
                   ]}
                   onChange={(parity) => update({ parity })}
                 />
@@ -192,7 +194,7 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
                   <button
                     type="button"
                     className="icon-button"
-                    aria-label="Poprzedni tydzień"
+                    aria-label={t('Poprzedni tydzień')}
                     onClick={() => setWeekStart((w) => addDays(w, -7))}
                   >
                     ‹
@@ -203,7 +205,7 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
                   <button
                     type="button"
                     className="icon-button"
-                    aria-label="Następny tydzień"
+                    aria-label={t('Następny tydzień')}
                     onClick={() => setWeekStart((w) => addDays(w, 7))}
                   >
                     ›
@@ -213,9 +215,9 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
             </div>
 
             <div className="panel">
-              <h3 className="panel-title">Wygląd</h3>
+              <h3 className="panel-title">{t('Wygląd')}</h3>
               <label className="field">
-                <span className="field-label">Tytuł</span>
+                <span className="field-label">{t('Tytuł')}</span>
                 <input
                   className="text-input"
                   value={options.title}
@@ -225,35 +227,35 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
                 />
               </label>
               <ChoiceSetting
-                label="Układ zdjęcia"
-                hint={options.layout === 'portrait' ? 'Dni jeden pod drugim - wygodne na telefonie.' : 'Siatka tygodnia - do druku i na komputer.'}
+                label={t('Układ zdjęcia')}
+                hint={options.layout === 'portrait' ? t('Dni jeden pod drugim - wygodne na telefonie.') : t('Siatka tygodnia - do druku i na komputer.')}
                 value={options.layout}
                 options={[
-                  { value: 'landscape', label: 'Poziomy' },
-                  { value: 'portrait', label: 'Pionowy' },
+                  { value: 'landscape', label: t('Poziomy') },
+                  { value: 'portrait', label: t('Pionowy') },
                 ]}
                 onChange={(layout) => update({ layout })}
               />
               <ChoiceSetting
-                label="Motyw"
+                label={t('Motyw')}
                 value={options.theme}
                 options={[
-                  { value: 'light', label: 'Jasny' },
-                  { value: 'dark', label: 'Ciemny' },
+                  { value: 'light', label: t('Jasny') },
+                  { value: 'dark', label: t('Ciemny') },
                 ]}
                 onChange={(theme) => update({ theme })}
               />
-              <SwitchSetting label="Sala i budynek" checked={options.showRoom} onChange={(showRoom) => update({ showRoom })} />
-              <SwitchSetting label="Numer grupy" checked={options.showGroup} onChange={(showGroup) => update({ showGroup })} />
+              <SwitchSetting label={t('Sala i budynek')} checked={options.showRoom} onChange={(showRoom) => update({ showRoom })} />
+              <SwitchSetting label={t('Numer grupy')} checked={options.showGroup} onChange={(showGroup) => update({ showGroup })} />
             </div>
 
             <div className="panel">
-              <h3 className="panel-title">Uwagi pod planem</h3>
+              <h3 className="panel-title">{t('Uwagi pod planem')}</h3>
               {autoNotes.length === 0 ? (
-                <p className="hint">W tym zakresie Planer nie znalazł świąt, zamian dni ani zmian.</p>
+                <p className="hint">{t('W tym zakresie Planer nie znalazł świąt, zamian dni ani zmian.')}</p>
               ) : (
                 <>
-                  <p className="hint">Wykryte z planu - odznacz te, których nie chcesz.</p>
+                  <p className="hint">{t('Wykryte z planu - odznacz te, których nie chcesz.')}</p>
                   <ul className="export-notes">
                     {autoNotes.map((n) => (
                       <li key={n.id}>
@@ -267,13 +269,13 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
                 </>
               )}
               <label className="field">
-                <span className="field-label">Własne uwagi</span>
+                <span className="field-label">{t('Własne uwagi')}</span>
                 <textarea
                   className="text-input"
                   rows={3}
                   value={options.customNotes}
                   maxLength={2000}
-                  placeholder={'Każda uwaga w osobnej linii, np.\nKolokwium z fizyki 20.11 w s. 170'}
+                  placeholder={t('Każda uwaga w osobnej linii, np.\nKolokwium z fizyki 20.11 w s. 170')}
                   onChange={(e) => update({ customNotes: e.target.value })}
                 />
               </label>
@@ -282,10 +284,10 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
 
           <div className="export-result">
             <div className={`export-preview is-${options.layout}`}>
-              {preview ? <img src={preview.url} alt="Podgląd eksportowanego planu" /> : <span className="spinner" aria-hidden="true" />}
+              {preview ? <img src={preview.url} alt={t('Podgląd eksportowanego planu')} /> : <span className="spinner" aria-hidden="true" />}
             </div>
             <div className="export-buttons">
-              {FORMATS.map((f) => (
+              {FORMATS().map((f) => (
                 <button
                   key={f.id}
                   type="button"
@@ -293,15 +295,14 @@ export function ExportView({ meetings, now, initialWeek, colors, source, onBack 
                   disabled={busy !== null}
                   onClick={() => void download(f.id)}
                 >
-                  <span>{busy === f.id ? 'Przygotowuję…' : f.label}</span>
+                  <span>{busy === f.id ? t('Przygotowuję…') : f.label}</span>
                   <span className="export-button-hint">{f.hint}</span>
                 </button>
               ))}
             </div>
             {status && <p className={status.ok ? 'hint' : 'error'}>{status.text}</p>}
             <p className="hint">
-              Na iPhonie zdjęcie zapiszesz przez „Udostępnij” → „Zachowaj obraz”, a pozostałe pliki przez „Zachowaj w
-              Plikach”. Uwagi i tytuł zdjęcia, PDF i Excela są takie same.
+              {t('Na iPhonie zdjęcie zapiszesz przez „Udostępnij” → „Zachowaj obraz”, a pozostałe pliki przez „Zachowaj w Plikach”. Uwagi i tytuł zdjęcia, PDF i Excela są takie same.')}
             </p>
           </div>
         </div>

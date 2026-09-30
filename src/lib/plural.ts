@@ -1,8 +1,7 @@
-// Polska odmiana liczebników: 1 przedmiot, 2 przedmioty, 5 przedmiotów, 22 przedmioty.
+import { getLanguage, pluralIn } from './i18n.ts'
+
+// Odmiana liczebników w bieżącym języku: 1 przedmiot, 2 przedmioty, 5 przedmiotów, 22 przedmioty
+// (po angielsku 1 course, 2 courses - formy w słowniku i18n.en.ts).
 export function plural(n: number, one: string, few: string, many: string): string {
-  if (n === 1) return one
-  const lastDigit = n % 10
-  const lastTwo = n % 100
-  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) return few
-  return many
+  return pluralIn(getLanguage(), n, one, few, many)
 }

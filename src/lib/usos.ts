@@ -1,3 +1,4 @@
+import { msg, t, tk } from './i18n.ts'
 import { parseIcs, type IcsEvent } from './ical.ts'
 
 // Pojedyncze spotkanie (jeden termin zajęć).
@@ -19,41 +20,39 @@ export interface Meeting {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  WYK: 'Wykład',
-  CWI: 'Ćwiczenia',
-  LAB: 'Laboratorium',
-  PRO: 'Projekt',
-  SEM: 'Seminarium',
-  LEK: 'Lektorat',
-  WF: 'WF',
+  WYK: msg('Wykład'),
+  CWI: msg('Ćwiczenia'),
+  LAB: msg('Laboratorium'),
+  PRO: msg('Projekt'),
+  SEM: msg('Seminarium'),
+  LEK: msg('Lektorat'),
+  WF: msg('WF'),
 }
 
 // Pozostałe kody typów zajęć z USOS PW (courses/classtypes_index) - nazwy zamiast skrótów.
 const OTHER_LABELS: Record<string, string> = {
-  FIZ: 'WF', // wychowanie fizyczne - w USOS "FIZ"
-  SED: 'Seminarium dyplomowe',
-  ZKO: 'Zajęcia komputerowe',
-  EGZ: 'Egzamin',
-  KON: 'Konsultacje',
-  PRA: 'Praktyka',
-  DOM: 'Praca własna',
-  PPR: 'Praca przejściowa',
-  TST: 'Test',
-  ZIN: 'Zajęcia zintegrowane',
+  FIZ: msg('WF'), // wychowanie fizyczne - w USOS "FIZ"
+  SED: msg('Seminarium dyplomowe'),
+  ZKO: msg('Zajęcia komputerowe'),
+  EGZ: msg('Egzamin'),
+  KON: msg('Konsultacje'),
+  PRA: msg('Praktyka'),
+  DOM: msg('Praca własna'),
+  PPR: msg('Praca przejściowa'),
+  TST: msg('Test'),
+  ZIN: msg('Zajęcia zintegrowane'),
 }
 
 // Kody, które dzielą kolor z głównym typem (WF z USOS jako "FIZ" - kolor WF, nie szary "Inne").
 const COLOR_ALIASES: Record<string, string> = { FIZ: 'WF', SED: 'SEM', ZKO: 'LAB' }
 
 export function typeLabel(type: string): string {
-  return TYPE_LABELS[type] ?? OTHER_LABELS[type] ?? (type === 'INNE' ? 'Inne' : type)
+  const label = TYPE_LABELS[type] ?? OTHER_LABELS[type]
+  return label ? tk(label) : type === 'INNE' ? t('Inne') : type
 }
 
-// Typy do wyboru przy dodawaniu własnych zajęć.
-export const MEETING_TYPES: { id: string; label: string }[] = [
-  ...Object.entries(TYPE_LABELS).map(([id, label]) => ({ id, label })),
-  { id: 'INNE', label: 'Inne' },
-]
+// Typy do wyboru przy dodawaniu własnych zajęć (nazwy przez typeLabel - w języku interfejsu).
+export const MEETING_TYPES: string[] = [...Object.keys(TYPE_LABELS), 'INNE']
 
 // Typ, którego kolor ma dostać dany kod (FIZ -> WF); nieznane - "INNE".
 export function colorType(type: string): string {
@@ -125,7 +124,7 @@ function toMeeting(event: IcsEvent): Meeting {
 
 export function parseUsosCalendar(text: string): Meeting[] {
   if (!/BEGIN:VCALENDAR/i.test(text)) {
-    throw new Error('To nie jest plik kalendarza (.ics).')
+    throw new Error(t('To nie jest plik kalendarza (.ics).'))
   }
   return parseIcs(text)
     .map(toMeeting)
@@ -142,8 +141,8 @@ export function mergeWithHistory(previous: Meeting[], fresh: Meeting[], now: Dat
   const oldest = cutoff - HISTORY_DAYS * 24 * 60 * 60 * 1000
   const freshIds = new Set(fresh.map((m) => m.id))
   const kept = previous.filter((m) => {
-    const t = m.start.getTime()
-    return t < cutoff && t >= oldest && !freshIds.has(m.id)
+    const item = m.start.getTime()
+    return item < cutoff && item >= oldest && !freshIds.has(m.id)
   })
   return [...kept, ...fresh].sort((a, b) => a.start.getTime() - b.start.getTime())
 }

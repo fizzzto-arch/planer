@@ -8,6 +8,7 @@ import { DeadlineEditor } from './components/DeadlineEditor'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { HelpView } from './components/HelpView'
 import { Welcome } from './components/Welcome'
+import { LanguageSwitch } from './components/LanguageSwitch'
 import { MeetingEditor } from './components/MeetingEditor'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { UpdateBanner } from './components/UpdateBanner'
@@ -35,6 +36,7 @@ import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
+import { locale, setLanguage, t } from './lib/i18n'
 
 type View = 'today' | 'week' | 'courses' | 'notifications' | 'report' | 'settings'
 
@@ -45,10 +47,11 @@ const SettingsView = lazy(() => import('./components/SettingsView').then((m) => 
 const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
 const FeedbackView = lazy(() => import('./components/FeedbackView').then((m) => ({ default: m.FeedbackView })))
 
-const LOADING = (
+// Funkcja, nie stała - tekst w bieżącym języku.
+const loading = () => (
   <p className="muted loading-line">
     <span className="spinner" aria-hidden="true" />
-    Ładowanie…
+    {t('Ładowanie…')}
   </p>
 )
 
@@ -133,22 +136,22 @@ function tabs(
   newReports: number,
 ): { id: View; label: string; icon?: ReactNode }[] {
   return [
-    { id: 'today', label: 'Dziś' },
-    { id: 'week', label: 'Tydzień' },
-    { id: 'courses', label: 'Przedmioty' },
+    { id: 'today', label: t('Dziś') },
+    { id: 'week', label: t('Tydzień') },
+    { id: 'courses', label: t('Przedmioty') },
     {
       id: 'notifications',
-      label: unread > 0 ? `Powiadomienia (nowe: ${unread})` : 'Powiadomienia',
+      label: unread > 0 ? t('Powiadomienia (nowe: {n})', { n: unread }) : t('Powiadomienia'),
       icon: <EnvelopeIcon unread={unread > 0} />,
     },
     {
       id: 'report',
-      label: newReports > 0 ? `Zgłoszenia (nowe: ${newReports})` : 'Zgłoś problem',
+      label: newReports > 0 ? t('Zgłoszenia (nowe: {n})', { n: newReports }) : t('Zgłoś problem'),
       icon: <ReportIcon alert={newReports > 0} />,
     },
     {
       id: 'settings',
-      label: settingsAlert ? 'Ustawienia (nowe konta czekają na zatwierdzenie)' : 'Ustawienia',
+      label: settingsAlert ? t('Ustawienia (nowe konta czekają na zatwierdzenie)') : t('Ustawienia'),
       icon: <GearIcon alert={settingsAlert} />,
     },
   ]
@@ -157,14 +160,14 @@ function tabs(
 function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extrasError: string | null }) {
   const { source, status, updatedAt } = plan
   if (source?.kind === 'file') {
-    return <p className="sync">Plan z pliku {source.name}. Gdy zmieni się w USOS, wgraj nowy w ustawieniach.</p>
+    return <p className="sync">{t('Plan z pliku {name}. Gdy zmieni się w USOS, wgraj nowy w ustawieniach.', { name: source.name })}</p>
   }
   if (source?.kind !== 'url') return null
 
   let text: string
-  if (status.kind === 'loading') text = 'Odświeżam plan…'
-  else if (status.kind === 'error') text = `${status.message} Pokazuję zapisaną wersję.`
-  else text = updatedAt ? `Zaktualizowano ${formatUpdatedAt(updatedAt, now)}` : ''
+  if (status.kind === 'loading') text = t('Odświeżam plan…')
+  else if (status.kind === 'error') text = t('{error} Pokazuję zapisaną wersję.', { error: status.message })
+  else text = updatedAt ? t('Zaktualizowano {when}', { when: formatUpdatedAt(updatedAt, now) }) : ''
 
   return (
     <>
@@ -183,7 +186,7 @@ function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extr
           >
             <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" />
           </svg>
-          Odśwież
+          {t('Odśwież')}
         </button>
       </p>
       {extrasError && <p className="sync is-error">{extrasError}</p>}
@@ -254,6 +257,8 @@ function App() {
   )
   const prefsApi = usePrefs(extrasApi)
   const { prefs } = prefsApi
+  // Język przed narysowaniem czegokolwiek - teksty (t()) czytają go w trakcie renderowania.
+  setLanguage(prefs.language)
   const now = useNow()
   const [view, setView] = useState<View>(() => prefs.startView)
   const [page, setPage] = useState<Page>(readPageFromHistory)
@@ -509,7 +514,7 @@ function App() {
         const sameDay = deadlinesByDay.get(`${toDateKey(m.start)}|${m.courseName}`) ?? []
         // Termin z godziną należy tylko do zajęć, które wtedy trwają (np. kolokwium na ćwiczeniach,
         // nie na wykładzie). 15 minut zapasu na wpisanie "12:00" zamiast "12:15".
-        const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5))
+        const toMin = (item: string) => Number(item.slice(0, 2)) * 60 + Number(item.slice(3, 5))
         const start = toMin(toTimeKey(m.start)) - DEADLINE_SLACK_MIN
         const end = toMin(toTimeKey(m.end))
         return sameDay.filter((d) => !d.time || (toMin(d.time) >= start && toMin(d.time) < end))
@@ -540,7 +545,7 @@ function App() {
   )
 
   const courseNames = useMemo(
-    () => [...new Set(meetings.map((m) => m.courseName))].sort((a, b) => a.localeCompare(b, 'pl')),
+    () => [...new Set(meetings.map((m) => m.courseName))].sort((a, b) => a.localeCompare(b, locale())),
     [meetings],
   )
 
@@ -579,7 +584,7 @@ function App() {
           <section className="panel view-enter">
             <p className="muted loading-line">
               <span className="spinner" aria-hidden="true" />
-              Pobieram plan z Twojego konta…
+              {t('Pobieram plan z Twojego konta…')}
             </p>
           </section>
         ) : (
@@ -591,35 +596,34 @@ function App() {
             )}
             {cloud.state.kind === 'signedIn' && (
               <p className="account-line view-enter">
-                Zalogowano jako <strong>{cloud.state.user.email}</strong> ·{' '}
+                {t('Zalogowano jako')} <strong>{cloud.state.user.email}</strong> ·{' '}
                 <button type="button" className="link-button" onClick={() => void cloud.signOut()}>
-                  Wyloguj
+                  {t('Wyloguj')}
                 </button>
               </p>
             )}
             {/* Karta konta jest od razu - w trakcie łączenia z kręciołkiem, żeby nic nie skakało. */}
             {(signedOut || cloud.state.kind === 'loading') && (
               <section className="panel view-enter">
-                <h2 className="day-title">Konto w Planerze</h2>
+                <h2 className="day-title">{t('Konto w Planerze')}</h2>
                 <p className="muted">
-                  Zaloguj się albo załóż konto, a plan będzie na wszystkich Twoich urządzeniach.
+                  {t('Zaloguj się albo załóż konto, a plan będzie na wszystkich Twoich urządzeniach.')}
                 </p>
                 {signedOut ? (
                   <AuthForm cloud={cloud} />
                 ) : (
                   <p className="muted loading-line auth-loading">
                     <span className="spinner" aria-hidden="true" />
-                    Łączenie…
+                    {t('Łączenie…')}
                   </p>
                 )}
               </section>
             )}
             <section className="panel view-enter">
-              <h2 className="day-title">{signedOut ? 'Albo dodaj plan bez konta' : 'Dodaj swój plan'}</h2>
+              <h2 className="day-title">{signedOut ? t('Albo dodaj plan bez konta') : t('Dodaj swój plan')}</h2>
               <p className="muted">
-                Wystarczy raz wkleić link (albo kod grupy WAT). Potem plan będzie aktualizował się sam, także w kolejnych
-                semestrach.
-                {cloud.state.kind === 'signedIn' && ' Zapiszemy go też na Twoim koncie.'}
+                {t('Wystarczy raz wkleić link (albo kod grupy WAT). Potem plan będzie aktualizował się sam, także w kolejnych semestrach.')}
+                {cloud.state.kind === 'signedIn' && ' ' + t('Zapiszemy go też na Twoim koncie.')}
               </p>
               <SourceForm plan={plan} onDone={() => setView('today')} />
             </section>
@@ -627,8 +631,10 @@ function App() {
         )}
         <p className="gate-footer view-enter">
           <button type="button" className="link-button" onClick={openHelp}>
-            Pomoc i prywatność
+            {t('Pomoc i prywatność')}
           </button>
+          {' · '}
+          <LanguageSwitch value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
         </p>
         <UpdateBanner />
       </main>
@@ -645,7 +651,7 @@ function App() {
         (cloud.uid ? (
           <FeedbackView feedback={feedback} admin={adminView} />
         ) : (
-          <p className="empty-state">Zaloguj się, żeby zgłosić problem albo pomysł.</p>
+          <p className="empty-state">{t('Zaloguj się, żeby zgłosić problem albo pomysł.')}</p>
         ))}
       {view === 'settings' && (
         <SettingsView
@@ -666,12 +672,13 @@ function App() {
 
   return (
     <PlanUiContext.Provider value={ui}>
-      <main className="app" style={typeColors.style}>
+      {/* key: zmiana języka rysuje wszystko od nowa (także teksty zapamiętane w useMemo). */}
+      <main key={prefs.language} className="app" style={typeColors.style}>
         {cloud.isAdmin && viewAsUser && (
           <div className="view-as-user-bar" role="status">
-            <span>Widok zwykłego użytkownika</span>
+            <span>{t('Widok zwykłego użytkownika')}</span>
             <button type="button" className="link-button" onClick={() => switchView(false)}>
-              Wróć do administratora
+              {t('Wróć do administratora')}
             </button>
           </div>
         )}
@@ -694,7 +701,7 @@ function App() {
             className={ENTER_CLASS[enter]}
           >
             <ErrorBoundary>
-              <Suspense fallback={LOADING}>
+              <Suspense fallback={loading()}>
                 {/* Optymalizator tylko dla administratora i osób, którym go przyznał - inni nie wejdą nawet z historii. */}
                 {page?.kind === 'optimizer' && canOptimize ? (
                   <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />

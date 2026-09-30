@@ -1,5 +1,6 @@
 // Kto uczy: koordynatorzy przedmiotu i prowadzący grup użytkownika - z publicznego API USOS PW.
 // Tytuły dochodzą osobno (people/{id} w bazie, uzupełnia je serwer - lib/usosPeople.ts).
+import { t } from './i18n'
 import { getJson, USOS_API } from './usosGroups'
 import { typeLabel, type Meeting } from './usos'
 
@@ -62,7 +63,7 @@ export async function fetchCourseStaff(meetings: Pick<Meeting, 'unitId' | 'group
       return { type: u.type, groupNumber: u.groupNumber, lecturers: ids.flatMap((id) => known.get(id) ?? []) }
     }),
   )
-  const rank = (t: string) => (TYPE_ORDER.includes(t) ? TYPE_ORDER.indexOf(t) : TYPE_ORDER.length)
+  const rank = (item: string) => (TYPE_ORDER.includes(item) ? TYPE_ORDER.indexOf(item) : TYPE_ORDER.length)
   return {
     coordinators: (edition.coordinators ?? []).map(person),
     groups: groups.sort((a, b) => rank(a.type) - rank(b.type) || (a.groupNumber ?? 0) - (b.groupNumber ?? 0)),
@@ -77,11 +78,11 @@ export function staffPeople(staff: CourseStaff): { person: StaffPerson; roles: s
     byId.set(p.id, e)
     return e
   }
-  for (const p of staff.coordinators) entry(p).roles.push('Koordynator przedmiotu')
+  for (const p of staff.coordinators) entry(p).roles.push(t('Koordynator przedmiotu'))
   for (const g of staff.groups) {
     for (const p of g.lecturers) {
       const e = entry(p)
-      e.roles.push(`${typeLabel(g.type)}${g.groupNumber !== null ? ` gr. ${g.groupNumber}` : ''}`)
+      e.roles.push(`${typeLabel(g.type)}${g.groupNumber !== null ? t(' gr. {n}', { n: g.groupNumber }) : ''}`)
       e.teaches = true
     }
   }

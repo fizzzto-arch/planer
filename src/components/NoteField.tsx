@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useEffect, useRef, useState } from 'react'
 
 interface Props {
@@ -75,7 +76,7 @@ export function NoteField({ id, value, onSave, placeholder, rows = 3, label, aut
         }}
       />
       <span className={`note-status${status === 'saved' ? ' is-saved' : ''}`} aria-live="polite">
-        {status === 'saving' ? 'Zapisywanie…' : status === 'saved' ? 'Zapisano ✓' : ''}
+        {status === 'saving' ? t('Zapisywanie…') : status === 'saved' ? t('Zapisano ✓') : ''}
       </span>
     </div>
   )

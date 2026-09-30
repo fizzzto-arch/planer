@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 
 interface Props {
@@ -44,7 +45,7 @@ export function PasswordField({ id, value, onChange, autoComplete }: Props) {
       <button
         type="button"
         className="password-toggle"
-        aria-label={visible ? 'Ukryj hasło' : 'Pokaż hasło'}
+        aria-label={visible ? t('Ukryj hasło') : t('Pokaż hasło')}
         aria-pressed={visible}
         // Nie zabieramy fokusu polu - na telefonie klawiatura zostaje otwarta.
         onPointerDown={(e) => e.preventDefault()}

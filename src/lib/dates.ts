@@ -1,3 +1,5 @@
+import { locale, t } from './i18n.ts'
+
 export const MINUTE_MS = 60_000
 
 export function startOfDay(d: Date): Date {
@@ -39,9 +41,20 @@ export function formatDuration(minutes: number): string {
   return `${h} h ${m} min`
 }
 
-const dayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })
-const shortDayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'short', day: 'numeric', month: 'numeric' })
-const dayMonthFormat = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long' })
+// Formatery w języku interfejsu (tworzone raz na język).
+const formatters = new Map<string, Intl.DateTimeFormat>()
+function formatter(name: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale()}|${name}`
+  let f = formatters.get(key)
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale(), options)
+    formatters.set(key, f)
+  }
+  return f
+}
+const dayFormat = () => formatter('day', { weekday: 'long', day: 'numeric', month: 'long' })
+const shortDayFormat = () => formatter('short', { weekday: 'short', day: 'numeric', month: 'numeric' })
+const dayMonthFormat = () => formatter('dayMonth', { day: 'numeric', month: 'long' })
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
@@ -49,27 +62,27 @@ function capitalize(s: string): string {
 
 // "Poniedziałek, 5 października"
 export function formatDay(d: Date): string {
-  return capitalize(dayFormat.format(d))
+  return capitalize(dayFormat().format(d))
 }
 
 // "Pon., 5.10"
 export function formatShortDay(d: Date): string {
-  return capitalize(shortDayFormat.format(d))
+  return capitalize(shortDayFormat().format(d))
 }
 
 // "5 – 11 października" albo "28 września – 4 października"
 export function formatWeekRange(weekStart: Date): string {
   const end = addDays(weekStart, 6)
   if (weekStart.getMonth() === end.getMonth()) {
-    return `${weekStart.getDate()} – ${dayMonthFormat.format(end)}`
+    return `${weekStart.getDate()} – ${dayMonthFormat().format(end)}`
   }
-  return `${dayMonthFormat.format(weekStart)} – ${dayMonthFormat.format(end)}`
+  return `${dayMonthFormat().format(weekStart)} – ${dayMonthFormat().format(end)}`
 }
 
 // "dziś 16:40", "wczoraj 9:05", "3.10 12:00"
 export function formatUpdatedAt(d: Date, now: Date): string {
-  if (isSameDay(d, now)) return `dziś ${formatTime(d)}`
-  if (isSameDay(d, addDays(now, -1))) return `wczoraj ${formatTime(d)}`
+  if (isSameDay(d, now)) return t('dziś {time}', { time: formatTime(d) })
+  if (isSameDay(d, addDays(now, -1))) return t('wczoraj {time}', { time: formatTime(d) })
   return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')} ${formatTime(d)}`
 }
 

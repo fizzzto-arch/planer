@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useEffect, useState } from 'react'
 import { fetchCourseId, loadCachedCourseId, meetingCounts, saveCachedCourseId, USOSWEB_COURSE_URL } from '../lib/courseInfo'
 import { typeLabel, type Meeting } from '../lib/usos'
@@ -36,21 +37,21 @@ export function CourseInfoSection({ meetings, now }: Props) {
 
   return (
     <div className="panel course-info">
-      <h3 className="panel-title">Postęp</h3>
+      <h3 className="panel-title">{t('Postęp')}</h3>
       <ul className="course-counts">
         {counts.map((c) => (
           <li key={c.type}>
             <span>{typeLabel(c.type)}</span>
             <span className="muted">
-              {c.done} z {c.total} za Tobą
+              {t('{done} z {total} za Tobą', { done: c.done, total: c.total })}
             </span>
-            <progress className="opt-progress" value={c.done} max={c.total} aria-label={`${typeLabel(c.type)}: postęp`} />
+            <progress className="opt-progress" value={c.done} max={c.total} aria-label={t('{type}: postęp', { type: typeLabel(c.type) })} />
           </li>
         ))}
       </ul>
       {current && (
         <a className="link-button" href={`${USOSWEB_COURSE_URL}${encodeURIComponent(current)}`} target="_blank" rel="noreferrer">
-          Przedmiot w USOSweb ↗
+          {t('Przedmiot w USOSweb ↗')}
         </a>
       )}
     </div>

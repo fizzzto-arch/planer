@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { DeadlineDraft } from '../hooks/planUi'
 import { parseDateKey } from '../lib/dates'
@@ -38,11 +39,11 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!parseDateKey(date)) {
-      setError('Wybierz datę.')
+      setError(t('Wybierz datę.'))
       return
     }
     if (!time) {
-      setError('Wybierz godzinę.')
+      setError(t('Wybierz godzinę.'))
       return
     }
     onSave({
@@ -60,9 +61,9 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
   }
 
   return (
-    <Dialog title={isNew ? 'Nowy termin' : 'Edytuj termin'} onClose={onClose}>
+    <Dialog title={isNew ? t('Nowy termin') : t('Edytuj termin')} onClose={onClose}>
       <form className="form-grid" onSubmit={handleSubmit}>
-        <div className="segmented" role="radiogroup" aria-label="Rodzaj">
+        <div className="segmented" role="radiogroup" aria-label={t('Rodzaj')}>
           {DEADLINE_KINDS.map((k) => (
             <button
               key={k.id}
@@ -72,27 +73,27 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
               className={`segment${kind === k.id ? ' is-active' : ''}`}
               onClick={() => setKind(k.id)}
             >
-              {k.label}
+              {deadlineKindLabel(k.id)}
             </button>
           ))}
         </div>
 
         <label className="field">
           <span className="field-label">
-            Tytuł <span className="label-note">(opcjonalnie)</span>
+            {t('Tytuł')} <span className="label-note">{t('(opcjonalnie)')}</span>
           </span>
           <input
             className="text-input"
             value={title}
-            placeholder={`np. ${deadlineKindLabel(kind)} 1`}
+            placeholder={t('np. {kind} 1', { kind: deadlineKindLabel(kind) })}
             onChange={(e) => setTitle(e.target.value)}
           />
         </label>
 
         <label className="field">
-          <span className="field-label">Przedmiot</span>
+          <span className="field-label">{t('Przedmiot')}</span>
           <select className="text-input" value={courseName} onChange={(e) => setCourseName(e.target.value)}>
-            <option value="">— bez przedmiotu —</option>
+            <option value="">{t('— bez przedmiotu —')}</option>
             {options.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -103,31 +104,31 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
 
         <div className="field-row">
           <label className="field">
-            <span className="field-label">Data</span>
+            <span className="field-label">{t('Data')}</span>
             <input className="text-input" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
           </label>
           <label className="field">
-            <span className="field-label">Godzina</span>
+            <span className="field-label">{t('Godzina')}</span>
             <input className="text-input" type="time" value={time} required onChange={(e) => setTime(e.target.value)} />
           </label>
         </div>
 
         <label className="field">
           <span className="field-label">
-            Notatka <span className="label-note">(opcjonalnie)</span>
+            {t('Notatka')} <span className="label-note">{t('(opcjonalnie)')}</span>
           </span>
           <textarea
             className="text-input note-input"
             rows={3}
             value={note}
-            placeholder="np. zakres materiału, sala, co przynieść"
+            placeholder={t('np. zakres materiału, sala, co przynieść')}
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
 
         <div className="field">
           <span className="field-label">
-            Do przygotowania <span className="label-note">(opcjonalnie)</span>
+            {t('Do przygotowania')} <span className="label-note">{t('(opcjonalnie)')}</span>
           </span>
           {checklist.length > 0 && (
             <ul className="checklist">
@@ -146,7 +147,7 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
                   <button
                     type="button"
                     className="chip-remove"
-                    aria-label={`Usuń „${item.text}”`}
+                    aria-label={t('Usuń „{text}”', { text: item.text })}
                     onClick={() => setChecklist(checklist.filter((_, k) => k !== i))}
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -162,7 +163,7 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
               className="text-input"
               value={newItem}
               maxLength={200}
-              placeholder="np. rozdział 3, zadania z listy 2"
+              placeholder={t('np. rozdział 3, zadania z listy 2')}
               onChange={(e) => setNewItem(e.target.value)}
               onKeyDown={(e) => {
                 // Enter dodaje punkt, zamiast wysyłać cały formularz.
@@ -173,7 +174,7 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
               }}
             />
             <button type="button" className="button small secondary" onClick={addItem} disabled={!newItem.trim()}>
-              Dodaj
+              {t('Dodaj')}
             </button>
           </div>
         </div>
@@ -181,7 +182,7 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
         {!isNew && (
           <label className="check-field">
             <input type="checkbox" checked={done} onChange={(e) => setDone(e.target.checked)} />
-            Zrobione / zaliczone
+            {t('Zrobione / zaliczone')}
           </label>
         )}
 
@@ -197,21 +198,21 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
               type="button"
               className="button danger"
               onClick={() => {
-                if (window.confirm('Usunąć ten termin?')) {
+                if (window.confirm(t('Usunąć ten termin?'))) {
                   onDelete(draft.id!)
                   onClose()
                 }
               }}
             >
-              Usuń
+              {t('Usuń')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="button secondary" onClick={onClose}>
-            Anuluj
+            {t('Anuluj')}
           </button>
           <button type="submit" className="button">
-            Zapisz
+            {t('Zapisz')}
           </button>
         </div>
       </form>

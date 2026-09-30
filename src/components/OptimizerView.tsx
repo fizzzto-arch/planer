@@ -1,3 +1,5 @@
+import { plural } from '../lib/plural'
+import { t } from '../lib/i18n'
 import { useMemo, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useGroupOptions } from '../hooks/useGroupOptions'
@@ -98,16 +100,15 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m15 6-6 6 6 6" />
         </svg>
-        Wróć
+        {t('Wróć')}
       </button>
 
       <header className="course-header opt-header">
         <h2>
-          Dobierz grupy <span className="alpha-badge">alpha</span>
+          {t('Dobierz grupy')} <span className="alpha-badge">alpha</span>
         </h2>
         <p className="muted">
-          Porównuję plany wszystkich grup Twoich przedmiotów z USOS i szukam układu, który najlepiej pasuje do Twoich
-          kryteriów. Zmianę grupy trzeba potem załatwić w USOS albo w dziekanacie - Planer tylko podpowiada.
+          {t('Porównuję plany wszystkich grup Twoich przedmiotów z USOS i szukam układu, który najlepiej pasuje do Twoich kryteriów. Zmianę grupy trzeba potem załatwić w USOS albo w dziekanacie - Planer tylko podpowiada.')}
         </p>
       </header>
 
@@ -115,7 +116,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
         <div className="panel">
           <p className="loading-line">
             <span className="spinner" aria-hidden="true" />
-            Pobieram plany wszystkich grup z USOS…
+            {t('Pobieram plany wszystkich grup z USOS…')}
           </p>
           {status.progress && status.progress.total > 1 && (
             <progress className="opt-progress" value={status.progress.done} max={status.progress.total} />
@@ -127,23 +128,23 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
         <div className="panel">
           <p className="error">{status.message}</p>
           <button type="button" className="button small" onClick={refresh}>
-            Spróbuj ponownie
+            {t('Spróbuj ponownie')}
           </button>
         </div>
       )}
 
       {slots && status.kind !== 'loading' && (
         <p className="sync">
-          Plany grup z USOS: {fetchedAt ? formatUpdatedAt(new Date(fetchedAt), now) : '—'}{' '}
+          {t('Plany grup z USOS: {when}', { when: fetchedAt ? formatUpdatedAt(new Date(fetchedAt), now) : '—' })}{' '}
           <button type="button" className="link-button" onClick={refresh}>
-            Odśwież
+            {t('Odśwież')}
           </button>
         </p>
       )}
 
       {planSlots && planSlots.length === 0 && (
         <>
-          <p className="empty-state">W planie nie ma nadchodzących zajęć z USOS, dla których można dobierać grupy.</p>
+          <p className="empty-state">{t('W planie nie ma nadchodzących zajęć z USOS, dla których można dobierać grupy.')}</p>
           {/* WF i lektorat da się dobrać także bez grup do zamiany w planie. */}
           <ExtraCoursesPanel
             planMeetings={planMeetings}
@@ -171,7 +172,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
 
           {extraSlots.length > 0 && (
             <div className="panel extra-included">
-              <h3 className="panel-title">Dobieram też grupę</h3>
+              <h3 className="panel-title">{t('Dobieram też grupę')}</h3>
               <ul className="extra-included-list">
                 {extraSlots.map(({ slot, groups }) => {
                   const courses = new Set(slot.options.map((o) => o.courseId)).size
@@ -181,7 +182,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
                         {slot.courseName}
                         {courses > 1 && ` i ${courses - 1} podobne`}{' '}
                         <span className="muted">
-                          · {slot.options.length} {slot.options.length === 1 ? 'grupa' : 'grup'}
+                          · {slot.options.length} {plural(slot.options.length, 'grupa', 'grupy', 'grup')}
                         </span>
                       </span>
                       <button
@@ -189,14 +190,14 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
                         className="link-button"
                         onClick={() => setIncluded((prev) => prev.filter((g) => g !== groups))}
                       >
-                        Usuń
+                        {t('Usuń')}
                       </button>
                     </li>
                   )
                 })}
               </ul>
               <p className="setting-hint">
-                Każda propozycja ma najlepiej pasującą do niej grupę - na nią zapisujesz się w USOS.
+                {t('Każda propozycja ma najlepiej pasującą do niej grupę - na nią zapisujesz się w USOS.')}
               </p>
             </div>
           )}
@@ -204,13 +205,13 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
           {current && (
             <div className="panel">
               <div className="section-head">
-                <h3 className="panel-title">Twój obecny plan</h3>
+                <h3 className="panel-title">{t('Twój obecny plan')}</h3>
                 <button
                   type="button"
                   className="button small secondary"
-                  onClick={() => setPreview({ title: 'Obecny plan', candidate: current })}
+                  onClick={() => setPreview({ title: t('Obecny plan'), candidate: current })}
                 >
-                  Podgląd tygodnia
+                  {t('Podgląd tygodnia')}
                 </button>
               </div>
               <MetricsGrid metrics={current.metrics} base={null} settings={settings} />
@@ -220,16 +221,17 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
                 if (!option) return null
                 return (
                   <p key={slot.id} className="muted small">
-                    Z najlepiej pasującą grupą: {option.courseName ?? slot.courseName} gr. {option.groupNumber} (
-                    {describeOption(option)})
+                    {t('Z najlepiej pasującą grupą: {course} gr. {n} ({when})', {
+                      course: option.courseName ?? slot.courseName,
+                      n: option.groupNumber,
+                      when: describeOption(option),
+                    })}
                   </p>
                 )
               })}
               {clashing.length > 0 && (
                 <p className="opt-note is-warn">
-                  Żadna grupa: {clashing.map((c) => c.courseName).join(', ')} nie mieści się w
-                  obecnym planie bez kolizji (albo trafia w zablokowane godziny) - powyżej plan bez niej. Propozycje
-                  niżej zmieniają grupy tak, żeby się zmieściła.
+                  {t('Żadna grupa: {courses} nie mieści się w obecnym planie bez kolizji (albo trafia w zablokowane godziny) - powyżej plan bez niej. Propozycje niżej zmieniają grupy tak, żeby się zmieściła.', { courses: clashing.map((c) => c.courseName).join(', ') })}
                 </p>
               )}
             </div>
@@ -237,50 +239,49 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
 
           {results.deans.length > 1 && (
             <>
-              <h3 className="section-title">Cała grupa dziekańska</h3>
+              <h3 className="section-title">{t('Cała grupa dziekańska')}</h3>
               {results.deans.map(({ dean, best }) =>
                 best ? (
                   <CandidateCard
                     key={dean}
                     title={
                       <>
-                        Grupa dziekańska {dean}
-                        {dean === myDean && <span className="badge opt-badge">Twoja</span>}
+                        {t('Grupa dziekańska {dean}', { dean })}
+                        {dean === myDean && <span className="badge opt-badge">{t('Twoja')}</span>}
                       </>
                     }
                     candidate={best}
                     current={current}
                     slots={slots}
                     settings={settings}
-                    onPreview={() => setPreview({ title: `Grupa dziekańska ${dean}`, candidate: best })}
-                    onExport={() => exportCandidate(`Grupa dziekańska ${dean}`, best)}
+                    onPreview={() => setPreview({ title: t('Grupa dziekańska {dean}', { dean }), candidate: best })}
+                    onExport={() => exportCandidate(t('Grupa dziekańska {dean}', { dean }), best)}
                   />
                 ) : (
                   <div key={dean} className="panel candidate">
-                    <h4 className="candidate-title">Grupa dziekańska {dean}</h4>
-                    <p className="muted small">Brak planu bez kolizji przy Twoich ograniczeniach.</p>
+                    <h4 className="candidate-title">{t('Grupa dziekańska {dean}', { dean })}</h4>
+                    <p className="muted small">{t('Brak planu bez kolizji przy Twoich ograniczeniach.')}</p>
                   </div>
                 ),
               )}
             </>
           )}
 
-          <h3 className="section-title">Najlepsze zestawy grup</h3>
+          <h3 className="section-title">{t('Najlepsze zestawy grup')}</h3>
           {bestIsCurrent && (
             <p className="opt-note">
-              Twój obecny plan jest najlepszy według wybranych kryteriów. Poniżej kolejne propozycje - jeśli ważne jest
-              dla Ciebie coś innego, zmień kryteria wyżej.
+              {t('Twój obecny plan jest najlepszy według wybranych kryteriów. Poniżej kolejne propozycje - jeśli ważne jest dla Ciebie coś innego, zmień kryteria wyżej.')}
             </p>
           )}
           {better.length === 0 ? (
             <p className="empty-state">
               {results.free.candidates.length === 0
-                ? 'Żaden układ grup nie spełnia Twoich ograniczeń - usuń którąś blokadę albo przypięcie.'
-                : 'Nie ma innych układów grup bez kolizji.'}
+                ? t('Żaden układ grup nie spełnia Twoich ograniczeń - usuń którąś blokadę albo przypięcie.')
+                : t('Nie ma innych układów grup bez kolizji.')}
             </p>
           ) : (
             better.map((candidate, i) => {
-              const title = i === 0 && !bestIsCurrent ? 'Najlepsza propozycja' : `Propozycja ${i + 1}`
+              const title = i === 0 && !bestIsCurrent ? t('Najlepsza propozycja') : t('Propozycja {n}', { n: i + 1 })
               return (
                 <CandidateCard
                   key={candidate.choice.join('-')}
@@ -297,7 +298,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
             })
           )}
           {results.free.truncated && (
-            <p className="hint">Kombinacji jest bardzo dużo - sprawdziłem pierwsze {results.free.checked} z nich.</p>
+            <p className="hint">{t('Kombinacji jest bardzo dużo - sprawdziłem pierwsze {n} z nich.', { n: results.free.checked })}</p>
           )}
         </>
       )}

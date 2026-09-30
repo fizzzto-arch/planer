@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useRef, useState, type FormEvent } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useLocalFiles } from '../hooks/useLocalFiles'
@@ -47,7 +48,7 @@ function Links({ courseName }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   if (!extras) {
-    return <p className="muted small">Zaloguj się, żeby dodawać linki - będą wtedy na każdym Twoim urządzeniu.</p>
+    return <p className="muted small">{t('Zaloguj się, żeby dodawać linki - będą wtedy na każdym Twoim urządzeniu.')}</p>
   }
   const links = extras.extras.courses.get(courseKey(courseName))?.links ?? []
 
@@ -55,7 +56,7 @@ function Links({ courseName }: Props) {
     e.preventDefault()
     const address = url.trim()
     if (!isSafeUrl(address)) {
-      setError('Wklej pełny adres zaczynający się od https://')
+      setError(t('Wklej pełny adres zaczynający się od https://'))
       return
     }
     const link: CourseLink = { id: newLinkId(), title: title.trim(), url: address }
@@ -80,9 +81,9 @@ function Links({ courseName }: Props) {
               <button
                 type="button"
                 className="material-delete"
-                aria-label={`Usuń link ${link.title || hostOf(link.url)}`}
+                aria-label={t('Usuń link {name}', { name: link.title || hostOf(link.url) })}
                 onClick={() => {
-                  if (window.confirm('Usunąć ten link?')) {
+                  if (window.confirm(t('Usunąć ten link?'))) {
                     extras.saveCourseLinks(courseName, links.filter((l) => l.id !== link.id))
                   }
                 }}
@@ -99,7 +100,7 @@ function Links({ courseName }: Props) {
           <input
             className="text-input"
             value={title}
-            placeholder="Nazwa, np. Wykład 3 - filtry"
+            placeholder={t('Nazwa, np. Wykład 3 - filtry')}
             onChange={(e) => setTitle(e.target.value)}
           />
           <input
@@ -107,7 +108,7 @@ function Links({ courseName }: Props) {
             type="url"
             inputMode="url"
             value={url}
-            placeholder="https://… (Teams, Leon, Drive, strona prowadzącego)"
+            placeholder={t('https://… (Teams, Leon, Drive, strona prowadzącego)')}
             onChange={(e) => setUrl(e.target.value)}
           />
           {error && (
@@ -117,16 +118,16 @@ function Links({ courseName }: Props) {
           )}
           <div className="button-row">
             <button type="submit" className="button small">
-              Dodaj link
+              {t('Dodaj link')}
             </button>
             <button type="button" className="button small secondary" onClick={() => setAdding(false)}>
-              Anuluj
+              {t('Anuluj')}
             </button>
           </div>
         </form>
       ) : (
         <button type="button" className="button small secondary" onClick={() => setAdding(true)}>
-          + Dodaj link
+          {t('+ Dodaj link')}
         </button>
       )}
     </>
@@ -168,7 +169,7 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
     <>
       {files.length === 0 && !uploading && (
         <p className="muted small">
-          Brak plików. Wgrany plik zobaczą wszyscy z Twojej grupy, którzy mają ten przedmiot.
+          {t('Brak plików. Wgrany plik zobaczą wszyscy z Twojej grupy, którzy mają ten przedmiot.')}
         </p>
       )}
       {files.length > 0 && (
@@ -179,9 +180,9 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
             const mine = file.uploadedBy === materials.uid
             const meta = [
               formatSize(file.size),
-              mine ? 'Ty' : file.uploaderName,
+              mine ? t('Ty') : file.uploaderName,
               formatDate(file.createdAt),
-              file.complete ? null : 'wysyłanie przerwane',
+              file.complete ? null : t('wysyłanie przerwane'),
             ]
               .filter(Boolean)
               .join(' · ')
@@ -191,7 +192,7 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
                 {url ? (
                   <a className="material-name" href={url} target="_blank" rel="noreferrer">
                     {file.name}
-                    <span className="material-meta">{meta} · pobrany, kliknij, aby otworzyć</span>
+                    <span className="material-meta">{meta} · {t('pobrany, kliknij, aby otworzyć')}</span>
                   </a>
                 ) : (
                   <button
@@ -202,7 +203,7 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
                   >
                     {file.name}
                     <span className="material-meta">
-                      {progress !== undefined ? `Pobieranie… ${Math.round(progress * 100)}%` : meta}
+                      {progress !== undefined ? t('Pobieranie… {n}%', { n: Math.round(progress * 100) }) : meta}
                     </span>
                   </button>
                 )}
@@ -210,8 +211,8 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
                   <button
                     type="button"
                     className="material-action"
-                    aria-label={`Udostępnij lub zapisz ${file.name}`}
-                    title="Udostępnij / zapisz w Plikach"
+                    aria-label={t('Udostępnij lub zapisz {name}', { name: file.name })}
+                    title={t('Udostępnij / zapisz w Plikach')}
                     onClick={() => void materials.share(file)}
                   >
                     <ShareIcon />
@@ -221,9 +222,9 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
                   <button
                     type="button"
                     className="material-delete"
-                    aria-label={`Usuń ${file.name}`}
+                    aria-label={t('Usuń {name}', { name: file.name })}
                     onClick={() => {
-                      if (window.confirm(`Usunąć „${file.name}” dla wszystkich?`)) void materials.remove(file)
+                      if (window.confirm(t('Usunąć „{name}” dla wszystkich?', { name: file.name }))) void materials.remove(file)
                     }}
                   >
                     ×
@@ -238,7 +239,7 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
       {uploading && (
         <div className="upload-progress" role="status">
           <span>
-            Wysyłanie „{uploading.name}”… {Math.round((uploading.done / uploading.total) * 100)}%
+            {t('Wysyłanie „{name}”… {n}%', { name: uploading.name, n: Math.round((uploading.done / uploading.total) * 100) })}
           </span>
           <progress value={uploading.done} max={uploading.total} />
         </div>
@@ -261,10 +262,10 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
           disabled={!!materials.uploading}
           onClick={() => input.current?.click()}
         >
-          + Wgraj plik (PDF)
+          {t('+ Wgraj plik (PDF)')}
         </button>
         <span className="muted small">
-          Zajęte {formatSize(materials.usedBytes)} z {formatSize(QUOTA_BYTES)}
+          {t('Zajęte {used} z {total}', { used: formatSize(materials.usedBytes), total: formatSize(QUOTA_BYTES) })}
         </span>
       </div>
       {materials.error && (
@@ -292,9 +293,9 @@ function LocalFiles({ courseName, materials }: Props & { materials: SharedMateri
 
   return (
     <div className="material-group">
-      <h4 className="material-heading">{materials ? 'Tylko na tym urządzeniu' : 'Pliki na tym urządzeniu'}</h4>
+      <h4 className="material-heading">{materials ? t('Tylko na tym urządzeniu') : t('Pliki na tym urządzeniu')}</h4>
       {!materials && (
-        <p className="muted small">Zaloguj się, żeby dzielić się plikami z grupą i mieć je na każdym urządzeniu.</p>
+        <p className="muted small">{t('Zaloguj się, żeby dzielić się plikami z grupą i mieć je na każdym urządzeniu.')}</p>
       )}
       {files.length > 0 && (
         <ul className="material-list">
@@ -303,7 +304,7 @@ function LocalFiles({ courseName, materials }: Props & { materials: SharedMateri
               <FileIcon />
               <a className="material-name" href={file.url} target="_blank" rel="noreferrer">
                 {file.name}
-                <span className="material-meta">{formatSize(file.size)} · tylko na tym urządzeniu</span>
+                <span className="material-meta">{formatSize(file.size)} · {t('tylko na tym urządzeniu')}</span>
               </a>
               {materials && (
                 <button
@@ -312,15 +313,15 @@ function LocalFiles({ courseName, materials }: Props & { materials: SharedMateri
                   disabled={!!materials.uploading}
                   onClick={() => void moveToShared(file.id)}
                 >
-                  Udostępnij grupie
+                  {t('Udostępnij grupie')}
                 </button>
               )}
               {canShare && (
                 <button
                   type="button"
                   className="material-action"
-                  aria-label={`Udostępnij lub zapisz ${file.name}`}
-                  title="Udostępnij / zapisz w Plikach"
+                  aria-label={t('Udostępnij lub zapisz {name}', { name: file.name })}
+                  title={t('Udostępnij / zapisz w Plikach')}
                   onClick={() => void share(file.id)}
                 >
                   <ShareIcon />
@@ -329,9 +330,9 @@ function LocalFiles({ courseName, materials }: Props & { materials: SharedMateri
               <button
                 type="button"
                 className="material-delete"
-                aria-label={`Usuń ${file.name}`}
+                aria-label={t('Usuń {name}', { name: file.name })}
                 onClick={() => {
-                  if (window.confirm(`Usunąć „${file.name}” z tego urządzenia?`)) void remove(file.id)
+                  if (window.confirm(t('Usunąć „{name}” z tego urządzenia?', { name: file.name }))) void remove(file.id)
                 }}
               >
                 ×
@@ -358,7 +359,7 @@ function LocalFiles({ courseName, materials }: Props & { materials: SharedMateri
             disabled={busy}
             onClick={() => input.current?.click()}
           >
-            {busy ? 'Zapisuję…' : '+ Wgraj plik (PDF)'}
+            {busy ? t('Zapisuję…') : t('+ Wgraj plik (PDF)')}
           </button>
         </>
       )}
@@ -376,14 +377,14 @@ export function MaterialsSection({ courseName }: Props) {
 
   return (
     <div className="panel">
-      <h3 className="panel-title">Wykłady i materiały</h3>
+      <h3 className="panel-title">{t('Wykłady i materiały')}</h3>
       <div className="material-group">
-        <h4 className="material-heading">Linki</h4>
+        <h4 className="material-heading">{t('Linki')}</h4>
         <Links courseName={courseName} />
       </div>
       {materials && (
         <div className="material-group">
-          <h4 className="material-heading">Pliki wspólne dla grupy</h4>
+          <h4 className="material-heading">{t('Pliki wspólne dla grupy')}</h4>
           <SharedFiles courseName={courseName} materials={materials} />
         </div>
       )}

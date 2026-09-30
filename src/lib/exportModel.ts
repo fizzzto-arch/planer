@@ -1,8 +1,8 @@
 // Wspólny model eksportu planu - z niego rysujemy zdjęcie, PDF i arkusz Excela.
+import { t } from './i18n'
 import { addDays, startOfWeek } from './dates'
 import { semesterWeek } from './semesterWeek'
 import {
-  WEEKDAY_NAMES,
   filterByParity,
   formatClock,
   formatDateShort,
@@ -10,6 +10,7 @@ import {
   recurrenceLabel,
   semesterTitle,
   weekEntries,
+  weekdayName,
   type ParityFilter,
   type Timetable,
   type TimetableEntry,
@@ -221,8 +222,8 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
       course: label(e.courseName),
       typeName,
       time: `${formatClock(e.start)}–${formatClock(e.end)}`,
-      meta: [typeName, options.showGroup && e.groupNumber !== null ? `gr. ${e.groupNumber}` : ''].filter(Boolean).join(' · '),
-      place: options.showRoom ? [e.room ? `s. ${e.room}` : '', building ?? ''].filter(Boolean).join(' · ') : '',
+      meta: [typeName, options.showGroup && e.groupNumber !== null ? t('gr. {n}', { n: e.groupNumber }) : ''].filter(Boolean).join(' · '),
+      place: options.showRoom ? [e.room ? t('s. {room}', { room: e.room }) : '', building ?? ''].filter(Boolean).join(' · ') : '',
       when: recurrenceLabel(e),
       color: colorOf(e.type),
       lane,
@@ -236,7 +237,7 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
   const monday = startOfWeek(weekStart)
   const days: ExportDay[] = [1, 2, 3, 4, 5, 6, 7]
     .filter((wd) => wd <= 5 || hasWeekend(wd))
-    .map((wd) => ({ weekday: wd, name: WEEKDAY_NAMES[wd - 1], date: week ? addDays(monday, wd - 1) : null }))
+    .map((wd) => ({ weekday: wd, name: weekdayName(wd), date: week ? addDays(monday, wd - 1) : null }))
 
   const notes = [
     ...notesInScope(timetable, options, monday)
@@ -251,12 +252,13 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
   const semName = semesterTitle(timetable.semester)
   const sw = week ? semesterWeek(monday, meetings) : null
   const subtitle = week
-    ? `Tydzień ${formatDateShort(monday)}–${formatDateShort(addDays(monday, 6))}${sw ? ` · ${sw.number}. tydzień, ${sw.odd ? 'nieparzysty' : 'parzysty'}` : ''}`
+    ? t('Tydzień {from}–{to}', { from: formatDateShort(monday), to: formatDateShort(addDays(monday, 6)) }) +
+      (sw ? ' · ' + (sw.odd ? t('{n}. tydzień, nieparzysty', { n: sw.number }) : t('{n}. tydzień, parzysty', { n: sw.number })) : '')
     : options.parity === 'odd'
-      ? 'Tygodnie nieparzyste'
+      ? t('Tygodnie nieparzyste')
       : options.parity === 'even'
-        ? 'Tygodnie parzyste'
-        : 'Typowy tydzień'
+        ? t('Tygodnie parzyste')
+        : t('Typowy tydzień')
 
   const firstMinute = Math.min(8 * 60, ...entries.map((e) => Math.floor(e.start / 60) * 60))
   const lastMinute = Math.max(16 * 60, ...entries.map((e) => Math.ceil(e.end / 60) * 60))
@@ -273,7 +275,7 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
       .replace(/^-|-$/g, '')
   const fileBase = week
     ? `plan-${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
-    : `plan-${slug(semName)}${options.parity === 'both' ? '' : options.parity === 'odd' ? '-nieparzyste' : '-parzyste'}`
+    : `plan-${slug(semName)}${options.parity === 'both' ? '' : options.parity === 'odd' ? t('-nieparzyste') : t('-parzyste')}`
 
   return {
     title: options.title.trim() || semName,

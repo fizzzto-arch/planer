@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { isStaleChunkError, reloadForNewVersion, reportError } from '../lib/errorReport'
 
@@ -34,13 +35,12 @@ export class ErrorBoundary extends Component<Props, State> {
     if (isStaleChunkError(error) && !navigator.onLine) {
       return (
         <div className="panel crash" role="alert">
-          <h2 className="day-title">Brak internetu</h2>
+          <h2 className="day-title">{t('Brak internetu')}</h2>
           <p className="muted">
-            Ta część Planera wczyta się po połączeniu. Plan, terminy i notatki działają bez sieci - wróć do innej
-            zakładki.
+            {t('Ta część Planera wczyta się po połączeniu. Plan, terminy i notatki działają bez sieci - wróć do innej zakładki.')}
           </p>
           <button type="button" className="button" onClick={() => window.location.reload()}>
-            Spróbuj ponownie
+            {t('Spróbuj ponownie')}
           </button>
         </div>
       )
@@ -48,26 +48,25 @@ export class ErrorBoundary extends Component<Props, State> {
     if (isStaleChunkError(error)) {
       return (
         <div className="panel crash" role="alert">
-          <h2 className="day-title">Jest nowa wersja Planera</h2>
-          <p className="muted">Odśwież stronę, żeby ją wczytać. Twoje dane są bezpieczne.</p>
+          <h2 className="day-title">{t('Jest nowa wersja Planera')}</h2>
+          <p className="muted">{t('Odśwież stronę, żeby ją wczytać. Twoje dane są bezpieczne.')}</p>
           <button type="button" className="button" onClick={() => window.location.reload()}>
-            Odśwież
+            {t('Odśwież')}
           </button>
         </div>
       )
     }
     return (
       <div className="panel crash" role="alert">
-        <h2 className="day-title">Coś poszło nie tak</h2>
+        <h2 className="day-title">{t('Coś poszło nie tak')}</h2>
         <p className="muted">
-          Twój plan, notatki i terminy są bezpieczne. Odśwież stronę albo przejdź do innej zakładki. Opis błędu trafił
-          automatycznie do administratora.
+          {t('Twój plan, notatki i terminy są bezpieczne. Odśwież stronę albo przejdź do innej zakładki. Opis błędu trafił automatycznie do administratora.')}
         </p>
         <button type="button" className="button" onClick={() => window.location.reload()}>
-          Odśwież
+          {t('Odśwież')}
         </button>
         <details className="collapsible">
-          <summary>Szczegóły błędu</summary>
+          <summary>{t('Szczegóły błędu')}</summary>
           <pre className="crash-details">{error.message}</pre>
         </details>
       </div>

@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatTypes, summarizeCourses } from '../lib/courses'
@@ -15,12 +16,12 @@ const DAYS_AHEAD_EXAMS = 200
 
 type KindFilter = 'all' | DeadlineKind
 
-const FILTERS: { value: KindFilter; label: string }[] = [
-  { value: 'all', label: 'Wszystkie' },
-  { value: 'kolokwium', label: 'Kolokwia' },
-  { value: 'egzamin', label: 'Egzaminy' },
-  { value: 'projekt', label: 'Projekty' },
-]
+const FILTERS = (): { value: KindFilter; label: string }[] => ([
+  { value: 'all', label: t('Wszystkie') },
+  { value: 'kolokwium', label: t('Kolokwia') },
+  { value: 'egzamin', label: t('Egzaminy') },
+  { value: 'projekt', label: t('Projekty') },
+])
 
 interface Props {
   meetings: PlanMeeting[]
@@ -52,11 +53,11 @@ export function CoursesView({ meetings, now }: Props) {
           </span>
           <span className="optimizer-entry-text">
             <strong>
-              Dobierz grupy <span className="alpha-badge">alpha</span>
+              {t('Dobierz grupy')} <span className="alpha-badge">alpha</span>
             </strong>
             <span>
-              Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni
-              {isAdmin ? ' (widoczne dla Ciebie i osób, którym dasz dostęp)' : ' - wersja testowa, daj znać, co działa'}
+              {t('Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni')}
+              {isAdmin ? t(' (widoczne dla Ciebie i osób, którym dasz dostęp)') : t(' - wersja testowa, daj znać, co działa')}
             </span>
           </span>
           <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
@@ -66,16 +67,16 @@ export function CoursesView({ meetings, now }: Props) {
       )}
 
       <div className="section-head">
-        <h2 className="day-title">Nadchodzące terminy</h2>
+        <h2 className="day-title">{t('Nadchodzące terminy')}</h2>
         {extras && (
           <button type="button" className="button small" onClick={() => editDeadline({})}>
-            + Dodaj termin
+            {t('+ Dodaj termin')}
           </button>
         )}
       </div>
       {showFilter && (
-        <div className="segmented deadline-filter" role="radiogroup" aria-label="Rodzaj terminów">
-          {FILTERS.map((f) => (
+        <div className="segmented deadline-filter" role="radiogroup" aria-label={t('Rodzaj terminów')}>
+          {FILTERS().map((f) => (
             <button
               key={f.value}
               type="button"
@@ -90,18 +91,18 @@ export function CoursesView({ meetings, now }: Props) {
         </div>
       )}
       {!extras ? (
-        <p className="empty-state">Zaloguj się (Ustawienia), żeby dodawać kolokwia, egzaminy i notatki.</p>
+        <p className="empty-state">{t('Zaloguj się (Ustawienia), żeby dodawać kolokwia, egzaminy i notatki.')}</p>
       ) : deadlines.length === 0 ? (
         <p className="empty-state">
           {filter === 'all'
-            ? 'Brak terminów w najbliższych tygodniach. Dodaj kolokwium albo egzamin.'
-            : 'Brak takich terminów.'}
+            ? t('Brak terminów w najbliższych tygodniach. Dodaj kolokwium albo egzamin.')
+            : t('Brak takich terminów.')}
         </p>
       ) : (
         <DeadlineList deadlines={deadlines} now={now} showCourse />
       )}
 
-      <h2 className="day-title secondary">Przedmioty</h2>
+      <h2 className="day-title secondary">{t('Przedmioty')}</h2>
       <ul className="course-list">
         {courses.map((course, i) => {
           const extra = extras?.extras.courses.get(courseKey(course.name))
@@ -122,7 +123,7 @@ export function CoursesView({ meetings, now }: Props) {
                   <span className="course-row-meta">{formatTypes(course.types)}</span>
                   {course.next && (
                     <span className="course-row-meta">
-                      Następne: {formatShortDay(course.next.start)} {formatTime(course.next.start)}
+                      {t('Następne:')} {formatShortDay(course.next.start)} {formatTime(course.next.start)}
                     </span>
                   )}
                   {notePreview && <span className="course-row-note">{notePreview}</span>}

@@ -1,6 +1,7 @@
 // Wspólne materiały przedmiotu (np. wykłady w PDF) zapisane w bazie Firestore.
 // Darmowy plan Firebase nie ma magazynu plików, a dokument w bazie mieści ok. 1 MB,
 // więc plik dzielimy na kawałki i zapisujemy jako osobne dokumenty.
+import { t } from './i18n.ts'
 
 export const CHUNK_BYTES = 900 * 1024 // zapas poniżej limitu 1 MiB na dokument
 export const MAX_FILE_BYTES = 20 * 1024 * 1024
@@ -48,13 +49,13 @@ export function chunkId(index: number): string {
 }
 
 export function uploaderNameFromEmail(email: string | null): string {
-  return email?.split('@')[0] || 'ktoś'
+  return email?.split('@')[0] || t('ktoś')
 }
 
 // Powód odrzucenia pliku albo null, gdy można go wysłać.
 export function checkUpload(size: number, usedBytes: number): string | null {
-  if (size > MAX_FILE_BYTES) return `Plik jest za duży (limit ${MAX_FILE_BYTES / 1024 / 1024} MB na plik).`
-  if (usedBytes + size > QUOTA_BYTES) return 'Brak miejsca na wspólne materiały - usuńcie niepotrzebne pliki.'
+  if (size > MAX_FILE_BYTES) return t('Plik jest za duży (limit {mb} MB na plik).', { mb: MAX_FILE_BYTES / 1024 / 1024 })
+  if (usedBytes + size > QUOTA_BYTES) return t('Brak miejsca na wspólne materiały - usuńcie niepotrzebne pliki.')
   return null
 }
 
@@ -75,7 +76,7 @@ export function parseMaterial(id: string, raw: Record<string, unknown>): Materia
     type: str(raw.type) || 'application/octet-stream',
     chunkCount,
     uploadedBy: str(raw.uploadedBy),
-    uploaderName: str(raw.uploaderName) || 'ktoś',
+    uploaderName: str(raw.uploaderName) || t('ktoś'),
     createdAt: typeof created?.toMillis === 'function' ? created.toMillis() : (num(raw.createdAt) ?? Date.now()),
     complete: raw.complete === true,
   }

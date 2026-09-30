@@ -1,6 +1,7 @@
 // Plany wszystkich grup zajęciowych przedmiotów z planu użytkownika - z publicznego USOS API PW
 // (bez logowania; serwer pozwala na zapytania z przeglądarki).
 import { addDays, startOfWeek, toDateKey } from './dates'
+import { t } from './i18n'
 import type { GroupOption, OptMeeting, Slot } from './optimizer'
 import { semesters, weekIndex } from './semesterWeek'
 import type { Meeting } from './usos'
@@ -32,14 +33,23 @@ interface Activity {
   building_id?: string | null
 }
 
+// Błąd odpowiedzi USOS z kodem HTTP (np. 404 - nie ma takiego przedmiotu).
+export class UsosError extends Error {
+  status: number
+  constructor(status: number) {
+    super(t('USOS odpowiedział błędem {status}.', { status }))
+    this.status = status
+  }
+}
+
 export async function getJson<T>(url: string): Promise<T> {
   let response: Response
   try {
     response = await fetch(url)
   } catch {
-    throw new Error('Brak połączenia z USOS. Sprawdź internet.')
+    throw new Error(t('Brak połączenia z USOS. Sprawdź internet.'))
   }
-  if (!response.ok) throw new Error(`USOS odpowiedział błędem ${response.status}.`)
+  if (!response.ok) throw new UsosError(response.status)
   return (await response.json()) as T
 }
 

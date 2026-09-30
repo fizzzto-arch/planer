@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState, type ReactNode } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDuration } from '../lib/dates'
@@ -61,11 +62,11 @@ export function MetricsGrid({
 }) {
   return (
     <div className="metrics">
-      <Metric label="Okienka / tydz." value={metrics.gapMinutes} base={base?.gapMinutes ?? null} format={formatMinutes} tolerance={2} />
-      <Metric label="Dni na uczelni / tydz." value={metrics.days} base={base?.days ?? null} format={formatDays} tolerance={0.05} />
+      <Metric label={t('Okienka / tydz.')} value={metrics.gapMinutes} base={base?.gapMinutes ?? null} format={formatMinutes} tolerance={2} />
+      <Metric label={t('Dni na uczelni / tydz.')} value={metrics.days} base={base?.days ?? null} format={formatDays} tolerance={0.05} />
       {settings.dayStyle === 'early' ? (
         <Metric
-          label="Koniec zajęć (średnio)"
+          label={t('Koniec zajęć (średnio)')}
           value={metrics.avgEndMinutes ?? 0}
           base={base?.avgEndMinutes ?? null}
           format={formatClock}
@@ -75,14 +76,14 @@ export function MetricsGrid({
       ) : (
         <>
           <Metric
-            label={`Przed ${settings.startAfter} / tydz.`}
+            label={t('Przed {time} / tydz.', { time: settings.startAfter })}
             value={metrics.earlyMinutes}
             base={base?.earlyMinutes ?? null}
             format={formatMinutes}
             tolerance={2}
           />
           <Metric
-            label={`Po ${settings.endBefore} / tydz.`}
+            label={t('Po {time} / tydz.', { time: settings.endBefore })}
             value={metrics.lateMinutes}
             base={base?.lateMinutes ?? null}
             format={formatMinutes}
@@ -123,16 +124,16 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
         <h4 className="candidate-title">{title}</h4>
         <span className="candidate-actions">
           <button type="button" className="button small secondary" onClick={onPreview}>
-            Podgląd tygodnia
+            {t('Podgląd tygodnia')}
           </button>
           <button type="button" className="button small secondary" onClick={onExport}>
-            Eksportuj
+            {t('Eksportuj')}
           </button>
         </span>
       </div>
       <MetricsGrid metrics={candidate.metrics} base={current?.metrics ?? null} settings={settings} />
       {changes.length === 0 ? (
-        <p className="muted small">{extraPicks.length > 0 ? 'Bez zmian grup w obecnym planie.' : 'Bez zmian - to Twój obecny plan.'}</p>
+        <p className="muted small">{extraPicks.length > 0 ? t('Bez zmian grup w obecnym planie.') : t('Bez zmian - to Twój obecny plan.')}</p>
       ) : (
         <ul className="change-list">
           {changes.map(({ slot, from, to }) => (
@@ -141,14 +142,14 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
                 {displayName(slot.courseName)} · {typeLabel(slot.classType)}
               </span>
               <span className="change-groups">
-                gr. {from.groupNumber} <span className="muted">({describeOption(from)})</span> →{' '}
-                <strong>gr. {to.groupNumber}</strong> <span className="muted">({describeOption(to)})</span>{' '}
+                {t('gr. {n}', { n: from.groupNumber })} <span className="muted">({describeOption(from)})</span> →{' '}
+                <strong>{t('gr. {n}', { n: to.groupNumber })}</strong> <span className="muted">({describeOption(to)})</span>{' '}
                 <a className="usos-link" href={usosGroupUrl(to)} target="_blank" rel="noreferrer">
-                  terminy w USOS
+                  {t('terminy w USOS')}
                 </a>
                 {isAdmin && (
                   <button type="button" className="link-button change-request" onClick={() => setRequest({ slot, from, to })}>
-                    Poproś o zmianę
+                    {t('Poproś o zmianę')}
                   </button>
                 )}
               </span>
@@ -161,13 +162,13 @@ export function CandidateCard({ title, candidate, current, slots, settings, onPr
           {extraPicks.map(({ slot, option }) => (
             <li key={slot.id}>
               <span className="change-course">
-                {option.courseName ?? slot.courseName} <span className="badge opt-badge">zapisz się</span>
+                {option.courseName ?? slot.courseName} <span className="badge opt-badge">{t('zapisz się')}</span>
               </span>
               <span className="change-groups">
-                <strong>gr. {option.groupNumber}</strong> <span className="muted">({describeOption(option)})</span>{' '}
+                <strong>{t('gr. {n}', { n: option.groupNumber })}</strong> <span className="muted">({describeOption(option)})</span>{' '}
                 {option.courseId && (
                   <a className="usos-link" href={USOSWEB_COURSE_URL + encodeURIComponent(option.courseId)} target="_blank" rel="noreferrer">
-                    przedmiot w USOS
+                    {t('przedmiot w USOS')}
                   </a>
                 )}
               </span>

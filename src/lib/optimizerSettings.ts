@@ -1,4 +1,5 @@
 // Ustawienia optymalizatora (kryteria, blokady godzin, przypięte grupy): na koncie, z kopią w przeglądarce.
+import { msg, t, tk } from './i18n'
 import { isTimeKey } from './dates'
 import { DEFAULT_OPTIMIZER_SETTINGS, type BlockedTime, type GroupOption, type OptimizerSettings } from './optimizer'
 
@@ -58,14 +59,16 @@ export function saveOptimizerSettings(settings: OptimizerSettings): void {
   }
 }
 
-export const WEEKDAYS = ['pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.']
+const WEEKDAY_KEYS = [msg('pon.'), msg('wt.'), msg('śr.'), msg('czw.'), msg('pt.'), msg('sob.'), msg('niedz.')]
+// Skróty dni w języku interfejsu (poniedziałek pod indeksem 0).
+export const weekdayShort = (index: number) => tk(WEEKDAY_KEYS[index])
 
 // Krótki opis terminu grupy: "pt. 14:15", "śr. 8:15, co 2 tyg.", "pon. 10:15 / czw. 12:15".
 export function describeOption(option: GroupOption): string {
-  if (option.meetings.length === 0) return 'brak terminów'
+  if (option.meetings.length === 0) return t('brak terminów')
   const counts = new Map<string, number>()
   for (const m of option.meetings) {
-    const key = `${WEEKDAYS[(m.start.getDay() + 6) % 7]} ${m.start.getHours()}:${String(m.start.getMinutes()).padStart(2, '0')}`
+    const key = `${weekdayShort((m.start.getDay() + 6) % 7)} ${m.start.getHours()}:${String(m.start.getMinutes()).padStart(2, '0')}`
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
@@ -75,12 +78,12 @@ export function describeOption(option: GroupOption): string {
   const last = option.meetings[option.meetings.length - 1].start.getTime()
   const spanWeeks = Math.round((last - first) / (7 * 24 * 3600 * 1000)) + 1
   const biweekly = option.meetings.length >= 3 && spanWeeks >= option.meetings.length * 1.7
-  const base = biweekly ? `${main}, co 2 tyg.` : main
+  const base = biweekly ? t('{when}, co 2 tyg.', { when: main }) : main
   // Grupa blokowa (np. laboratorium 5 razy w części semestru) - od kiedy do kiedy, żeby było widać,
   // że dwie takie grupy o tej samej godzinie się nie nakładają.
   if (option.meetings.length > BLOCK_MAX_MEETINGS) return base
-  const date = (t: number) => {
-    const d = new Date(t)
+  const date = (item: number) => {
+    const d = new Date(item)
     return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
   }
   return `${base}, ${date(first)}–${date(last)}, ${option.meetings.length}×`

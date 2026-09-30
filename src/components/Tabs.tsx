@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useImperativeHandle, useLayoutEffect, useRef, type ReactNode, type Ref } from 'react'
 
 // Sterowanie podświetleniem z zewnątrz - przesuwanie widoku palcem przesuwa też suwak.
@@ -52,7 +53,7 @@ function positionAt(list: HTMLElement, clientX: number): number {
 export function Tabs<T extends string>({ tabs, value, onChange, controlRef }: Props<T>) {
   const listRef = useRef<HTMLElement>(null)
   const indicatorRef = useRef<HTMLSpanElement>(null)
-  const activeIndex = Math.max(0, tabs.findIndex((t) => t.id === value))
+  const activeIndex = Math.max(0, tabs.findIndex((item) => item.id === value))
   const drag = useRef<{ startX: number; moved: boolean; position: number } | null>(null)
   const swallowClick = useRef(false)
 
@@ -108,7 +109,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, controlRef }: Pr
   return (
     <nav
       className="tabs"
-      aria-label="Widok"
+      aria-label={t('Widok')}
       ref={listRef}
       onPointerDown={(e) => {
         // Chwytamy tylko niebieski suwak, czyli aktywną zakładkę.

@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Cloud, CloudDoc } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
@@ -90,7 +91,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
         )
         return true
       } catch (e) {
-        setError(`Nie udało się wysłać „${file.name}”: ${errorMessage(e)}`)
+        setError(t('Nie udało się wysłać „{name}”: {error}', { name: file.name, error: errorMessage(e) }))
         return false
       } finally {
         setUploading(null)
@@ -116,7 +117,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
         setUrls((u) => ({ ...u, [meta.id]: url }))
         return url
       } catch (e) {
-        setError(`Nie udało się pobrać „${meta.name}”: ${errorMessage(e)}`)
+        setError(t('Nie udało się pobrać „{name}”: {error}', { name: meta.name, error: errorMessage(e) }))
         return null
       } finally {
         setDownloading(({ [meta.id]: _done, ...rest }) => rest)
@@ -154,7 +155,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
         if (url) URL.revokeObjectURL(url)
         blobs.current.delete(meta.id)
       } catch (e) {
-        setError(`Nie udało się usunąć „${meta.name}”: ${errorMessage(e)}`)
+        setError(t('Nie udało się usunąć „{name}”: {error}', { name: meta.name, error: errorMessage(e) }))
       }
     },
     [client, urls],

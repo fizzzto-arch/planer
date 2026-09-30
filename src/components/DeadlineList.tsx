@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import type { CSSProperties } from 'react'
 import { countdownLabel, urgency } from '../lib/deadlines'
 import { formatShortDay, parseDateKey } from '../lib/dates'
@@ -26,7 +27,7 @@ export function DeadlineList({ deadlines, now, showCourse = false, compact = fal
               <button
                 type="button"
                 className="deadline-check"
-                aria-label={d.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione'}
+                aria-label={d.done ? t('Oznacz jako niezrobione') : t('Oznacz jako zrobione')}
                 aria-pressed={d.done}
                 onClick={() => extras?.saveDeadline({ ...d, done: !d.done })}
               >
@@ -47,11 +48,11 @@ export function DeadlineList({ deadlines, now, showCourse = false, compact = fal
               </span>
               {d.checklist && d.checklist.length > 0 && (
                 <span className="deadline-progress">
-                  ✓ {d.checklist.filter((i) => i.done).length}/{d.checklist.length} przygotowane
+                  ✓ {d.checklist.filter((i) => i.done).length}/{d.checklist.length} {t('przygotowane')}
                 </span>
               )}
             </button>
-            <span className="deadline-countdown">{d.done ? 'zrobione' : countdownLabel(d, now)}</span>
+            <span className="deadline-countdown">{d.done ? t('zrobione') : countdownLabel(d, now)}</span>
           </li>
         )
       })}

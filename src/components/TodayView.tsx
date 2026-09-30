@@ -1,6 +1,7 @@
+import { t } from '../lib/i18n'
 import { usePlanUi } from '../hooks/planUi'
 import { addDays, daysBetween, formatDay, isSameDay, toDateKey } from '../lib/dates'
-import { dayLabel } from '../lib/academicCalendar'
+import { dayLabel, eventName } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { semesterWeek } from '../lib/semesterWeek'
 import { DayTimeline } from './DayTimeline'
@@ -23,11 +24,11 @@ function TodayTitle({ meetings, now }: Props) {
         {formatDay(now)}
         {week && (
           <span className="week-number">
-            tydz. {week.number} · {week.odd ? 'nieparzysty' : 'parzysty'}
+            {week.odd ? t('tydz. {n} · nieparzysty', { n: week.number }) : t('tydz. {n} · parzysty', { n: week.number })}
           </span>
         )}
       </h2>
-      {special && <p className="calendar-note">{special.name}</p>}
+      {special && <p className="calendar-note">{eventName(special)}</p>}
     </>
   )
 }
@@ -57,20 +58,20 @@ export function TodayView({ meetings, now }: Props) {
       <FirstSteps />
       <UpcomingDeadlines now={now} />
       <div className="empty-state">
-        {today.length === 0 ? 'Dziś nie masz zajęć.' : 'Na dziś to już wszystko.'}
+        {today.length === 0 ? t('Dziś nie masz zajęć.') : t('Na dziś to już wszystko.')}
       </div>
       {upcoming ? (
         <>
           {/* Krótki nagłówek, a kiedy - szarym tekstem pod nim (na wąskim ekranie nic się nie zawija). */}
-          <h3 className="day-title secondary next-title">{isTomorrow ? 'Jutro' : 'Najbliższe zajęcia'}</h3>
+          <h3 className="day-title secondary next-title">{isTomorrow ? t('Jutro') : t('Najbliższe zajęcia')}</h3>
           <p className="next-when">
             {formatDay(upcoming.start)}
-            {!isTomorrow && ` · za ${daysBetween(now, upcoming.start)} dni`}
+            {!isTomorrow && t(' · za {n} dni', { n: daysBetween(now, upcoming.start) })}
           </p>
           <DayTimeline meetings={upcomingDay} now={now} />
         </>
       ) : (
-        <p className="muted">W planie nie ma już żadnych nadchodzących zajęć.</p>
+        <p className="muted">{t('W planie nie ma już żadnych nadchodzących zajęć.')}</p>
       )}
     </section>
   )

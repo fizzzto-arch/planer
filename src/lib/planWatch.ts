@@ -1,6 +1,7 @@
 // Obserwowanie planu z USOS po stronie serwera: zapamiętane najbliższe tygodnie, porównanie
 // z nową wersją (zmiany w planie) oraz plan dnia i przypomnienie przed pierwszymi zajęciami.
 // Bez importów wykonywalnych - używa go skrypt w Node (scripts/send-reminders.ts).
+import { msg, pluralIn, translate, type Language } from './i18n.ts'
 import type { Meeting } from './usos.ts'
 
 // Zajęcia w zapamiętanym planie - tylko to, co potrzebne do porównania i powiadomień.
@@ -97,47 +98,56 @@ export function looksBroken(prev: WatchedMeeting[], next: WatchedMeeting[], now:
   return before >= 3 && count(next) < before * 0.3
 }
 
-const WEEKDAYS = ['niedz.', 'pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.']
+const WEEKDAYS = [msg('niedz.'), msg('pon.'), msg('wt.'), msg('śr.'), msg('czw.'), msg('pt.'), msg('sob.')]
 
 const clock = (ms: number) => {
   const d = new Date(ms)
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
-const day = (ms: number) => {
+const day = (ms: number, lang: Language) => {
   const d = new Date(ms)
-  return `${WEEKDAYS[d.getDay()]} ${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
+  return `${translate(lang, WEEKDAYS[d.getDay()])} ${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function changeLine(c: PlanChange, label: (course: string) => string): string {
+function changeLine(c: PlanChange, label: (course: string) => string, lang: Language): string {
   const m = 'after' in c ? c.after : c.before
-  const what = `${label(m.course)} (${day(m.start)})`
+  const what = `${label(m.course)} (${day(m.start, lang)})`
   switch (c.kind) {
     case 'moved': {
       const sameDay = new Date(c.before.start).toDateString() === new Date(c.after.start).toDateString()
-      const to = sameDay ? `${clock(c.after.start)}–${clock(c.after.end)}` : `${day(c.after.start)} ${clock(c.after.start)}`
-      return `${label(m.course)} (${day(c.before.start)} ${clock(c.before.start)}) → ${to}`
+      const to = sameDay
+        ? `${clock(c.after.start)}–${clock(c.after.end)}`
+        : `${day(c.after.start, lang)} ${clock(c.after.start)}`
+      return `${label(m.course)} (${day(c.before.start, lang)} ${clock(c.before.start)}) → ${to}`
     }
     case 'room':
-      return `${what}: sala ${c.before.room ?? '?'} → ${c.after.room ?? '?'}`
+      return translate(lang, '{what}: sala {from} → {to}', { what, from: c.before.room ?? '?', to: c.after.room ?? '?' })
     case 'cancelled':
-      return `${what} ${clock(m.start)} - odwołane`
+      return translate(lang, '{what} {time} - odwołane', { what, time: clock(m.start) })
     case 'added':
-      return `${what} ${clock(m.start)} - dodatkowe zajęcia`
+      return translate(lang, '{what} {time} - dodatkowe zajęcia', { what, time: clock(m.start) })
   }
 }
 
 const MAX_LINES = 3
 
 // details: wszystkie zmiany - do historii powiadomień w Planerze (w powiadomieniu mieszczą się 3).
+// lang: język odbiorcy (z jego ustawień).
 export function changesText(
   changes: PlanChange[],
   label: (course: string) => string,
+  lang: Language = 'pl',
 ): { title: string; body: string; details: string[] } {
-  const all = changes.map((c) => changeLine(c, label))
+  const all = changes.map((c) => changeLine(c, label, lang))
   const lines = all.slice(0, MAX_LINES)
-  if (changes.length > MAX_LINES) lines.push(`i jeszcze ${changes.length - MAX_LINES} - szczegóły w Planerze`)
+  if (changes.length > MAX_LINES) {
+    lines.push(translate(lang, 'i jeszcze {n} - szczegóły w Planerze', { n: changes.length - MAX_LINES }))
+  }
   return {
-    title: changes.length === 1 ? 'Zmiana w planie' : `Zmiany w planie (${changes.length})`,
+    title:
+      changes.length === 1
+        ? translate(lang, 'Zmiana w planie')
+        : translate(lang, 'Zmiany w planie ({n})', { n: changes.length }),
     body: lines.join('\n'),
     details: all,
   }
@@ -150,16 +160,21 @@ export function classesOn(plan: WatchedMeeting[], date: Date): WatchedMeeting[] 
 }
 
 // "Dziś 3 zajęcia, 8:15–14:00" / "Pierwsze: Radiologia, s. 014".
-export function daySummaryText(classes: WatchedMeeting[], label: (course: string) => string): { title: string; body: string } {
+export function daySummaryText(
+  classes: WatchedMeeting[],
+  label: (course: string) => string,
+  lang: Language = 'pl',
+): { title: string; body: string } {
   const first = classes[0]
   const last = classes.reduce((a, b) => (b.end > a.end ? b : a))
   const n = classes.length
   // "zajęcia" nie ma liczby pojedynczej: jedne zajęcia, 2-4 zajęcia, 5+ zajęć (ale 22 zajęcia).
-  const few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)
-  const count = n === 1 ? 'jedne zajęcia' : `${n} ${few ? 'zajęcia' : 'zajęć'}`
+  const count =
+    n === 1 ? translate(lang, 'jedne zajęcia') : `${n} ${pluralIn(lang, n, 'zajęcia', 'zajęcia', 'zajęć')}`
+  const room = first.room ? translate(lang, ', s. {room}', { room: first.room }) : ''
   return {
-    title: `Dziś ${count}, ${clock(first.start)}–${clock(last.end)}`,
-    body: `Pierwsze: ${label(first.course)}${first.room ? `, s. ${first.room}` : ''} o ${clock(first.start)}`,
+    title: translate(lang, 'Dziś {count}, {from}–{to}', { count, from: clock(first.start), to: clock(last.end) }),
+    body: translate(lang, 'Pierwsze: {course}{room} o {time}', { course: label(first.course), room, time: clock(first.start) }),
   }
 }
 
@@ -168,10 +183,11 @@ export function firstClassText(
   first: WatchedMeeting,
   label: (course: string) => string,
   now: Date,
+  lang: Language = 'pl',
 ): { title: string; body: string } {
   const minutes = Math.max(1, Math.round((first.start - now.getTime()) / 60_000))
   return {
-    title: `Za ${minutes} min: ${label(first.course)}`,
-    body: `${clock(first.start)}–${clock(first.end)}${first.room ? ` · s. ${first.room}` : ''}`,
+    title: translate(lang, 'Za {n} min: {course}', { n: minutes, course: label(first.course) }),
+    body: `${clock(first.start)}–${clock(first.end)}${first.room ? translate(lang, ' · s. {room}', { room: first.room }) : ''}`,
   }
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { daysBetween, parseDateKey } from './dates'
 import type { Deadline } from './extras'
 
@@ -26,10 +27,10 @@ export function countdownLabel(d: Deadline, now: Date): string {
   const date = parseDateKey(d.date)
   if (!date) return ''
   const diff = daysBetween(now, date)
-  if (diff < 0) return 'minął'
-  if (diff === 0) return d.time ? `dziś o ${d.time}` : 'dziś'
-  if (diff === 1) return d.time ? `jutro o ${d.time}` : 'jutro'
-  return `za ${diff} dni`
+  if (diff < 0) return t('minął')
+  if (diff === 0) return d.time ? t('dziś o {time}', { time: d.time }) : t('dziś')
+  if (diff === 1) return d.time ? t('jutro o {time}', { time: d.time }) : t('jutro')
+  return t('za {n} dni', { n: diff })
 }
 
 // Pilność do kolorowania: dziś/jutro = pilne, do tygodnia = wkrótce.

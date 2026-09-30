@@ -1,4 +1,5 @@
 // Ustawienia użytkownika. Zapisywane w przeglądarce, a po zalogowaniu także na koncie.
+import { LANGUAGES, detectLanguage, type Language } from './i18n'
 import { DEFAULT_REMINDERS, parseReminderKinds, type ReminderKind } from './reminders'
 
 export type AnimationsMode = 'on' | 'off' | 'system'
@@ -7,6 +8,7 @@ export type TextSize = 'small' | 'normal' | 'large'
 export type StartView = 'today' | 'week' | 'courses'
 
 export interface Prefs {
+  language: Language // język interfejsu (i powiadomień - czyta go skrypt wysyłający)
   animations: AnimationsMode
   theme: ThemeMode
   compact: boolean
@@ -28,6 +30,7 @@ export interface Prefs {
 }
 
 export const DEFAULT_PREFS: Prefs = {
+  language: detectLanguage(),
   animations: 'on',
   theme: 'system',
   compact: false,
@@ -77,6 +80,7 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
   }
   const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback)
   return {
+    language: oneOf(raw.language, LANGUAGES, DEFAULT_PREFS.language),
     animations: oneOf(raw.animations, ['on', 'off', 'system'], DEFAULT_PREFS.animations),
     theme: oneOf(raw.theme, ['system', 'light', 'dark'], DEFAULT_PREFS.theme),
     compact: bool(raw.compact, DEFAULT_PREFS.compact),

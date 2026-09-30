@@ -1,13 +1,14 @@
 // Przypomnienia o terminach: kiedy je wysłać i co w nich napisać.
-// Plik bez importów - używa go też skrypt wysyłający (scripts/send-reminders.ts), uruchamiany w Node.
+// Używa go też skrypt wysyłający (scripts/send-reminders.ts), uruchamiany w Node - importy tylko z .ts.
+import { msg, translate, type Language } from './i18n.ts'
 
 export type ReminderKind = 'week' | 'day' | 'morning' | 'hour'
 
 export const REMINDER_KINDS: { id: ReminderKind; label: string; hint: string }[] = [
-  { id: 'week', label: 'Tydzień wcześniej', hint: 'o 18:00' },
-  { id: 'day', label: 'Dzień wcześniej', hint: 'o 18:00' },
-  { id: 'morning', label: 'Rano w dniu terminu', hint: 'o 7:30' },
-  { id: 'hour', label: 'Godzinę przed', hint: 'tylko terminy z godziną' },
+  { id: 'week', label: msg('Tydzień wcześniej'), hint: msg('o 18:00') },
+  { id: 'day', label: msg('Dzień wcześniej'), hint: msg('o 18:00') },
+  { id: 'morning', label: msg('Rano w dniu terminu'), hint: msg('o 7:30') },
+  { id: 'hour', label: msg('Godzinę przed'), hint: msg('tylko terminy z godziną') },
 ]
 
 export const DEFAULT_REMINDERS: ReminderKind[] = ['week', 'day']
@@ -107,30 +108,41 @@ export function dueReminders(
 }
 
 const KIND_LABELS: Record<string, string> = {
-  kolokwium: 'Kolokwium',
-  egzamin: 'Egzamin',
-  projekt: 'Projekt',
-  inne: 'Termin',
+  kolokwium: msg('Kolokwium'),
+  egzamin: msg('Egzamin'),
+  projekt: msg('Projekt'),
+  inne: msg('Termin'),
 }
 
-const WEEKDAYS = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota']
+const WEEKDAYS = [
+  msg('niedziela'),
+  msg('poniedziałek'),
+  msg('wtorek'),
+  msg('środa'),
+  msg('czwartek'),
+  msg('piątek'),
+  msg('sobota'),
+]
 
 // Treść powiadomienia, np. "Kolokwium · Grafika" / "Jutro o 10:15 - rozdziały 1-3".
 export function reminderText(
   { deadline, kind }: Pick<DueReminder, 'deadline' | 'kind'>,
   courseLabel: (name: string) => string,
+  lang: Language = 'pl', // język odbiorcy (z jego ustawień)
 ): { title: string; body: string } {
-  const what = deadline.title.trim() || KIND_LABELS[deadline.kind] || 'Termin'
+  const tr = (text: string, vars?: Record<string, string>) => translate(lang, text, vars)
+  const what = deadline.title.trim() || tr(KIND_LABELS[deadline.kind] ?? KIND_LABELS.inne)
   const title = deadline.courseName ? `${what} · ${courseLabel(deadline.courseName)}` : what
-  const time = deadline.time ? ` o ${deadline.time.replace(/^0/, '')}` : ''
+  const time = deadline.time ? translate(lang, ' o {time}', { time: deadline.time.replace(/^0/, '') }) : ''
   const moment = deadlineMoment(deadline)
+  const date = `${moment.getDate()}.${String(moment.getMonth() + 1).padStart(2, '0')}`
   const when =
     kind === 'week'
-      ? `Za tydzień, ${WEEKDAYS[moment.getDay()]} ${moment.getDate()}.${String(moment.getMonth() + 1).padStart(2, '0')}${time}`
+      ? translate(lang, 'Za tydzień, {day} {date}', { day: tr(WEEKDAYS[moment.getDay()]), date }) + time
       : kind === 'day'
-        ? `Jutro${time}`
+        ? translate(lang, 'Jutro') + time
         : kind === 'morning'
-          ? `Dziś${time}`
-          : `Za godzinę${time}`
+          ? translate(lang, 'Dziś') + time
+          : translate(lang, 'Za godzinę') + time
   return { title, body: when }
 }

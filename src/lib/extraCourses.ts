@@ -1,16 +1,17 @@
 // Zajęcia spoza planu (np. WF, lektorat): wyszukiwanie w USOS i dobór grupy, która najlepiej
 // pasuje do obecnego planu - bez kolizji, z najmniejszą "karą" według kryteriów optymalizatora.
 import { addDays } from './dates'
+import { msg, t } from './i18n'
 import { evaluate, type OptimizerSettings, type OptMeeting } from './optimizer'
 import { weekIndex, type Semester } from './semesterWeek'
 import type { TimetableEntry } from './timetable'
-import { USOS_API, getJson, parseUsosTime, runLimited, shortBuildingId, type GroupsProgress } from './usosGroups'
+import { USOS_API, UsosError, getJson, parseUsosTime, runLimited, shortBuildingId, type GroupsProgress } from './usosGroups'
 
 // Gdzie szukać: WF prowadzi Studium Wychowania Fizycznego i Sportu, lektoraty - Studium Języków Obcych.
 export const EXTRA_SOURCES = [
-  { id: 'wf', label: 'WF (SWFiS)', facId: '643000' },
-  { id: 'lang', label: 'Języki (SJO)', facId: '642000' },
-  { id: 'all', label: 'Wszędzie', facId: null },
+  { id: 'wf', label: msg('WF (SWFiS)'), facId: '643000' },
+  { id: 'lang', label: msg('Języki (SJO)'), facId: '642000' },
+  { id: 'all', label: msg('Wszędzie'), facId: null },
 ] as const
 export type ExtraSource = (typeof EXTRA_SOURCES)[number]['id']
 
@@ -168,14 +169,14 @@ async function courseByCode(code: string, termId: string): Promise<ExtraCourse> 
   try {
     info = await getJson<CourseInfo>(courseUrl(code))
   } catch (e) {
-    if (e instanceof Error && e.message.startsWith('USOS odpowiedział błędem 4')) {
-      throw new Error(`Nie ma w USOS przedmiotu o kodzie ${code}. Sprawdź, czy skopiował się cały.`)
+    if (e instanceof UsosError && e.status >= 400 && e.status < 500) {
+      throw new Error(t('Nie ma w USOS przedmiotu o kodzie {code}. Sprawdź, czy skopiował się cały.', { code }))
     }
     throw e
   }
   const name = info.name.pl.trim()
-  if (!(info.terms ?? []).some((t) => t.id === termId)) {
-    throw new Error(`„${name}” nie ma zajęć w semestrze ${termId}.`)
+  if (!(info.terms ?? []).some((item) => item.id === termId)) {
+    throw new Error(t('„{name}” nie ma zajęć w semestrze {term}.', { name, term: termId }))
   }
   return { courseId: code, name }
 }
@@ -204,7 +205,7 @@ export async function searchCourses(query: string, source: ExtraSource, termId: 
       getJson<CourseInfo>(courseUrl(id)).then((c) => ({
         courseId: id,
         name: c.name.pl.trim(),
-        active: (c.terms ?? []).some((t) => t.id === termId),
+        active: (c.terms ?? []).some((item2) => item2.id === termId),
       })),
     ),
     () => undefined,

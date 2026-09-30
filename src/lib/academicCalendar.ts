@@ -1,6 +1,7 @@
 // Kalendarz akademicki PW (dni wolne, przerwy, sesja) z USOS API. API wymaga klucza aplikacji,
 // którego nie wolno umieszczać w stronie - kalendarz pobiera wdrożenie (scripts/usos-calendar.ts)
-// i publikuje obok strony jako calendar.json. Bez importów - czyta go też Node.
+// i publikuje obok strony jako calendar.json. Czyta go też Node - importy tylko z .ts.
+import { getLanguage, t } from './i18n.ts'
 
 export interface CalendarEvent {
   start: string // "2026-11-11"
@@ -8,6 +9,7 @@ export interface CalendarEvent {
   type: string // public_holidays, holidays, rector, break, exam_session...
   dayOff: boolean
   name: string
+  nameEn?: string // nazwa angielska z USOS (jeśli jest)
 }
 
 export interface AcademicCalendar {
@@ -19,9 +21,13 @@ export interface AcademicCalendar {
 export function parseUsosEvent(raw: Record<string, unknown>): CalendarEvent | null {
   const start = typeof raw.start_date === 'string' ? raw.start_date.slice(0, 10) : ''
   const end = typeof raw.end_date === 'string' ? raw.end_date.slice(0, 10) : start
-  const name = (raw.name as { pl?: string } | undefined)?.pl?.trim() ?? ''
+  const names = raw.name as { pl?: string; en?: string } | undefined
+  const name = names?.pl?.trim() ?? ''
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !name) return null
-  return { start, end: end || start, type: typeof raw.type === 'string' ? raw.type : '', dayOff: raw.is_day_off === true, name }
+  const event: CalendarEvent = { start, end: end || start, type: typeof raw.type === 'string' ? raw.type : '', dayOff: raw.is_day_off === true, name }
+  const nameEn = names?.en?.trim()
+  if (nameEn) event.nameEn = nameEn
+  return event
 }
 
 // Te same wydarzenia z kilku wydziałów (EiTI, Mechatronika) i miesięcy - bez powtórzeń.
@@ -45,9 +51,14 @@ export function dayLabel(events: CalendarEvent[], dateKey: string): CalendarEven
 
 // Krótka etykieta do wąskich miejsc (nagłówek kolumny w siatce tygodnia) - pełna nazwa w podpowiedzi.
 export function shortDayLabel(event: CalendarEvent): string {
-  if (event.type === 'exam_session') return 'Sesja'
-  if (event.type === 'public_holidays' || event.type === 'holidays') return 'Święto'
-  if (/rejestr/i.test(event.name)) return 'Rejestracja'
-  if (/wakacje|ferie/i.test(event.name)) return 'Wakacje'
-  return 'Wolne'
+  if (event.type === 'exam_session') return t('Sesja')
+  if (event.type === 'public_holidays' || event.type === 'holidays') return t('Święto')
+  if (/rejestr/i.test(event.name)) return t('Rejestracja')
+  if (/wakacje|ferie/i.test(event.name)) return t('Wakacje')
+  return t('Wolne')
+}
+
+// Pełna nazwa w języku interfejsu (angielska z USOS, gdy jest).
+export function eventName(event: CalendarEvent): string {
+  return getLanguage() === 'en' && event.nameEn ? event.nameEn : event.name
 }

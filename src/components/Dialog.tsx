@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 
 interface Props {
@@ -31,7 +32,7 @@ export function Dialog({ title, onClose, children, wide = false }: Props) {
       <div className="dialog-body">
         <header className="dialog-header">
           <h2 id={titleId}>{title}</h2>
-          <button type="button" className="dialog-close" aria-label="Zamknij" onClick={onClose}>
+          <button type="button" className="dialog-close" aria-label={t('Zamknij')} onClick={onClose}>
             {/* Ikona zamiast znaku "×" - znak siedzi w kółku krzywo (zależy od czcionki). */}
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6 6 18" />

@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
@@ -45,7 +46,7 @@ export function AuthForm({ cloud }: Props) {
     e.preventDefault()
     const address = email.trim()
     if (isRegister && password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Hasło musi mieć co najmniej ${MIN_PASSWORD_LENGTH} znaków.`)
+      setError(t('Hasło musi mieć co najmniej {n} znaków.', { n: MIN_PASSWORD_LENGTH }))
       return
     }
     void run(() => (isRegister ? cloud.signUp(address, password, remember) : cloud.signIn(address, password, remember)))
@@ -53,19 +54,19 @@ export function AuthForm({ cloud }: Props) {
 
   function handleReset() {
     if (!email.trim()) {
-      setError('Wpisz najpierw swój e-mail, wyślemy na niego link do ustawienia hasła.')
+      setError(t('Wpisz najpierw swój e-mail, wyślemy na niego link do ustawienia hasła.'))
       return
     }
     void run(async () => {
       await cloud.resetPassword(email.trim())
-      setInfo('Jeśli to konto istnieje, na podany e-mail przyszedł link do ustawienia nowego hasła.')
+      setInfo(t('Jeśli to konto istnieje, na podany e-mail przyszedł link do ustawienia nowego hasła.'))
     })
   }
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       {/* Logowanie / rejestracja jak przełącznik w iOS - od razu widać, że są dwie drogi. */}
-      <div className="segmented auth-mode" role="tablist" aria-label="Logowanie albo rejestracja">
+      <div className="segmented auth-mode" role="tablist" aria-label={t('Logowanie albo rejestracja')}>
         {(['login', 'register'] as const).map((m) => (
           <button
             key={m}
@@ -76,13 +77,13 @@ export function AuthForm({ cloud }: Props) {
             onClick={() => switchMode(m)}
             disabled={busy}
           >
-            {m === 'login' ? 'Logowanie' : 'Nowe konto'}
+            {m === 'login' ? t('Logowanie') : t('Nowe konto')}
           </button>
         ))}
       </div>
 
       <label className="field-label" htmlFor="auth-email">
-        E-mail
+        {t('E-mail')}
       </label>
       <input
         id="auth-email"
@@ -96,8 +97,8 @@ export function AuthForm({ cloud }: Props) {
       />
 
       <label className="field-label" htmlFor="auth-password">
-        Hasło
-        {isRegister && <span className="label-note"> (min. {MIN_PASSWORD_LENGTH} znaków)</span>}
+        {t('Hasło')}
+        {isRegister && <span className="label-note"> {t('(min. {n} znaków)', { n: MIN_PASSWORD_LENGTH })}</span>}
       </label>
       <PasswordField
         id="auth-password"
@@ -109,28 +110,28 @@ export function AuthForm({ cloud }: Props) {
       <label className="check-row remember-row">
         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
         <span>
-          Zapamiętaj mnie na tym urządzeniu
+          {t('Zapamiętaj mnie na tym urządzeniu')}
           <span className="setting-hint">
             {remember
-              ? 'Zostaniesz zalogowany także po zamknięciu przeglądarki.'
-              : 'Na cudzym komputerze: po zamknięciu przeglądarki Planer wyloguje Cię i usunie stąd Twoje dane.'}
+              ? t('Zostaniesz zalogowany także po zamknięciu przeglądarki.')
+              : t('Na cudzym komputerze: po zamknięciu przeglądarki Planer wyloguje Cię i usunie stąd Twoje dane.')}
           </span>
         </span>
       </label>
 
       {isRegister && (
         <p className="hint">
-          Po rejestracji potwierdzisz e-mail linkiem, a administrator Planera zatwierdzi konto.
+          {t('Po rejestracji potwierdzisz e-mail linkiem, a administrator Planera zatwierdzi konto.')}
         </p>
       )}
 
       <div className="button-row">
         <button type="submit" className="button" disabled={busy}>
-          {busy ? 'Chwila…' : isRegister ? 'Załóż konto' : 'Zaloguj się'}
+          {busy ? t('Chwila…') : isRegister ? t('Załóż konto') : t('Zaloguj się')}
         </button>
         {!isRegister && (
           <button type="button" className="link-button" onClick={handleReset} disabled={busy}>
-            Nie pamiętam hasła
+            {t('Nie pamiętam hasła')}
           </button>
         )}
       </div>

@@ -1,23 +1,24 @@
+import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import type { OptimizerSettingsApi } from '../hooks/useOptimizerSettings'
 import type { DayStyle, Slot, Weights } from '../lib/optimizer'
-import { WEEKDAYS, describeOption } from '../lib/optimizerSettings'
+import { describeOption, weekdayShort } from '../lib/optimizerSettings'
 import { plural } from '../lib/plural'
 import { typeLabel } from '../lib/usos'
 import { ChoiceSetting } from './SettingControls'
 
-const WEIGHT_OPTIONS = [
-  { value: 0, label: 'Nieważne' },
-  { value: 1, label: 'Trochę' },
-  { value: 2, label: 'Ważne' },
-  { value: 3, label: 'Bardzo' },
-]
+const WEIGHT_OPTIONS = () => ([
+  { value: 0, label: t('Nieważne') },
+  { value: 1, label: t('Trochę') },
+  { value: 2, label: t('Ważne') },
+  { value: 3, label: t('Bardzo') },
+])
 
-const DAY_STYLE_OPTIONS: { value: DayStyle; label: string }[] = [
-  { value: 'window', label: 'W wybranych godzinach' },
-  { value: 'early', label: 'Jak najwcześniej' },
-]
+const DAY_STYLE_OPTIONS = (): { value: DayStyle; label: string }[] => ([
+  { value: 'window', label: t('W wybranych godzinach') },
+  { value: 'early', label: t('Jak najwcześniej') },
+])
 
 interface Props {
   api: OptimizerSettingsApi
@@ -34,7 +35,7 @@ function BlockedTimes({ api }: Pick<Props, 'api'>) {
   function add(e: FormEvent) {
     e.preventDefault()
     if (!from || !to || to <= from) {
-      setError('Koniec musi być po początku.')
+      setError(t('Koniec musi być po początku.'))
       return
     }
     setError(null)
@@ -44,17 +45,17 @@ function BlockedTimes({ api }: Pick<Props, 'api'>) {
 
   return (
     <div className="opt-block">
-      <h4 className="material-heading">Zablokowane godziny</h4>
-      <p className="setting-hint">Np. praca albo trening - plany z zajęciami w tym czasie nie będą proponowane.</p>
+      <h4 className="material-heading">{t('Zablokowane godziny')}</h4>
+      <p className="setting-hint">{t('Np. praca albo trening - plany z zajęciami w tym czasie nie będą proponowane.')}</p>
       {settings.blocked.length > 0 && (
         <ul className="chip-list">
           {settings.blocked.map((b) => (
             <li key={b.id} className="chip">
-              {WEEKDAYS[b.weekday - 1]} {b.from}–{b.to}
+              {weekdayShort(b.weekday - 1)} {b.from}–{b.to}
               <button
                 type="button"
                 className="chip-remove"
-                aria-label="Usuń blokadę"
+                aria-label={t('Usuń blokadę')}
                 onClick={() => update({ blocked: settings.blocked.filter((x) => x.id !== b.id) })}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -66,17 +67,17 @@ function BlockedTimes({ api }: Pick<Props, 'api'>) {
         </ul>
       )}
       <form className="blocked-form" onSubmit={add}>
-        <select className="text-input" value={weekday} onChange={(e) => setWeekday(Number(e.target.value))} aria-label="Dzień">
-          {WEEKDAYS.map((d, i) => (
-            <option key={d} value={i + 1}>
-              {d}
+        <select className="text-input" value={weekday} onChange={(e) => setWeekday(Number(e.target.value))} aria-label={t('Dzień')}>
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <option key={i} value={i + 1}>
+              {weekdayShort(i)}
             </option>
           ))}
         </select>
-        <input className="text-input" type="time" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Od" />
-        <input className="text-input" type="time" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Do" />
+        <input className="text-input" type="time" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={t('Od')} />
+        <input className="text-input" type="time" value={to} onChange={(e) => setTo(e.target.value)} aria-label={t('Do')} />
         <button type="submit" className="button small secondary">
-          Dodaj
+          {t('Dodaj')}
         </button>
       </form>
       {error && <p className="error">{error}</p>}
@@ -98,8 +99,8 @@ function PinnedGroups({ api, slots }: Props) {
 
   return (
     <div className="opt-block">
-      <h4 className="material-heading">Zajęcia z wyborem grup</h4>
-      <p className="setting-hint">Przypnij grupę, której nie chcesz zmieniać (np. jesteś w niej ze znajomymi).</p>
+      <h4 className="material-heading">{t('Zajęcia z wyborem grup')}</h4>
+      <p className="setting-hint">{t('Przypnij grupę, której nie chcesz zmieniać (np. jesteś w niej ze znajomymi).')}</p>
       <ul className="pin-list">
         {choosable.map((slot) => {
           const current = slot.options[slot.currentIndex!]
@@ -111,8 +112,11 @@ function PinnedGroups({ api, slots }: Props) {
                   {displayName(slot.courseName)} · {typeLabel(slot.classType)}
                 </span>
                 <span className="setting-hint">
-                  teraz gr. {current.groupNumber} ({describeOption(current)}) · {slot.options.length}{' '}
-                  {plural(slot.options.length, 'grupa', 'grupy', 'grup')} do wyboru
+                  {t('teraz gr. {n} ({when})', { n: current.groupNumber, when: describeOption(current) })} ·{' '}
+                  {t('{count} {groups} do wyboru', {
+                    count: slot.options.length,
+                    groups: plural(slot.options.length, 'grupa', 'grupy', 'grup'),
+                  })}
                 </span>
               </span>
               <button
@@ -121,12 +125,12 @@ function PinnedGroups({ api, slots }: Props) {
                 aria-pressed={isPinned}
                 onClick={() => togglePin(slot)}
               >
-                {isPinned ? 'Przypięta' : 'Przypnij'}
+                {isPinned ? t('Przypięta') : t('Przypnij')}
               </button>
             </li>
           )
         })}
-        {choosable.length === 0 && <li className="muted small">Żadne zajęcia nie mają kilku grup do wyboru.</li>}
+        {choosable.length === 0 && <li className="muted small">{t('Żadne zajęcia nie mają kilku grup do wyboru.')}</li>}
       </ul>
     </div>
   )
@@ -138,45 +142,45 @@ export function OptimizerSettingsPanel({ api, slots }: Props) {
 
   return (
     <div className="panel">
-      <h3 className="panel-title">Co jest dla Ciebie ważne</h3>
+      <h3 className="panel-title">{t('Co jest dla Ciebie ważne')}</h3>
       <ChoiceSetting
-        label="Mało okienek"
+        label={t('Mało okienek')}
         value={settings.weights.gaps}
-        options={WEIGHT_OPTIONS}
+        options={WEIGHT_OPTIONS()}
         onChange={(v) => setWeight('gaps', v)}
       />
       <ChoiceSetting
-        label="Mniej dni na uczelni"
+        label={t('Mniej dni na uczelni')}
         value={settings.weights.days}
-        options={WEIGHT_OPTIONS}
+        options={WEIGHT_OPTIONS()}
         onChange={(v) => setWeight('days', v)}
       />
       <ChoiceSetting
-        label="Pora zajęć"
+        label={t('Pora zajęć')}
         hint={
           settings.dayStyle === 'early'
-            ? 'Wcześniej zaczynam, wcześniej kończę - zajęcia rano, wolne popołudnia.'
-            : 'Późniejszy start i wczesny koniec - granice ustawiasz niżej.'
+            ? t('Wcześniej zaczynam, wcześniej kończę - zajęcia rano, wolne popołudnia.')
+            : t('Późniejszy start i wczesny koniec - granice ustawiasz niżej.')
         }
         value={settings.dayStyle}
-        options={DAY_STYLE_OPTIONS}
+        options={DAY_STYLE_OPTIONS()}
         onChange={(dayStyle) => update({ dayStyle })}
       />
       {settings.dayStyle === 'early' ? (
         <ChoiceSetting
-          label="Kończyć jak najwcześniej"
-          hint="Liczy się, o której kończysz każdego dnia."
+          label={t('Kończyć jak najwcześniej')}
+          hint={t('Liczy się, o której kończysz każdego dnia.')}
           value={settings.weights.finish}
-          options={WEIGHT_OPTIONS}
+          options={WEIGHT_OPTIONS()}
           onChange={(v) => setWeight('finish', v)}
         />
       ) : (
         <>
           <ChoiceSetting
-            label="Bez zajęć wcześnie rano"
+            label={t('Bez zajęć wcześnie rano')}
             hint={
               <label className="inline-time">
-                przed{' '}
+                {t('przed')}{' '}
                 <input
                   type="time"
                   className="text-input"
@@ -186,14 +190,14 @@ export function OptimizerSettingsPanel({ api, slots }: Props) {
               </label>
             }
             value={settings.weights.early}
-            options={WEIGHT_OPTIONS}
+            options={WEIGHT_OPTIONS()}
             onChange={(v) => setWeight('early', v)}
           />
           <ChoiceSetting
-            label="Bez zajęć późno"
+            label={t('Bez zajęć późno')}
             hint={
               <label className="inline-time">
-                po{' '}
+                {t('po')}{' '}
                 <input
                   type="time"
                   className="text-input"
@@ -203,7 +207,7 @@ export function OptimizerSettingsPanel({ api, slots }: Props) {
               </label>
             }
             value={settings.weights.late}
-            options={WEIGHT_OPTIONS}
+            options={WEIGHT_OPTIONS()}
             onChange={(v) => setWeight('late', v)}
           />
         </>

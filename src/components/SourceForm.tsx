@@ -1,3 +1,5 @@
+import { tx } from '../lib/i18nReact'
+import { t } from '../lib/i18n'
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import type { PlanApi } from '../hooks/usePlan'
 import { errorMessage } from '../lib/errors'
@@ -6,14 +8,14 @@ import { parseWatGroup, watPlanUrl } from '../lib/wat'
 const USOSWEB_PLAN_URL = 'https://usosweb.usos.pw.edu.pl/kontroler.php?_action=home/plan'
 
 function validateUrl(url: string): string | null {
-  if (!url) return 'Wklej odnośnik do planu albo wpisz kod grupy WAT.'
-  if (!/^https:\/\//i.test(url)) return 'Odnośnik powinien zaczynać się od https://'
+  if (!url) return t('Wklej odnośnik do planu albo wpisz kod grupy WAT.')
+  if (!/^https:\/\//i.test(url)) return t('Odnośnik powinien zaczynać się od https://')
   // Ikona "udostępnij" (<) daje link do strony z planem, a nie do kalendarza - łatwo pomylić ikony.
   if (/pokazPlanZajecStudenta/i.test(url)) {
-    return 'To link do udostępniania planu (ikona „<”), a potrzebny jest link do kalendarza. W USOSweb kliknij ikonę eksportu (strzałka w górę do kreski, obok) i skopiuj „Odnośnik do planu” z okna, które się otworzy.'
+    return t('To link do udostępniania planu (ikona „<”), a potrzebny jest link do kalendarza. W USOSweb kliknij ikonę eksportu (strzałka w górę do kreski, obok) i skopiuj „Odnośnik do planu” z okna, które się otworzy.')
   }
   if (/usosweb\.usos\.pw\.edu\.pl/i.test(url)) {
-    return 'To adres strony USOSweb. Potrzebny jest „Odnośnik do planu” z okna eksportu (krok 2).'
+    return t('To adres strony USOSweb. Potrzebny jest „Odnośnik do planu” z okna eksportu (krok 2).')
   }
   return null
 }
@@ -61,7 +63,7 @@ export function SourceForm({ plan, onDone }: Props) {
           await plan.connectUrl(watPlanUrl(watGroup, document.baseURI))
         } catch {
           throw new Error(
-            `Nie mam planu grupy ${watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl - plany nowych grup pojawiają się tu następnej nocy.`,
+            t('Nie mam planu grupy {watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl - plany nowych grup pojawiają się tu następnej nocy.', { watGroup }),
           )
         }
       })
@@ -85,25 +87,26 @@ export function SourceForm({ plan, onDone }: Props) {
     <div className="source-form">
       <ol className="steps">
         <li>
-          Otwórz{' '}
+          {t('Otwórz')}{' '}
           <a href={USOSWEB_PLAN_URL} target="_blank" rel="noreferrer">
-            Mój plan zajęć w USOSweb
+            {t('Mój plan zajęć w USOSweb')}
           </a>
           .
         </li>
         <li>
-          Kliknij ikonę eksportu <ExportIcon /> (strzałka w górę do kreski) obok nagłówka „Mój plan zajęć” - nie ikonę
-          udostępniania {'„<”'}.
+          {tx('Kliknij ikonę eksportu {icon} (strzałka w górę do kreski) obok nagłówka „Mój plan zajęć” - nie ikonę udostępniania „<”.', {
+            icon: <ExportIcon />,
+          })}
         </li>
-        <li>Skopiuj „Odnośnik do planu” i wklej go poniżej.</li>
+        <li>{t('Skopiuj „Odnośnik do planu” i wklej go poniżej.')}</li>
       </ol>
       <p className="hint">
-        Studiujesz na WAT (Wydział Cybernetyki)? Zamiast linku wpisz kod swojej grupy, np. WCY26IY4S1.
+        {t('Studiujesz na WAT (Wydział Cybernetyki)? Zamiast linku wpisz kod swojej grupy, np. WCY26IY4S1.')}
       </p>
 
       <form onSubmit={handleSubmit}>
         <label className="field-label" htmlFor="ical-url">
-          Odnośnik do planu (albo kod grupy WAT)
+          {t('Odnośnik do planu (albo kod grupy WAT)')}
         </label>
         <div className="input-row">
           <input
@@ -117,19 +120,18 @@ export function SourceForm({ plan, onDone }: Props) {
             onChange={(e) => setUrl(e.target.value)}
           />
           <button type="submit" className="button" disabled={busy}>
-            {busy ? 'Wczytuję…' : 'Wczytaj plan'}
+            {busy ? t('Wczytuję…') : t('Wczytaj plan')}
           </button>
         </div>
       </form>
       <p className="hint">
-        Link działa jak hasło do Twojego planu. Jest zapisywany tylko w tej przeglądarce, a plan
-        odświeża się sam przy każdym otwarciu strony.
+        {t('Link działa jak hasło do Twojego planu. Jest zapisywany tylko w tej przeglądarce, a plan odświeża się sam przy każdym otwarciu strony.')}
       </p>
 
-      <div className="divider">albo</div>
+      <div className="divider">{t('albo')}</div>
 
       <label className={`button secondary${busy ? ' is-disabled' : ''}`}>
-        Wgraj plik .ics
+        {t('Wgraj plik .ics')}
         <input type="file" accept=".ics,text/calendar" onChange={handleFile} disabled={busy} hidden />
       </label>
 

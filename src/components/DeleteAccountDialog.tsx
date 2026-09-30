@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
@@ -18,7 +19,7 @@ export function DeleteAccountDialog({ cloud, onClose }: Props) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!password) {
-      setError('Wpisz hasło, żeby potwierdzić, że to Ty.')
+      setError(t('Wpisz hasło, żeby potwierdzić, że to Ty.'))
       return
     }
     setBusy(true)
@@ -32,22 +33,21 @@ export function DeleteAccountDialog({ cloud, onClose }: Props) {
   }
 
   return (
-    <Dialog title="Usunąć konto?" onClose={busy ? () => undefined : onClose}>
+    <Dialog title={t('Usunąć konto?')} onClose={busy ? () => undefined : onClose}>
       <form className="dialog-form" onSubmit={(e) => void handleSubmit(e)}>
-        <p>Usuniemy na zawsze:</p>
+        <p>{t('Usuniemy na zawsze:')}</p>
         <ul className="plain-list">
-          <li>konto i adres e-mail,</li>
-          <li>notatki, terminy, zmiany w planie i własne zajęcia,</li>
-          <li>ustawienia, kolory i przypomnienia,</li>
-          <li>pliki, które udostępniłeś grupie (znikną też u innych),</li>
-          <li>wszystko, co Planer zapisał na tym urządzeniu.</li>
+          <li>{t('konto i adres e-mail,')}</li>
+          <li>{t('notatki, terminy, zmiany w planie i własne zajęcia,')}</li>
+          <li>{t('ustawienia, kolory i przypomnienia,')}</li>
+          <li>{t('pliki, które udostępniłeś grupie (znikną też u innych),')}</li>
+          <li>{t('wszystko, co Planer zapisał na tym urządzeniu.')}</li>
         </ul>
         <p className="hint">
-          Tego nie da się cofnąć. Jeśli chcesz coś zachować, najpierw pobierz kopię zapasową (Ustawienia → Kopia
-          zapasowa). Plan w USOS nie zmienia się w żaden sposób.
+          {t('Tego nie da się cofnąć. Jeśli chcesz coś zachować, najpierw pobierz kopię zapasową (Ustawienia → Kopia zapasowa). Plan w USOS nie zmienia się w żaden sposób.')}
         </p>
         <label className="field-label" htmlFor="delete-password">
-          Hasło do Planera
+          {t('Hasło do Planera')}
         </label>
         <PasswordField id="delete-password" value={password} onChange={setPassword} autoComplete="current-password" />
         {error && (
@@ -57,10 +57,10 @@ export function DeleteAccountDialog({ cloud, onClose }: Props) {
         )}
         <div className="button-row">
           <button type="submit" className="button danger" disabled={busy}>
-            {busy ? 'Usuwam…' : 'Usuń konto na zawsze'}
+            {busy ? t('Usuwam…') : t('Usuń konto na zawsze')}
           </button>
           <button type="button" className="button secondary" disabled={busy} onClick={onClose}>
-            Anuluj
+            {t('Anuluj')}
           </button>
         </div>
       </form>

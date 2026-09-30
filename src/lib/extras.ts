@@ -1,4 +1,5 @@
 // Własne dodatki użytkownika do planu, przechowywane na koncie (Firestore: users/{uid}/...).
+import { msg, tk } from './i18n'
 import { isTimeKey, parseDateKey } from './dates'
 import type { OptimizerSettings } from './optimizer'
 import type { Prefs } from './prefs'
@@ -8,14 +9,14 @@ import type { Meeting } from './usos'
 export type DeadlineKind = 'kolokwium' | 'egzamin' | 'projekt' | 'inne'
 
 export const DEADLINE_KINDS: { id: DeadlineKind; label: string }[] = [
-  { id: 'kolokwium', label: 'Kolokwium' },
-  { id: 'egzamin', label: 'Egzamin' },
-  { id: 'projekt', label: 'Projekt' },
-  { id: 'inne', label: 'Inne' },
+  { id: 'kolokwium', label: msg('Kolokwium') },
+  { id: 'egzamin', label: msg('Egzamin') },
+  { id: 'projekt', label: msg('Projekt') },
+  { id: 'inne', label: msg('Inne') },
 ]
 
 export function deadlineKindLabel(kind: DeadlineKind): string {
-  return DEADLINE_KINDS.find((k) => k.id === kind)?.label ?? 'Inne'
+  return tk(DEADLINE_KINDS.find((k) => k.id === kind)?.label ?? 'Inne')
 }
 
 export interface Deadline {

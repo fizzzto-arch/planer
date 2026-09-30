@@ -1,3 +1,4 @@
+import { locale, t, tk } from '../lib/i18n'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { prepareAttachment, type FeedbackApi } from '../hooks/useFeedback'
 import { diagnostics } from '../lib/diagnostics'
@@ -26,19 +27,19 @@ interface Props {
   onBack?: () => void // brak = otwarte z zakładki (trójkąt na pasku), nie z podstrony
 }
 
-const kindLabel = (k: FeedbackKind) => FEEDBACK_KIND_LABELS[k] ?? k
+const kindLabel = (k: FeedbackKind) => (FEEDBACK_KIND_LABELS[k] ? tk(FEEDBACK_KIND_LABELS[k]) : k)
 
 const formatWhen = (ms: number | null) =>
   ms === null
-    ? 'wysyłanie…'
-    : new Date(ms).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    ? t('wysyłanie…')
+    : new Date(ms).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 // Zgłoszenia od testerów: co działa, co nie, czego brakuje, ze zdjęciami i nagraniami.
 export function FeedbackView({ feedback, admin, onBack }: Props) {
   // "Problem?" przy zadaniu: nowy formularz (key) z rodzajem "Błąd" i nazwą zadania w opisie.
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null)
   const report = (task: TesterTask) => {
-    setPrefill({ text: `Zadanie „${task.title}”: `, nonce: Date.now() })
+    setPrefill({ text: t('Zadanie „{title}”: ', { title: tk(task.title) }), nonce: Date.now() })
     setTimeout(() => document.getElementById('feedback-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
@@ -49,16 +50,16 @@ export function FeedbackView({ feedback, admin, onBack }: Props) {
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m15 6-6 6 6 6" />
           </svg>
-          Wróć
+          {t('Wróć')}
         </button>
       )}
 
       <header className="course-header">
-        <h2>{admin ? 'Zgłoszenia' : 'Uwagi i pomysły'}</h2>
+        <h2>{admin ? t('Zgłoszenia') : t('Uwagi i pomysły')}</h2>
         <p className="muted">
           {admin
-            ? 'Wszystko, co przysłali testerzy. Odpowiedź zobaczą przy swoim zgłoszeniu.'
-            : 'Napisz, co Ci się podoba, co przeszkadza i czego brakuje. Możesz dołączyć zrzut ekranu albo krótkie nagranie - odpowiedź pojawi się niżej.'}
+            ? t('Wszystko, co przysłali testerzy. Odpowiedź zobaczą przy swoim zgłoszeniu.')
+            : t('Napisz, co Ci się podoba, co przeszkadza i czego brakuje. Możesz dołączyć zrzut ekranu albo krótkie nagranie - odpowiedź pojawi się niżej.')}
         </p>
       </header>
 
@@ -73,7 +74,7 @@ export function FeedbackView({ feedback, admin, onBack }: Props) {
       <FeedbackForm key={prefill?.nonce ?? 0} feedback={feedback} initialText={prefill?.text ?? null} />
       {feedback.own.length > 0 && (
         <div className="panel">
-          <h3 className="panel-title">Twoje zgłoszenia</h3>
+          <h3 className="panel-title">{t('Twoje zgłoszenia')}</h3>
           <ul className="feedback-list">
             {feedback.own.map((f) => (
               <OwnItem key={f.id} item={f} feedback={feedback} />
@@ -117,7 +118,7 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
       const incoming = [...list]
       const raw = checkAttachments([...picked.map((p) => ({ type: p.file.type, size: 0 })), ...incoming])
       // Rozmiar zdjęć sprawdzamy dopiero po zmniejszeniu - z telefonu mają po kilka MB.
-      if (raw && !raw.startsWith('Załączniki są za duże')) {
+      if (raw && raw !== t('Załączniki są za duże razem - usuń któryś.')) {
         setError(raw)
         return
       }
@@ -155,7 +156,7 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
       diagnostics: withDevice ? diagnostics() : '',
     }
     if (isEmptyFeedback(entry)) {
-      setError('Wpisz cokolwiek w którymś polu.')
+      setError(t('Wpisz cokolwiek w którymś polu.'))
       return
     }
     setError(null)
@@ -198,8 +199,8 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
 
   return (
     <form id="feedback-form" className="panel form-grid" onSubmit={(e) => void handleSubmit(e)}>
-      <h3 className="panel-title">Nowe zgłoszenie</h3>
-      <div className="segmented" role="radiogroup" aria-label="Rodzaj zgłoszenia">
+      <h3 className="panel-title">{t('Nowe zgłoszenie')}</h3>
+      <div className="segmented" role="radiogroup" aria-label={t('Rodzaj zgłoszenia')}>
         {FEEDBACK_KINDS.map((k) => (
           <button
             key={k.id}
@@ -209,31 +210,31 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
             className={`segment${kind === k.id ? ' is-active' : ''}`}
             onClick={() => setKind(k.id)}
           >
-            {k.label}
+            {tk(k.label)}
           </button>
         ))}
       </div>
 
       {kind === 'bug' ? (
         field(
-          'Co się stało?',
+          t('Co się stało?'),
           text,
           setText,
-          'np. Kliknąłem „Eksportuj” w tygodniu 5 i nic się nie pobrało. Co robiłeś tuż przed błędem?',
+          t('np. Kliknąłem „Eksportuj” w tygodniu 5 i nic się nie pobrało. Co robiłeś tuż przed błędem?'),
           4,
         )
       ) : (
         <>
-          {field('Co działa dobrze (+)', good, setGood, 'np. widok tygodnia, przypomnienia')}
-          {field('Co działa źle albo przeszkadza (−)', bad, setBad, 'np. za mały tekst na telefonie')}
-          {field('Czego brakuje?', missing, setMissing, 'np. widgetu na ekran blokady')}
-          {field('Coś jeszcze?', text, setText, 'dowolny komentarz')}
+          {field(t('Co działa dobrze (+)'), good, setGood, t('np. widok tygodnia, przypomnienia'))}
+          {field(t('Co działa źle albo przeszkadza (−)'), bad, setBad, t('np. za mały tekst na telefonie'))}
+          {field(t('Czego brakuje?'), missing, setMissing, t('np. widgetu na ekran blokady'))}
+          {field(t('Coś jeszcze?'), text, setText, t('dowolny komentarz'))}
         </>
       )}
 
       <div className="field">
         <span className="field-label">
-          Zdjęcia i nagrania <span className="label-note">(opcjonalnie, do {MAX_ATTACHMENTS})</span>
+          {t('Zdjęcia i nagrania')} <span className="label-note">{t('(opcjonalnie, do {n})', { n: MAX_ATTACHMENTS })}</span>
         </span>
         {picked.length > 0 && (
           <ul className="feedback-thumbs">
@@ -248,7 +249,7 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
                 <button
                   type="button"
                   className="chip-remove"
-                  aria-label={`Usuń ${p.file.name}`}
+                  aria-label={t('Usuń {name}', { name: p.file.name })}
                   disabled={busy}
                   onClick={() => setPicked(picked.filter((_, k) => k !== i))}
                 >
@@ -275,15 +276,15 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
             disabled={busy || preparing}
             onClick={() => input.current?.click()}
           >
-            {preparing ? 'Przygotowuję…' : 'Dodaj zdjęcie lub nagranie'}
+            {preparing ? t('Przygotowuję…') : t('Dodaj zdjęcie lub nagranie')}
           </button>
         )}
-        <p className="hint">Nagranie do ok. 30 sekund (30 MB). Zdjęcia zmniejszam przed wysłaniem.</p>
+        <p className="hint">{t('Nagranie do ok. 30 sekund (30 MB). Zdjęcia zmniejszam przed wysłaniem.')}</p>
       </div>
 
       <label className="check-field">
         <input type="checkbox" checked={withDevice} disabled={busy} onChange={(e) => setWithDevice(e.target.checked)} />
-        Dołącz informacje o urządzeniu (wersja Planera, telefon, przeglądarka)
+        {t('Dołącz informacje o urządzeniu (wersja Planera, telefon, przeglądarka)')}
       </label>
 
       {error && (
@@ -291,14 +292,14 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
           {error}
         </p>
       )}
-      {sent && <p className="success">Dzięki! Zgłoszenie wysłane.</p>}
+      {sent && <p className="success">{t('Dzięki! Zgłoszenie wysłane.')}</p>}
 
       {progress && progress.total > 0 && (
-        <progress className="opt-progress" value={progress.done} max={progress.total} aria-label="Wysyłanie załączników" />
+        <progress className="opt-progress" value={progress.done} max={progress.total} aria-label={t('Wysyłanie załączników')} />
       )}
 
       <button type="submit" className="button" disabled={busy || preparing}>
-        {busy ? 'Wysyłam…' : 'Wyślij'}
+        {busy ? t('Wysyłam…') : t('Wyślij')}
       </button>
     </form>
   )
@@ -308,8 +309,8 @@ function Body({ item }: { item: Feedback }) {
   const parts: [string, string][] = [
     ['+', item.good],
     ['−', item.bad],
-    ['Brakuje', item.missing],
-    [item.kind === 'bug' ? 'Opis' : 'Komentarz', item.text],
+    [t('Brakuje'), item.missing],
+    [item.kind === 'bug' ? t('Opis') : t('Komentarz'), item.text],
   ]
   return (
     <dl className="feedback-body">
@@ -326,7 +327,7 @@ function Body({ item }: { item: Feedback }) {
 }
 
 function StatusPill({ status }: { status: FeedbackStatus }) {
-  return <span className={`feedback-status is-${status}`}>{FEEDBACK_STATUS_LABELS[status]}</span>
+  return <span className={`feedback-status is-${status}`}>{tk(FEEDBACK_STATUS_LABELS[status])}</span>
 }
 
 function OwnItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }) {
@@ -340,13 +341,13 @@ function OwnItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }) 
       <Body item={item} />
       {item.attachments.length > 0 && (
         <p className="hint">
-          Załączniki: {item.attachments.length}
-          {!item.complete && ' - wysyłanie przerwane, wyślij zgłoszenie jeszcze raz'}
+          {t('Załączniki:')} {item.attachments.length}
+          {!item.complete && t(' - wysyłanie przerwane, wyślij zgłoszenie jeszcze raz')}
         </p>
       )}
       {item.reply && (
         <div className="feedback-reply">
-          <span className="field-label">Odpowiedź</span>
+          <span className="field-label">{t('Odpowiedź')}</span>
           <p>{item.reply}</p>
         </div>
       )}
@@ -355,10 +356,10 @@ function OwnItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }) 
           type="button"
           className="link-button"
           onClick={() => {
-            if (window.confirm('Wycofać to zgłoszenie?')) feedback.remove(item)
+            if (window.confirm(t('Wycofać to zgłoszenie?'))) feedback.remove(item)
           }}
         >
-          Wycofaj
+          {t('Wycofaj')}
         </button>
       )}
     </li>
@@ -373,13 +374,13 @@ function Inbox({ feedback }: { feedback: FeedbackApi }) {
   return (
     <div className="panel">
       <h3 className="panel-title">
-        Skrzynka{feedback.newCount > 0 && <span className="feedback-count">{feedback.newCount}</span>}
+        {t('Skrzynka')}{feedback.newCount > 0 && <span className="feedback-count">{feedback.newCount}</span>}
       </h3>
-      <div className="segmented" role="radiogroup" aria-label="Filtr zgłoszeń">
+      <div className="segmented" role="radiogroup" aria-label={t('Filtr zgłoszeń')}>
         {(
           [
-            ['open', 'Do zrobienia'],
-            ['done', 'Załatwione'],
+            ['open', t('Do zrobienia')],
+            ['done', t('Załatwione')],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -395,7 +396,7 @@ function Inbox({ feedback }: { feedback: FeedbackApi }) {
         ))}
       </div>
       {list.length === 0 ? (
-        <p className="hint">{filter === 'open' ? 'Nic nie czeka.' : 'Jeszcze nic nie załatwione.'}</p>
+        <p className="hint">{filter === 'open' ? t('Nic nie czeka.') : t('Jeszcze nic nie załatwione.')}</p>
       ) : (
         <ul className="feedback-list">
           {list.map((f) => (
@@ -424,15 +425,15 @@ function InboxItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }
         }}
       >
         <span className="feedback-meta">
-          <strong>{isAutoReport(item) ? 'Błąd (automatyczny)' : kindLabel(item.kind)}</strong>
+          <strong>{isAutoReport(item) ? t('Błąd (automatyczny)') : kindLabel(item.kind)}</strong>
           <span className="muted">
-            {item.email || 'bez e-maila'} · {formatWhen(item.createdAt)}
-            {item.attachments.length > 0 && ` · załączniki: ${item.attachments.length}`}
+            {item.email || t('bez e-maila')} · {formatWhen(item.createdAt)}
+            {item.attachments.length > 0 && ' · ' + t('załączniki: {n}', { n: item.attachments.length })}
           </span>
           <StatusPill status={item.status} />
         </span>
       </button>
-      {!open && <p className="feedback-excerpt">{[item.bad, item.text, item.missing, item.good].find((t) => t)}</p>}
+      {!open && <p className="feedback-excerpt">{[item.bad, item.text, item.missing, item.good].find((item2) => item2)}</p>}
       {open && (
         <div className="feedback-details">
           <Body item={item} />
@@ -445,7 +446,7 @@ function InboxItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }
           )}
           {item.diagnostics && <pre className="help-diagnostics">{item.diagnostics}</pre>}
           <label className="field">
-            <span className="field-label">Odpowiedź (widzi ją autor)</span>
+            <span className="field-label">{t('Odpowiedź (widzi ją autor)')}</span>
             <textarea
               className="text-input note-input"
               rows={2}
@@ -457,26 +458,26 @@ function InboxItem({ item, feedback }: { item: Feedback; feedback: FeedbackApi }
           <div className="feedback-actions">
             {reply.trim() !== item.reply && (
               <button type="button" className="button small" onClick={() => feedback.update(item.id, { reply: reply.trim() })}>
-                Zapisz odpowiedź
+                {t('Zapisz odpowiedź')}
               </button>
             )}
             {item.status === 'done' ? (
               <button type="button" className="button small secondary" onClick={() => feedback.update(item.id, { status: 'seen' })}>
-                Otwórz ponownie
+                {t('Otwórz ponownie')}
               </button>
             ) : (
               <button type="button" className="button small secondary" onClick={() => feedback.update(item.id, { status: 'done' })}>
-                Załatwione
+                {t('Załatwione')}
               </button>
             )}
             <button
               type="button"
               className="button small danger"
               onClick={() => {
-                if (window.confirm('Usunąć zgłoszenie razem z załącznikami?')) feedback.remove(item)
+                if (window.confirm(t('Usunąć zgłoszenie razem z załącznikami?'))) feedback.remove(item)
               }}
             >
-              Usuń
+              {t('Usuń')}
             </button>
           </div>
         </div>
@@ -510,7 +511,7 @@ function AttachmentView({ item, index, feedback }: { item: Feedback; index: numb
     // Plik zawsze da się pobrać: nagrania z aparatu iPhone'a (HEVC) Chrome na Windowsie często nie odtworzy.
     const download = (
       <a className="link-button" href={url} download={a.name}>
-        Pobierz plik ({formatSize(a.size)})
+        {t('Pobierz plik ({size})', { size: formatSize(a.size) })}
       </a>
     )
     return (
@@ -518,8 +519,7 @@ function AttachmentView({ item, index, feedback }: { item: Feedback; index: numb
         {a.type.startsWith('video/') ? (
           unplayable ? (
             <p className="hint">
-              Ta przeglądarka nie odtworzy tego nagrania (pewnie format HEVC z iPhone'a) - pobierz je i otwórz w
-              odtwarzaczu, np. VLC albo „Filmy i TV”.
+              {t('Ta przeglądarka nie odtworzy tego nagrania (pewnie format HEVC z iPhone\'a) - pobierz je i otwórz w odtwarzaczu, np. VLC albo „Filmy i TV”.')}
             </p>
           ) : (
             <video className="feedback-media" src={url} controls playsInline onError={() => setUnplayable(true)} />
@@ -536,10 +536,10 @@ function AttachmentView({ item, index, feedback }: { item: Feedback; index: numb
   return (
     <div className="feedback-attachment">
       <span>
-        {a.type.startsWith('video/') ? 'Nagranie' : 'Zdjęcie'} · {formatSize(a.size)}
+        {a.type.startsWith('video/') ? t('Nagranie') : t('Zdjęcie')} · {formatSize(a.size)}
       </span>
       <button type="button" className="button small secondary" disabled={state === 'loading'} onClick={() => void load()}>
-        {state === 'loading' ? 'Pobieram…' : 'Pokaż'}
+        {state === 'loading' ? t('Pobieram…') : t('Pokaż')}
       </button>
       {state !== 'idle' && state !== 'loading' && <span className="error">{state}</span>}
     </div>

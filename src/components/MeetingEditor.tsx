@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { ExtrasApi } from '../hooks/useExtras'
 import { formatDay, formatTime, toDateKey, toTimeKey } from '../lib/dates'
@@ -41,7 +42,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (endTime <= startTime) {
-      setError('Koniec zajęć musi być po początku.')
+      setError(t('Koniec zajęć musi być po początku.'))
       return
     }
     if (scope === 'series' && key) {
@@ -56,15 +57,15 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
   }
 
   return (
-    <Dialog title="Zmień zajęcia" onClose={onClose}>
+    <Dialog title={t('Zmień zajęcia')} onClose={onClose}>
       <form className="form-grid" onSubmit={handleSubmit}>
         <p className="dialog-subtitle">
           {meeting.courseName} · {typeLabel(meeting.type)}
-          {meeting.groupNumber !== null && ` gr. ${meeting.groupNumber}`}
+          {meeting.groupNumber !== null && ' ' + t('gr. {n}', { n: meeting.groupNumber })}
         </p>
 
         {key && (
-          <div className="segmented" role="radiogroup" aria-label="Zakres zmiany">
+          <div className="segmented" role="radiogroup" aria-label={t('Zakres zmiany')}>
             <button
               type="button"
               role="radio"
@@ -72,7 +73,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
               className={`segment${scope === 'single' ? ' is-active' : ''}`}
               onClick={() => changeScope('single')}
             >
-              Tylko te zajęcia
+              {t('Tylko te zajęcia')}
             </button>
             <button
               type="button"
@@ -81,26 +82,26 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
               className={`segment${scope === 'series' ? ' is-active' : ''}`}
               onClick={() => changeScope('series')}
             >
-              Cała grupa
+              {t('Cała grupa')}
             </button>
           </div>
         )}
         <p className="hint">
           {scope === 'single'
-            ? `Zmiana tylko zajęć z dnia ${formatDay(meeting.start).toLowerCase()}.`
-            : 'Stała zmiana sali lub godzin dla wszystkich zajęć tej grupy (np. przeniesiona sala).'}
+            ? t('Zmiana tylko zajęć z dnia {day}.', { day: formatDay(meeting.start).toLowerCase() })
+            : t('Stała zmiana sali lub godzin dla wszystkich zajęć tej grupy (np. przeniesiona sala).')}
         </p>
 
         {scope === 'single' && (
           <label className="field">
-            <span className="field-label">Data</span>
+            <span className="field-label">{t('Data')}</span>
             <input className="text-input" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
           </label>
         )}
 
         <div className="field-row">
           <label className="field">
-            <span className="field-label">Od</span>
+            <span className="field-label">{t('Od')}</span>
             <input
               className="text-input"
               type="time"
@@ -110,26 +111,26 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
             />
           </label>
           <label className="field">
-            <span className="field-label">Do</span>
+            <span className="field-label">{t('Do')}</span>
             <input className="text-input" type="time" value={endTime} required onChange={(e) => setEndTime(e.target.value)} />
           </label>
         </div>
 
         <label className="field">
-          <span className="field-label">Sala</span>
-          <input className="text-input" value={room} placeholder="np. 161" onChange={(e) => setRoom(e.target.value)} />
+          <span className="field-label">{t('Sala')}</span>
+          <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
         </label>
 
         {scope === 'single' && (
           <label className="check-field">
             <input type="checkbox" checked={cancelled} onChange={(e) => setCancelled(e.target.checked)} />
-            Zajęcia odwołane
+            {t('Zajęcia odwołane')}
           </label>
         )}
 
         <p className="hint">
-          W USOS: {formatTime(original.start)}–{formatTime(original.end)}
-          {original.room && `, s. ${original.room}`}
+          {t('W USOS:')} {formatTime(original.start)}–{formatTime(original.end)}
+          {original.room && ', ' + t('s. {room}', { room: original.room })}
         </p>
 
         {error && (
@@ -148,7 +149,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
                 onClose()
               }}
             >
-              Przywróć z USOS
+              {t('Przywróć z USOS')}
             </button>
           )}
           {scope === 'series' && hasSeries && key && (
@@ -160,15 +161,15 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
                 onClose()
               }}
             >
-              Przywróć grupę z USOS
+              {t('Przywróć grupę z USOS')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="button secondary" onClick={onClose}>
-            Anuluj
+            {t('Anuluj')}
           </button>
           <button type="submit" className="button">
-            Zapisz
+            {t('Zapisz')}
           </button>
         </div>
       </form>

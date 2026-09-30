@@ -126,5 +126,7 @@ export const test = base.extend<{ errors: string[]; seedPlan: boolean }>({
 export { expect }
 
 // Zakładki: na telefonie zębatka ma tylko etykietę dostępności "Ustawienia".
-export const tab = (page: Page, name: 'Dziś' | 'Tydzień' | 'Przedmioty' | 'Ustawienia') =>
-  page.getByRole('button', { name, exact: name !== 'Ustawienia' })
+export const tab = (
+  page: Page,
+  name: 'Dziś' | 'Tydzień' | 'Przedmioty' | 'Ustawienia' | 'Today' | 'Week' | 'Courses' | 'Settings',
+) => page.getByRole('button', { name, exact: name !== 'Ustawienia' && name !== 'Settings' })

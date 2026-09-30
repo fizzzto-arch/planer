@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MINUTE_MS } from '../lib/dates'
 import { errorMessage } from '../lib/errors'
@@ -17,13 +18,13 @@ async function downloadCalendar(url: string): Promise<string> {
   try {
     response = await fetch(url, { cache: 'no-store' })
   } catch {
-    throw new Error(wat ? 'Nie udało się pobrać planu. Sprawdź internet.' : 'Nie udało się połączyć z USOS. Sprawdź internet.')
+    throw new Error(wat ? t('Nie udało się pobrać planu. Sprawdź internet.') : t('Nie udało się połączyć z USOS. Sprawdź internet.'))
   }
   if (!response.ok) {
     throw new Error(
       wat
-        ? `Nie mam planu grupy ${wat} (błąd ${response.status}).`
-        : `USOS odpowiedział błędem ${response.status}. Sprawdź, czy link jest aktualny.`,
+        ? t('Nie mam planu grupy {group} (błąd {status}).', { group: wat, status: response.status })
+        : t('USOS odpowiedział błędem {status}. Sprawdź, czy link jest aktualny.', { status: response.status }),
     )
   }
   return response.text()

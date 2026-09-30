@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { addDays, formatWeekRange, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
@@ -40,12 +41,12 @@ export function ExtraPreview({ group, meetings, now, onClose }: Props) {
   const highlight = new Set(extra.map((m) => m.id))
 
   return (
-    <Dialog title={`${group.courseName} · gr. ${group.groupNumber}`} onClose={onClose} wide>
+    <Dialog title={`${group.courseName} · ${t('gr. {n}', { n: group.groupNumber })}`} onClose={onClose} wide>
       <div className="week-nav preview-nav">
         <button
           type="button"
           className="icon-button"
-          aria-label="Poprzedni tydzień"
+          aria-label={t('Poprzedni tydzień')}
           disabled={weekIndex === 0}
           onClick={() => setWeekIndex((i) => i - 1)}
         >
@@ -54,14 +55,14 @@ export function ExtraPreview({ group, meetings, now, onClose }: Props) {
         <div className="week-label">
           <strong>{formatWeekRange(weekStart)}</strong>
           <span className="muted">
-            {sw ? `tydzień ${sw.number} · ${sw.odd ? 'nieparzysty' : 'parzysty'} · ` : ''}
-            {extra.length > 0 ? 'nowe zajęcia mają pomarańczową ramkę' : 'w tym tygodniu ta grupa nie ma zajęć'}
+            {sw ? (sw.odd ? t('tydzień {n} · nieparzysty', { n: sw.number }) : t('tydzień {n} · parzysty', { n: sw.number })) + ' · ' : ''}
+            {extra.length > 0 ? t('nowe zajęcia mają pomarańczową ramkę') : t('w tym tygodniu ta grupa nie ma zajęć')}
           </span>
         </div>
         <button
           type="button"
           className="icon-button"
-          aria-label="Następny tydzień"
+          aria-label={t('Następny tydzień')}
           disabled={weekIndex >= weeks.length - 1}
           onClick={() => setWeekIndex((i) => i + 1)}
         >

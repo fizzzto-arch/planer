@@ -1,6 +1,7 @@
 // Plan do eksportu: "typowy tydzień" semestru (każde zajęcia raz, z oznaczeniem, w które tygodnie)
 // albo konkretny tydzień, plus uwagi wykrywane z planu (święta, zamiany dni, przerwy, zmiany).
 import { addDays, startOfDay, startOfWeek, toDateKey } from './dates'
+import { msg, t, tk } from './i18n'
 import { semesterAt, semesters, weekIndex, type Semester } from './semesterWeek'
 import { typeLabel, type Meeting } from './usos'
 
@@ -46,10 +47,28 @@ export interface Timetable {
 
 export type ParityFilter = 'both' | 'odd' | 'even'
 
-const WEEKDAY_SHORT = ['pn.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.']
-export const WEEKDAY_NAMES = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+const WEEKDAY_SHORT = [msg('pn.'), msg('wt.'), msg('śr.'), msg('czw.'), msg('pt.'), msg('sob.'), msg('niedz.')]
+const WEEKDAY_NAME_KEYS = [
+  msg('Poniedziałek'),
+  msg('Wtorek'),
+  msg('Środa'),
+  msg('Czwartek'),
+  msg('Piątek'),
+  msg('Sobota'),
+  msg('Niedziela'),
+]
+// Nazwy dni w języku interfejsu (1 = poniedziałek pod indeksem 0).
+export const weekdayName = (weekday: number) => tk(WEEKDAY_NAME_KEYS[weekday - 1])
 // "zajęcia jak w ..." (biernik)
-const WEEKDAY_AS = ['poniedziałek', 'wtorek', 'środę', 'czwartek', 'piątek', 'sobotę', 'niedzielę']
+const WEEKDAY_AS = [
+  msg('zajęcia jak w poniedziałek'),
+  msg('zajęcia jak we wtorek'),
+  msg('zajęcia jak w środę'),
+  msg('zajęcia jak w czwartek'),
+  msg('zajęcia jak w piątek'),
+  msg('zajęcia jak w sobotę'),
+  msg('zajęcia jak w niedzielę'),
+]
 
 // Seria ma co najmniej tyle terminów, żeby uznać ją za stałe zajęcia (mniej = zmiana/wyjątek).
 const MIN_REGULAR = 3
@@ -67,7 +86,7 @@ export function formatDateShort(d: Date): string {
   return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-const dayLabel = (d: Date) => `${formatDateShort(d)} (${WEEKDAY_SHORT[weekdayOf(d) - 1]})`
+const dayLabel = (d: Date) => `${formatDateShort(d)} (${tk(WEEKDAY_SHORT[weekdayOf(d) - 1])})`
 
 interface Series {
   key: string
@@ -213,7 +232,7 @@ export function buildTimetable(
     if (movedFrom.length > 0) {
       const wd = mostCommon(movedFrom)
       present.forEach((m) => explained.add(m))
-      notes.push({ id: `swap:${toDateKey(day)}`, kind: 'swap', date: new Date(day), dateTo: null, text: `zajęcia jak w ${WEEKDAY_AS[wd - 1]}` })
+      notes.push({ id: `swap:${toDateKey(day)}`, kind: 'swap', date: new Date(day), dateTo: null, text: tk(WEEKDAY_AS[wd - 1]) })
     }
   }
 
@@ -228,7 +247,7 @@ export function buildTimetable(
       kind: j > i ? 'break' : 'free',
       date: start,
       dateTo: j > i ? end : null,
-      text: j > i ? 'przerwa, brak zajęć' : 'brak zajęć',
+      text: j > i ? t('przerwa, brak zajęć') : t('brak zajęć'),
     })
     i = j + 1
   }
@@ -241,8 +260,8 @@ export function buildTimetable(
       if (explained.has(m)) continue
       const sameDay = m0.weekday === s.weekday
       const instead = sameDay
-        ? `zamiast ${formatClock(m0.start)}–${formatClock(m0.end)}`
-        : `zamiast ${WEEKDAY_SHORT[m0.weekday - 1]} ${formatClock(m0.start)}`
+        ? t('zamiast {time}', { time: `${formatClock(m0.start)}–${formatClock(m0.end)}` })
+        : t('zamiast {time}', { time: `${tk(WEEKDAY_SHORT[m0.weekday - 1])} ${formatClock(m0.start)}` })
       notes.push({
         id: `change:${s.key}:${toDateKey(m.start)}`,
         kind: 'change',
@@ -256,7 +275,7 @@ export function buildTimetable(
   // Zajęcia odwołane ręcznie w Planerze.
   for (const m of inSemester) {
     if (!m.cancelled) continue
-    notes.push({ id: `cancelled:${m.id}`, kind: 'cancelled', date: startOfDay(m.start), dateTo: null, text: `${describe(m, label)} odwołane` })
+    notes.push({ id: `cancelled:${m.id}`, kind: 'cancelled', date: startOfDay(m.start), dateTo: null, text: t('{what} odwołane', { what: describe(m, label) }) })
   }
 
   notes.sort((a, b) => a.date.getTime() - b.date.getTime() || a.id.localeCompare(b.id))
@@ -301,8 +320,8 @@ export function filterByParity(entries: TimetableEntry[], parity: ParityFilter):
 // Kiedy odbywają się zajęcia, np. "tyg. nieparzyste · 13.10–8.12"; pusty = co tydzień przez cały semestr.
 export function recurrenceLabel(e: TimetableEntry): string {
   if (e.date) return ''
-  if (e.only) return `tylko ${e.only.map(formatDateShort).join(', ')}`
-  const parts = [e.recurrence === 'odd' ? 'tyg. nieparzyste' : e.recurrence === 'even' ? 'tyg. parzyste' : '']
+  if (e.only) return t('tylko {dates}', { dates: e.only.map(formatDateShort).join(', ') })
+  const parts = [e.recurrence === 'odd' ? t('tyg. nieparzyste') : e.recurrence === 'even' ? t('tyg. parzyste') : '']
   if (e.range) parts.push(`${formatDateShort(e.range.from)}–${formatDateShort(e.range.to)}`)
   return parts.filter(Boolean).join(' · ')
 }
@@ -320,5 +339,6 @@ export function semesterTitle(s: Semester): string {
   const month = start.getMonth() + 1
   const winter = month >= 8 || month === 1
   const first = winter ? (month === 1 ? y - 1 : y) : y - 1
-  return `Semestr ${winter ? 'zimowy' : 'letni'} ${first}/${String(first + 1).slice(2)}`
+  const years = `${first}/${String(first + 1).slice(2)}`
+  return winter ? t('Semestr zimowy {years}', { years }) : t('Semestr letni {years}', { years })
 }

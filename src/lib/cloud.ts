@@ -43,37 +43,38 @@ import type { PersonInfo } from './usosPeople'
 // Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
 const ACCOUNT_COLLECTIONS = COLLECTION_NAMES
 import { chunkCountFor, feedbackChunkId } from './feedback'
+import { getLanguage, msg, t, tk } from './i18n'
 import { chunkId, splitIntoChunks } from './materials'
 
 export type { Cloud, CloudUser, CloudData } from './cloudTypes'
 
 const AUTH_ERRORS: Record<string, string> = {
-  'auth/invalid-credential': 'Nieprawidłowy e-mail lub hasło.',
-  'auth/wrong-password': 'Nieprawidłowy e-mail lub hasło.',
-  'auth/user-not-found': 'Nieprawidłowy e-mail lub hasło.',
-  'auth/invalid-email': 'To nie wygląda na adres e-mail.',
-  'auth/missing-email': 'Wpisz adres e-mail.',
-  'auth/missing-password': 'Wpisz hasło.',
-  'auth/user-disabled': 'To konto zostało zablokowane.',
-  'auth/too-many-requests': 'Za dużo prób. Spróbuj ponownie za kilka minut.',
-  'auth/network-request-failed': 'Brak połączenia z internetem.',
-  'auth/operation-not-allowed': 'Logowanie e-mailem nie jest jeszcze włączone w Firebase.',
-  'auth/configuration-not-found': 'Logowanie nie jest jeszcze skonfigurowane w Firebase.',
-  'auth/email-already-in-use': 'Konto z tym e-mailem już istnieje. Zaloguj się.',
-  'auth/weak-password': 'Hasło musi mieć co najmniej 6 znaków.',
-  'auth/admin-restricted-operation': 'Rejestracja jest wyłączona. Poproś administratora Planera o konto.',
+  'auth/invalid-credential': msg('Nieprawidłowy e-mail lub hasło.'),
+  'auth/wrong-password': msg('Nieprawidłowy e-mail lub hasło.'),
+  'auth/user-not-found': msg('Nieprawidłowy e-mail lub hasło.'),
+  'auth/invalid-email': msg('To nie wygląda na adres e-mail.'),
+  'auth/missing-email': msg('Wpisz adres e-mail.'),
+  'auth/missing-password': msg('Wpisz hasło.'),
+  'auth/user-disabled': msg('To konto zostało zablokowane.'),
+  'auth/too-many-requests': msg('Za dużo prób. Spróbuj ponownie za kilka minut.'),
+  'auth/network-request-failed': msg('Brak połączenia z internetem.'),
+  'auth/operation-not-allowed': msg('Logowanie e-mailem nie jest jeszcze włączone w Firebase.'),
+  'auth/configuration-not-found': msg('Logowanie nie jest jeszcze skonfigurowane w Firebase.'),
+  'auth/email-already-in-use': msg('Konto z tym e-mailem już istnieje. Zaloguj się.'),
+  'auth/weak-password': msg('Hasło musi mieć co najmniej 6 znaków.'),
+  'auth/admin-restricted-operation': msg('Rejestracja jest wyłączona. Poproś administratora Planera o konto.'),
 }
 
 function describeError(e: unknown): string {
   if (e instanceof FirebaseError) {
-    if (AUTH_ERRORS[e.code]) return AUTH_ERRORS[e.code]
+    if (AUTH_ERRORS[e.code]) return tk(AUTH_ERRORS[e.code])
     if (e.code === 'permission-denied') {
-      return 'Brak dostępu do danych konta. Jeśli konto czeka na zatwierdzenie, poczekaj na administratora Planera.'
+      return t('Brak dostępu do danych konta. Jeśli konto czeka na zatwierdzenie, poczekaj na administratora Planera.')
     }
-    if (e.code === 'unavailable') return 'Brak połączenia z serwerem synchronizacji.'
-    return `Błąd synchronizacji (${e.code}).`
+    if (e.code === 'unavailable') return t('Brak połączenia z serwerem synchronizacji.')
+    return t('Błąd synchronizacji ({code}).', { code: e.code })
   }
-  return 'Coś poszło nie tak.'
+  return t('Coś poszło nie tak.')
 }
 
 function parseAccessStatus(value: unknown): AccessStatus | null {
@@ -110,7 +111,7 @@ function createCloud(config: FirebaseOptions): Cloud {
   // getApps() chroni przed podwójną inicjalizacją (React w trybie deweloperskim montuje dwa razy).
   const app = getApps().length > 0 ? getApp() : initializeApp(config)
   const auth = getAuth(app)
-  auth.languageCode = 'pl' // maile (np. reset hasła) po polsku
+  auth.languageCode = getLanguage() // maile (np. reset hasła) w języku interfejsu
   const db = openFirestore(app)
 
   return {
@@ -132,13 +133,19 @@ function createCloud(config: FirebaseOptions): Cloud {
       wrap(async () => {
         await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence)
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
+        auth.languageCode = getLanguage()
         await sendEmailVerification(user, verificationSettings())
       }),
     signOut: () => signOut(auth),
-    resetPassword: (email) => wrap(() => sendPasswordResetEmail(auth, email)),
+    resetPassword: (email) =>
+      wrap(() => {
+        auth.languageCode = getLanguage()
+        return sendPasswordResetEmail(auth, email)
+      }),
 
     sendVerificationEmail: () =>
       wrap(async () => {
+        auth.languageCode = getLanguage()
         if (auth.currentUser) await sendEmailVerification(auth.currentUser, verificationSettings())
       }),
 
@@ -184,7 +191,7 @@ function createCloud(config: FirebaseOptions): Cloud {
                   status,
                   requestedAt: typeof requested?.toMillis === 'function' ? requested.toMillis() : null,
                   optimizer: data.optimizer === true,
-                  testerTasks: Array.isArray(data.testerTasks) ? data.testerTasks.filter((t): t is string => typeof t === 'string') : [],
+                  testerTasks: Array.isArray(data.testerTasks) ? data.testerTasks.filter((item): item is string => typeof item === 'string') : [],
                 },
               ]
             }),
@@ -313,7 +320,7 @@ function createCloud(config: FirebaseOptions): Cloud {
         for (let i = 0; i < chunkCount; i++) {
           const snap = await getDoc(doc(db, 'materials', id, 'chunks', chunkId(i)))
           const data = snap.data()?.data
-          if (!(data instanceof Bytes)) throw new Error('Plik jest niekompletny.')
+          if (!(data instanceof Bytes)) throw new Error(t('Plik jest niekompletny.'))
           chunks.push(data.toUint8Array())
           onProgress(i + 1)
         }
@@ -389,7 +396,7 @@ function createCloud(config: FirebaseOptions): Cloud {
       for (let i = 0; i < chunkCount; i++) {
         const snap = await getDoc(doc(db, 'feedback', id, 'chunks', feedbackChunkId(attachment, i)))
         const data = snap.data()?.data as Bytes | undefined
-        if (!data) throw new Error('Brakuje części załącznika.')
+        if (!data) throw new Error(t('Brakuje części załącznika.'))
         chunks.push(data.toUint8Array())
       }
       return chunks
@@ -446,7 +453,7 @@ function createCloud(config: FirebaseOptions): Cloud {
 }
 
 function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : 'Coś poszło nie tak.'
+  return e instanceof Error ? e.message : t('Coś poszło nie tak.')
 }
 
 let instance: Cloud | null = null

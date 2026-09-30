@@ -1,10 +1,11 @@
+import { t } from '../lib/i18n'
 import { useEffect, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { semesterWeek } from '../lib/semesterWeek'
-import { dayLabel } from '../lib/academicCalendar'
+import { dayLabel, eventName } from '../lib/academicCalendar'
 import { DayTimeline } from './DayTimeline'
 import { FreeWindowsDialog } from './FreeWindowsDialog'
 import { WeekGrid } from './WeekGrid'
@@ -57,7 +58,7 @@ export function WeekView({ meetings, now }: Props) {
         <button
           type="button"
           className="icon-button"
-          aria-label="Poprzedni tydzień"
+          aria-label={t('Poprzedni tydzień')}
           onClick={() => goTo(addDays(weekStart, -7))}
         >
           ‹
@@ -66,21 +67,23 @@ export function WeekView({ meetings, now }: Props) {
           <strong>{formatWeekRange(weekStart)}</strong>
           {semWeek && (
             <span className="week-number">
-              tydzień {semWeek.number} · {semWeek.odd ? 'nieparzysty' : 'parzysty'}
+              {semWeek.odd
+                ? t('tydzień {n} · nieparzysty', { n: semWeek.number })
+                : t('tydzień {n} · parzysty', { n: semWeek.number })}
             </span>
           )}
           {isCurrentWeek ? (
-            <span className="muted">ten tydzień</span>
+            <span className="muted">{t('ten tydzień')}</span>
           ) : (
             <button type="button" className="link-button" onClick={() => goTo(startOfWeek(now))}>
-              wróć do tego tygodnia
+              {t('wróć do tego tygodnia')}
             </button>
           )}
         </div>
         <button
           type="button"
           className="icon-button"
-          aria-label="Następny tydzień"
+          aria-label={t('Następny tydzień')}
           onClick={() => goTo(addDays(weekStart, 7))}
         >
           ›
@@ -94,16 +97,16 @@ export function WeekView({ meetings, now }: Props) {
             className="button small secondary"
             onClick={() => addCustomMeeting({ date: toDateKey(isCurrentWeek ? now : weekStart) })}
           >
-            + Dodaj zajęcia
+            {t('+ Dodaj zajęcia')}
           </button>
         )}
         {/* Eksport działa też bez konta - korzysta tylko z planu. */}
         <button type="button" className="button small secondary" onClick={() => openExport(weekStart)}>
-          Eksportuj plan
+          {t('Eksportuj plan')}
         </button>
         {extras && (
           <button type="button" className="button small secondary" onClick={() => setFreeOpen(true)}>
-            Wspólne okienka
+            {t('Wspólne okienka')}
           </button>
         )}
       </div>
@@ -111,7 +114,7 @@ export function WeekView({ meetings, now }: Props) {
 
       <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
         {weekMeetings.length === 0 ? (
-          <div className="empty-state">W tym tygodniu nie ma zajęć.</div>
+          <div className="empty-state">{t('W tym tygodniu nie ma zajęć.')}</div>
         ) : wide ? (
           <WeekGrid days={days} meetings={weekMeetings} now={now} />
         ) : (
@@ -124,11 +127,11 @@ export function WeekView({ meetings, now }: Props) {
               <div key={day.getTime()} className={dayMeetings.length > 0 ? 'week-day' : 'week-day is-free'}>
                 <h3 className="day-title">
                   {formatDay(day)}
-                  {isToday && <span className="today-pill">dziś</span>}
-                  {!special && dayMeetings.length === 0 && <span className="free-label">wolne</span>}
+                  {isToday && <span className="today-pill">{t('dziś')}</span>}
+                  {!special && dayMeetings.length === 0 && <span className="free-label">{t('wolne')}</span>}
                 </h3>
                 {/* Święto, przerwa, sesja - pod datą, żeby długa nazwa nie łamała nagłówka. */}
-                {special && <p className="day-calendar-note">{special.name}</p>}
+                {special && <p className="day-calendar-note">{eventName(special)}</p>}
                 {dayMeetings.length > 0 && <DayTimeline meetings={dayMeetings} now={now} />}
               </div>
             )

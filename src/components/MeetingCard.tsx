@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDay, formatDuration, formatTime, minutesBetween, toDateKey, toTimeKey } from '../lib/dates'
@@ -41,9 +42,9 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
   const [noteOpen, setNoteOpen] = useState(false)
 
   let hint: string | null = null
-  if (m.cancelled) hint = 'Odwołane'
-  else if (isNow) hint = `Trwa · zostało ${formatDuration(minutesBetween(now, m.end))}`
-  else if (isNext) hint = `Za ${formatDuration(minutesBetween(now, m.start))}`
+  if (m.cancelled) hint = t('Odwołane')
+  else if (isNow) hint = t('Trwa · zostało {duration}', { duration: formatDuration(minutesBetween(now, m.end)) })
+  else if (isNext) hint = t('Za {duration}', { duration: formatDuration(minutesBetween(now, m.start)) })
 
   const classes = ['card', `type-${typeSlug(m.type)}`]
   if (isPast) classes.push('is-past')
@@ -77,8 +78,8 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           )}
           <div className="card-meta">
             <span className="type-badge">{typeLabel(m.type)}</span>
-            {m.groupNumber !== null && <span>gr. {m.groupNumber}</span>}
-            {m.room && <span>s. {m.room}</span>}
+            {m.groupNumber !== null && <span>{t('gr. {n}', { n: m.groupNumber })}</span>}
+            {m.room && <span>{t('s. {room}', { room: m.room })}</span>}
             {building && <span>{building}</span>}
           </div>
           {(deadlines.length > 0 || m.note || m.edited || m.custom) && (
@@ -88,12 +89,12 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
                   {d.title || deadlineKindLabel(d.kind)}
                 </span>
               ))}
-              {m.edited && <span className="badge">zmienione</span>}
-              {m.custom && <span className="badge">własne</span>}
+              {m.edited && <span className="badge">{t('zmienione')}</span>}
+              {m.custom && <span className="badge">{t('własne')}</span>}
               {m.note && (
-                <span className="badge badge-note" title="Ma notatkę">
+                <span className="badge badge-note" title={t('Ma notatkę')}>
                   <NoteIcon />
-                  notatka
+                  {t('notatka')}
                 </span>
               )}
             </div>
@@ -109,19 +110,19 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
         {m.building && <div>{m.building}</div>}
         {m.address && (
           <a href={mapsUrl(m.address)} target="_blank" rel="noreferrer">
-            {m.address} (mapa)
+            {m.address} {t('(mapa)')}
           </a>
         )}
         {m.usosUrl && (
           <a href={m.usosUrl} target="_blank" rel="noreferrer">
-            Zobacz zajęcia w USOSweb
+            {t('Zobacz zajęcia w USOSweb')}
           </a>
         )}
 
         {m.edited && m.original && (
           <div className="card-original">
-            W USOS: {formatDay(m.original.start)}, {formatTime(m.original.start)}–{formatTime(m.original.end)}
-            {m.original.room && `, s. ${m.original.room}`}
+            {t('W USOS:')} {formatDay(m.original.start)}, {formatTime(m.original.start)}–{formatTime(m.original.end)}
+            {m.original.room && ', ' + t('s. {room}', { room: m.original.room })}
           </div>
         )}
 
@@ -134,7 +135,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
               value={m.note}
               rows={2}
               autoFocus={noteOpen && !m.note}
-              placeholder="np. przynieść kalkulator"
+              placeholder={t('np. przynieść kalkulator')}
               onSave={(text) => extras.saveMeetingEdit(m.id, { note: text })}
             />
           </div>
@@ -143,34 +144,34 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
         <div className="card-actions">
           {extras && !m.note && !noteOpen && (
             <button type="button" className="button small secondary" onClick={() => setNoteOpen(true)}>
-              + Notatka
+              {t('+ Notatka')}
             </button>
           )}
           {extras && (
             <button
               type="button"
               className="button small secondary"
-              title={m.custom ? 'Edytuj własne zajęcia' : 'Zmień salę lub godzinę albo odwołaj zajęcia'}
+              title={m.custom ? t('Edytuj własne zajęcia') : t('Zmień salę lub godzinę albo odwołaj zajęcia')}
               onClick={() => editMeeting(m)}
             >
-              {m.custom ? 'Edytuj' : 'Zmień'}
+              {m.custom ? t('Edytuj') : t('Zmień')}
             </button>
           )}
           {extras && (
             <button
               type="button"
               className="button small secondary"
-              title="Dodaj kolokwium, egzamin albo inny termin na te zajęcia"
+              title={t('Dodaj kolokwium, egzamin albo inny termin na te zajęcia')}
               onClick={() =>
                 editDeadline({ courseName: m.courseName, date: toDateKey(m.start), time: toTimeKey(m.start) })
               }
             >
-              + Termin
+              {t('+ Termin')}
             </button>
           )}
           {showCourseLink && (
             <button type="button" className="button small secondary" onClick={() => openCourse(m.courseName)}>
-              Przedmiot →
+              {t('Przedmiot →')}
             </button>
           )}
         </div>

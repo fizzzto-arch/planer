@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { usePlanUi } from '../hooks/planUi'
@@ -53,8 +54,8 @@ export function SettingsView({
 
   async function handleReset() {
     const question = signedIn
-      ? 'Wylogować się i usunąć plan z tej przeglądarki? Plan zapisany na koncie zostaje.'
-      : 'Usunąć plan i zapisany link z tej przeglądarki?'
+      ? t('Wylogować się i usunąć plan z tej przeglądarki? Plan zapisany na koncie zostaje.')
+      : t('Usunąć plan i zapisany link z tej przeglądarki?')
     if (!window.confirm(question)) return
     // Najpierw wylogowanie - inaczej synchronizacja od razu pobrałaby plan z powrotem.
     if (signedIn) await cloud.signOut()
@@ -73,24 +74,24 @@ export function SettingsView({
       <AliasesPanel prefsApi={prefsApi} courseNames={courseNames} />
 
       <div className="panel">
-        <h3 className="panel-title">Źródło planu</h3>
+        <h3 className="panel-title">{t('Źródło planu')}</h3>
         <dl className="facts">
-          <dt>Źródło</dt>
+          <dt>{t('Źródło')}</dt>
           <dd>
             {source?.kind === 'url'
               ? watGroupFromUrl(source.url)
-                ? `Plan grupy ${watGroupFromUrl(source.url)} (WAT, odświeżany co noc)`
-                : 'Link iCal z USOS (klucz ukryty)'
-              : `Plik ${source?.name ?? ''}`}
+                ? t('Plan grupy {group} (WAT, odświeżany co noc)', { group: watGroupFromUrl(source.url) ?? '' })
+                : t('Link iCal z USOS (klucz ukryty)')
+              : t('Plik {name}', { name: source?.name ?? '' })}
           </dd>
-          <dt>W planie</dt>
+          <dt>{t('W planie')}</dt>
           <dd>
             {courseCount} {plural(courseCount, 'przedmiot', 'przedmioty', 'przedmiotów')},{' '}
-            {meetings.length} {plural(meetings.length, 'termin', 'terminy', 'terminów')}
+            {meetings.length} {plural(meetings.length, 'termin zajęć', 'terminy zajęć', 'terminów zajęć')}
           </dd>
           {first && last && (
             <>
-              <dt>Zakres</dt>
+              <dt>{t('Zakres')}</dt>
               <dd>
                 {formatShortDay(first.start)} – {formatShortDay(last.start)}
               </dd>
@@ -98,7 +99,7 @@ export function SettingsView({
           )}
           {updatedAt && (
             <>
-              <dt>Aktualizacja</dt>
+              <dt>{t('Aktualizacja')}</dt>
               <dd>{formatUpdatedAt(updatedAt, now)}</dd>
             </>
           )}
@@ -121,11 +122,11 @@ export function SettingsView({
                 onClick={() => void plan.refresh()}
                 disabled={plan.status.kind === 'loading'}
               >
-                Odśwież teraz
+                {t('Odśwież teraz')}
               </button>
             )}
             <button type="button" className="button secondary" onClick={() => setChanging(true)}>
-              Zmień źródło planu
+              {t('Zmień źródło planu')}
             </button>
           </div>
         )}
@@ -142,13 +143,13 @@ export function SettingsView({
           </span>
           <span className="help-entry-text">
             <strong>
-              {isAdmin ? 'Zgłoszenia od testerów' : 'Zgłoś uwagę lub pomysł'}
+              {isAdmin ? t('Zgłoszenia od testerów') : t('Zgłoś uwagę lub pomysł')}
               {feedbackNew > 0 && <span className="feedback-count">{feedbackNew}</span>}
             </strong>
             <span>
               {isAdmin
-                ? 'Co działa, co nie i czego brakuje - ze zdjęciami i nagraniami'
-                : 'Zadania do przetestowania i zgłoszenia - co działa, co nie, czego brakuje'}
+                ? t('Co działa, co nie i czego brakuje - ze zdjęciami i nagraniami')
+                : t('Zadania do przetestowania i zgłoszenia - co działa, co nie, czego brakuje')}
             </span>
           </span>
           <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
@@ -164,8 +165,8 @@ export function SettingsView({
           </svg>
         </span>
         <span className="help-entry-text">
-          <strong>Pomoc i prywatność</strong>
-          <span>Co Planer zapisuje, kto to widzi i najczęstsze pytania</span>
+          <strong>{t('Pomoc i prywatność')}</strong>
+          <span>{t('Co Planer zapisuje, kto to widzi i najczęstsze pytania')}</span>
         </span>
         <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
           <path d="m9 6 6 6-6 6" />
@@ -175,18 +176,18 @@ export function SettingsView({
       <div className="panel">
         <p className="hint">
           {signedIn
-            ? 'Plan jest zapisany w tej przeglądarce i na Twoim koncie.'
-            : 'Plan i link są zapisane tylko w tej przeglądarce.'}
+            ? t('Plan jest zapisany w tej przeglądarce i na Twoim koncie.')
+            : t('Plan i link są zapisane tylko w tej przeglądarce.')}
         </p>
         <button type="button" className="button danger" onClick={() => void handleReset()}>
-          {signedIn ? 'Wyloguj i usuń dane z tej przeglądarki' : 'Usuń dane z tej przeglądarki'}
+          {signedIn ? t('Wyloguj i usuń dane z tej przeglądarki') : t('Usuń dane z tej przeglądarki')}
         </button>
       </div>
 
       <p className="app-version">
-        Planer · wersja {__APP_VERSION__}
+        {t('Planer · wersja {version}', { version: __APP_VERSION__ })}
         {/* Administrator widzi funkcje w wersji alpha (np. optymalizator) - tu widać, że to konto je ma. */}
-        {admin && ' · administrator'}
+        {admin && t(' · administrator')}
       </p>
     </section>
   )

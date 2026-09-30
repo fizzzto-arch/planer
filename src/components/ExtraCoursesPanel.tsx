@@ -1,3 +1,4 @@
+import { t, tk } from '../lib/i18n'
 import { useMemo, useState, type FormEvent } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { withExtraGroup } from '../lib/candidatePlan'
@@ -15,7 +16,8 @@ import {
   type ExtraSource,
 } from '../lib/extraCourses'
 import type { OptimizerSettings } from '../lib/optimizer'
-import { WEEKDAYS } from '../lib/optimizerSettings'
+import { weekdayShort } from '../lib/optimizerSettings'
+import { plural } from '../lib/plural'
 import { buildTimetable, formatClock } from '../lib/timetable'
 import type { Meeting } from '../lib/usos'
 import type { GroupsProgress } from '../lib/usosGroups'
@@ -41,14 +43,14 @@ const SHOW_STEP = 8
 const shortName = (name: string) => name.replace(/^Wychowanie fizyczne\s*-\s*/i, '')
 
 function schedule(g: ExtraGroup): string {
-  const times = g.meetings.map((m) => `${WEEKDAYS[m.weekday - 1]} ${formatClock(m.start)}–${formatClock(m.end)}`).join(', ')
-  return g.parity === 'weekly' ? times : `${times}, tyg. ${g.parity === 'odd' ? 'nieparzyste' : 'parzyste'}`
+  const times = g.meetings.map((m) => `${weekdayShort(m.weekday - 1)} ${formatClock(m.start)}–${formatClock(m.end)}`).join(', ')
+  return g.parity === 'weekly' ? times : g.parity === 'odd' ? t('{times}, tyg. nieparzyste', { times }) : t('{times}, tyg. parzyste', { times })
 }
 
 function gapText(minutes: number): string {
   const rounded = Math.round(minutes / 5) * 5
-  if (rounded === 0) return 'bez nowych okienek'
-  return rounded > 0 ? `okienka +${formatDuration(rounded)}` : `okienka −${formatDuration(-rounded)}`
+  if (rounded === 0) return t('bez nowych okienek')
+  return rounded > 0 ? t('okienka +{duration}', { duration: formatDuration(rounded) }) : t('okienka −{duration}', { duration: formatDuration(-rounded) })
 }
 
 // Zajęcia spoza planu (WF, lektorat): wyszukiwanie w USOS i grupy, które najlepiej pasują do planu.
@@ -76,7 +78,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
     if (termId) return termId
     const units = [...new Set(planMeetings.map((m) => m.unitId).filter((u): u is string => !!u))]
     const term = await planTermId(units)
-    if (!term) throw new Error('Nie udało się ustalić semestru planu (brak zajęć z USOS).')
+    if (!term) throw new Error(t('Nie udało się ustalić semestru planu (brak zajęć z USOS).'))
     setTermId(term)
     return term
   }
@@ -87,7 +89,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
     if (q.length < 3) {
       setSearchStatus({
         kind: 'error',
-        message: 'Wpisz co najmniej 3 litery, np. „siatkówka” albo „angielski B2”, albo wklej kod przedmiotu.',
+        message: t('Wpisz co najmniej 3 litery, np. „siatkówka” albo „angielski B2”, albo wklej kod przedmiotu.'),
       })
       return
     }
@@ -131,17 +133,16 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
 
   return (
     <div className="panel">
-      <h3 className="panel-title">WF, lektorat i inne zajęcia spoza planu</h3>
+      <h3 className="panel-title">{t('WF, lektorat i inne zajęcia spoza planu')}</h3>
       <p className="setting-hint">
-        Nie masz jeszcze WF albo lektoratu? Znajdź przedmiot w USOS, a Planer pokaże grupy, które najlepiej pasują do
-        Twojego obecnego planu - bez kolizji i według kryteriów powyżej. Zapisujesz się jak zwykle w USOS.
+        {t('Nie masz jeszcze WF albo lektoratu? Znajdź przedmiot w USOS, a Planer pokaże grupy, które najlepiej pasują do Twojego obecnego planu - bez kolizji i według kryteriów powyżej. Zapisujesz się jak zwykle w USOS.')}
       </p>
 
       <form className="extra-search" onSubmit={(e) => void search(e)}>
         <ChoiceSetting
-          label="Gdzie szukać"
+          label={t('Gdzie szukać')}
           value={source}
-          options={EXTRA_SOURCES.map((s) => ({ value: s.id, label: s.label }))}
+          options={EXTRA_SOURCES.map((s) => ({ value: s.id, label: tk(s.label) }))}
           onChange={setSource}
         />
         <div className="extra-search-row">
@@ -149,13 +150,13 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
             className="text-input"
             value={query}
             placeholder={
-              source === 'lang' ? 'np. angielski B2 albo kod / link z USOS' : source === 'wf' ? 'np. siatkówka, pływanie' : 'nazwa, kod albo link z USOSweb'
+              source === 'lang' ? t('np. angielski B2 albo kod / link z USOS') : source === 'wf' ? t('np. siatkówka, pływanie') : t('nazwa, kod albo link z USOSweb')
             }
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Nazwa, kod albo link przedmiotu"
+            aria-label={t('Nazwa, kod albo link przedmiotu')}
           />
           <button type="submit" className="button" disabled={searchStatus.kind === 'loading'}>
-            {searchStatus.kind === 'loading' ? 'Szukam…' : 'Szukaj'}
+            {searchStatus.kind === 'loading' ? t('Szukam…') : t('Szukaj')}
           </button>
         </div>
       </form>
@@ -163,14 +164,12 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
 
       {found && found.length === 0 && (
         <p className="muted small">
-          Nic nie znalazłem w tym semestrze. Spróbuj innej nazwy albo „Wszędzie” - albo wklej kod przedmiotu lub link do
-          niego z USOSweb.
+          {t('Nic nie znalazłem w tym semestrze. Spróbuj innej nazwy albo „Wszędzie” - albo wklej kod przedmiotu lub link do niego z USOSweb.')}
         </p>
       )}
       {found && found.length > 0 && truncated && (
         <p className="setting-hint">
-          USOS pokazuje najwyżej 100 wyników, więc część mogła się nie zmieścić. Nie ma Twojego przedmiotu? Wklej jego
-          kod (np. 6420-EEH60-0SA-0008) albo link do strony przedmiotu z USOSweb.
+          {t('USOS pokazuje najwyżej 100 wyników, więc część mogła się nie zmieścić. Nie ma Twojego przedmiotu? Wklej jego kod (np. 6420-EEH60-0SA-0008) albo link do strony przedmiotu z USOSweb.')}
         </p>
       )}
       {found && found.length > 0 && (
@@ -195,7 +194,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
               disabled={selected.size === 0 || groupsStatus.kind === 'loading'}
               onClick={() => void findGroups()}
             >
-              Dopasuj grupy{selected.size > 1 ? ` (${selected.size} przedmioty)` : ''}
+              {t('Dopasuj grupy')}{selected.size > 1 ? ` (${selected.size} ${plural(selected.size, 'przedmiot', 'przedmioty', 'przedmiotów')})` : ''}
             </button>
             {found.length > 1 && (
               <button
@@ -203,7 +202,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
                 className="link-button"
                 onClick={() => setSelected(selected.size === found.length ? new Set() : new Set(found.map((c) => c.courseId)))}
               >
-                {selected.size === found.length ? 'Odznacz wszystkie' : 'Zaznacz wszystkie'}
+                {selected.size === found.length ? t('Odznacz wszystkie') : t('Zaznacz wszystkie')}
               </button>
             )}
           </div>
@@ -214,7 +213,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
         <div className="extra-loading">
           <p className="loading-line">
             <span className="spinner" aria-hidden="true" />
-            Pobieram grupy z USOS…
+            {t('Pobieram grupy z USOS…')}
           </p>
           {groupsStatus.progress && groupsStatus.progress.total > 1 && (
             <progress className="opt-progress" value={groupsStatus.progress.done} max={groupsStatus.progress.total} />
@@ -228,8 +227,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
           {onInclude && groups && groups.some((g) => g.meetings.length > 0) && (
             <div className="extra-include">
               <p className="setting-hint">
-                Grupa, która koliduje z obecnym planem, może pasować po zmianie innych grup. Uwzględnij ten przedmiot w
-                propozycjach niżej, a Planer dobierze grupę razem z resztą planu.
+                {t('Grupa, która koliduje z obecnym planem, może pasować po zmianie innych grup. Uwzględnij ten przedmiot w propozycjach niżej, a Planer dobierze grupę razem z resztą planu.')}
               </p>
               <button
                 type="button"
@@ -237,13 +235,13 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
                 disabled={included.includes(groups)}
                 onClick={() => onInclude(groups)}
               >
-                {included.includes(groups) ? 'Uwzględnione w propozycjach ✓' : 'Uwzględnij w propozycjach'}
+                {included.includes(groups) ? t('Uwzględnione w propozycjach ✓') : t('Uwzględnij w propozycjach')}
               </button>
             </div>
           )}
           {ranking.fits.length === 0 ? (
             <p className="empty-state">
-              {groups?.length ? 'Każda grupa koliduje z Twoim planem.' : 'Te przedmioty nie mają jeszcze grup w USOS.'}
+              {groups?.length ? t('Każda grupa koliduje z Twoim planem.') : t('Te przedmioty nie mają jeszcze grup w USOS.')}
             </p>
           ) : (
             <ol className="extra-fits">
@@ -251,23 +249,23 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
                 <li key={fit.group.id} className={`extra-fit${i === 0 ? ' is-best' : ''}`}>
                   <div className="extra-fit-main">
                     <strong>
-                      {shortName(fit.group.courseName)} · gr. {fit.group.groupNumber}
+                      {shortName(fit.group.courseName)} · {t('gr. {n}', { n: fit.group.groupNumber })}
                     </strong>
                     <span>{schedule(fit.group)}</span>
                     {fit.group.place && <span className="muted">{fit.group.place}</span>}
                   </div>
                   <div className="extra-fit-side">
                     <div className="extra-fit-tags">
-                      {i === 0 && <span className="extra-tag is-best">Najlepiej pasuje</span>}
+                      {i === 0 && <span className="extra-tag is-best">{t('Najlepiej pasuje')}</span>}
                       <span className={`extra-tag ${fit.newDay ? 'is-worse' : 'is-better'}`}>
-                        {fit.newDay ? 'dodatkowy dzień' : 'bez nowego dnia'}
+                        {fit.newDay ? t('dodatkowy dzień') : t('bez nowego dnia')}
                       </span>
                       <span className={`extra-tag ${fit.gapMinutes > 2 ? 'is-worse' : 'is-better'}`}>{gapText(fit.gapMinutes)}</span>
-                      <span className="extra-tag">koniec dnia {formatClock(fit.dayEnd)}</span>
+                      <span className="extra-tag">{t('koniec dnia {time}', { time: formatClock(fit.dayEnd) })}</span>
                     </div>
                     <span className="candidate-actions">
                       <button type="button" className="button small secondary" onClick={() => setPreview(fit.group)}>
-                        Podgląd tygodnia
+                        {t('Podgląd tygodnia')}
                       </button>
                       <button
                         type="button"
@@ -276,11 +274,11 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
                           openExport(startOfWeek(now), {
                             meetings: withExtraGroup(meetings, fit.group, now),
                             // "Plan + Siatkówka (gr. 10)" - bez odmiany nazw, której nie da się zrobić niezawodnie.
-                            title: `Plan + ${shortName(fit.group.courseName)} (gr. ${fit.group.groupNumber})`,
+                            title: t('Plan + {course} (gr. {n})', { course: shortName(fit.group.courseName), n: fit.group.groupNumber }),
                           })
                         }
                       >
-                        Eksportuj
+                        {t('Eksportuj')}
                       </button>
                     </span>
                   </div>
@@ -291,10 +289,10 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
           <p className="hint">
             {ranking.fits.length > shown && (
               <button type="button" className="link-button" onClick={() => setShown((n) => n + SHOW_STEP)}>
-                Pokaż więcej ({ranking.fits.length - shown})
+                {t('Pokaż więcej ({n})', { n: ranking.fits.length - shown })}
               </button>
             )}
-            {ranking.conflicts > 0 && ` ${ranking.conflicts} ${ranking.conflicts === 1 ? 'grupa koliduje' : 'grup koliduje'} z planem - pominięte.`}
+            {ranking.conflicts > 0 && ' ' + t('{n} {groups} z planem - pominięte.', { n: ranking.conflicts, groups: plural(ranking.conflicts, 'grupa koliduje', 'grupy kolidują', 'grup koliduje') })}
           </p>
         </div>
       )}

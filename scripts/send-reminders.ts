@@ -25,8 +25,14 @@ import {
 import { isAutoReport } from '../src/lib/feedback.ts'
 import { NOTIFICATION_KEEP_DAYS, type NotificationKind } from '../src/lib/notifications.ts'
 import { USOSWEB_PERSON_URL, isPersonId, parsePersonPage } from '../src/lib/usosPeople.ts'
+import { translate, type Language } from '../src/lib/i18n.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
+
+// Język powiadomień: z ustawień odbiorcy (brak = polski, jak przed wersją angielską).
+function userLanguage(prefs: DocumentData): Language {
+  return prefs.language === 'en' ? 'en' : 'pl'
+}
 
 // Przypomnienie spóźnione o więcej (skrypt pominięty, awaria) już się nie wysyła.
 const LOOKBACK_MS = 6 * 60 * 60 * 1000
@@ -86,6 +92,7 @@ for (const device of devices.docs) {
 for (const [uid, userDevices] of byUser) {
   const prefs = (await db.doc(`users/${uid}/settings/prefs`).get()).data() ?? {}
   const kinds = parseReminderKinds(prefs.reminders)
+  const lang = userLanguage(prefs)
   const aliases = (prefs.useAliases !== false && typeof prefs.courseAliases === 'object' ? prefs.courseAliases : {}) as Record<
     string,
     unknown
@@ -111,9 +118,9 @@ for (const [uid, userDevices] of byUser) {
   for (const reminder of dueReminders(deadlines, kinds, now, LOOKBACK_MS)) {
     const key = `${uid}_${reminder.deadline.id}_${reminder.kind}_${reminder.at.getTime()}`
     if (!(await firstTime(key, uid))) continue
-    notices.push({ ...reminderText(reminder, courseLabel), tag: `${reminder.deadline.id}-${reminder.kind}`, kind: 'deadline' })
+    notices.push({ ...reminderText(reminder, courseLabel, lang), tag: `${reminder.deadline.id}-${reminder.kind}`, kind: 'deadline' })
   }
-  notices.push(...(await planNotices(uid, prefs, courseLabel)))
+  notices.push(...(await planNotices(uid, prefs, courseLabel, lang)))
   for (const notice of notices) await remember(uid, notice)
 
   // Raz na godzinę: historia starsza niż NOTIFICATION_KEEP_DAYS znika.
@@ -127,7 +134,7 @@ for (const [uid, userDevices] of byUser) {
     const data = device.data()
     const deviceNotices = [...notices]
     if (data.testRequested === true) {
-      deviceNotices.push({ title: 'Planer', body: 'Próbne powiadomienie - przypomnienia działają.', tag: 'planer-test' })
+      deviceNotices.push({ title: 'Planer', body: translate(lang, 'Próbne powiadomienie - przypomnienia działają.'), tag: 'planer-test' })
       await device.ref.update({ testRequested: false })
     }
     for (const notice of deviceNotices) {
@@ -203,8 +210,9 @@ for (const f of replied.docs) {
     continue
   }
   // Do historii zawsze (cała odpowiedź), na telefon - jeśli autor ma włączone powiadomienia.
+  const prefs = (await db.doc(`users/${uid}/settings/prefs`).get()).data() ?? {}
   const notice: Notice = {
-    title: 'Odpowiedź na Twoje zgłoszenie',
+    title: translate(userLanguage(prefs), 'Odpowiedź na Twoje zgłoszenie'),
     body: reply.slice(0, 140),
     tag: `reply-${f.id}`,
     kind: 'reply',
@@ -260,7 +268,12 @@ console.log(`Urządzenia: ${devices.size}, wysłane: ${sent}, usunięte nieaktua
 // Zmiany w planie z USOS, plan dnia rano i przypomnienie przed pierwszymi zajęciami.
 // Plan pobieramy przez link użytkownika co WATCH_EVERY_MS i zapamiętujemy najbliższe tygodnie
 // (planWatch/{uid} - tylko dla serwera, reguły nie wpuszczają tam strony).
-async function planNotices(uid: string, prefs: DocumentData, label: (course: string) => string): Promise<Notice[]> {
+async function planNotices(
+  uid: string,
+  prefs: DocumentData,
+  label: (course: string) => string,
+  lang: Language,
+): Promise<Notice[]> {
   const wantChanges = prefs.planChanges !== false
   const wantMorning = prefs.morningSummary === true
   const wantFirst = prefs.beforeFirstClass === true
@@ -283,7 +296,7 @@ async function planNotices(uid: string, prefs: DocumentData, label: (course: str
         if (!broken) {
           if (plan && watch?.until && wantChanges) {
             const changes = diffPlans(plan, next, now, watch.until)
-            if (changes.length > 0) notices.push({ ...changesText(changes, label), tag: `plan-${now.getTime()}`, kind: 'plan' })
+            if (changes.length > 0) notices.push({ ...changesText(changes, label, lang), tag: `plan-${now.getTime()}`, kind: 'plan' })
           }
           plan = next
           await ref.set({ plan: next, until: now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000, checkedAt: now.getTime() })
@@ -302,13 +315,13 @@ async function planNotices(uid: string, prefs: DocumentData, label: (course: str
   // Plan dnia: między 7 a 10, póki zajęcia jeszcze trwają.
   if (wantMorning && now.getHours() >= 7 && now.getHours() < 10 && now.getTime() < last.end) {
     if (await firstTime(`morning_${uid}_${dateKey}`, uid)) {
-      notices.push({ ...daySummaryText(today, label), tag: `day-${dateKey}`, kind: 'day' })
+      notices.push({ ...daySummaryText(today, label, lang), tag: `day-${dateKey}`, kind: 'day' })
     }
   }
   const first = today[0]
   const left = first.start - now.getTime()
   if (wantFirst && left > 0 && left <= FIRST_CLASS_WINDOW_MS && (await firstTime(`first_${uid}_${first.id}`, uid))) {
-    notices.push({ ...firstClassText(first, label, now), tag: `first-${first.id}`, kind: 'first' })
+    notices.push({ ...firstClassText(first, label, now, lang), tag: `first-${first.id}`, kind: 'first' })
   }
   return notices
 }

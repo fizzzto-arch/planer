@@ -1,3 +1,4 @@
+import { t } from './i18n'
 // Pliki (np. wykłady w PDF) trzymane tylko na tym urządzeniu, w IndexedDB przeglądarki.
 // Nie synchronizują się - przechowywanie plików w chmurze Firebase wymaga płatnego planu.
 
@@ -30,7 +31,7 @@ function openDb(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => {
       dbPromise = null
-      reject(new Error('Ta przeglądarka nie pozwala zapisywać plików (np. tryb prywatny).'))
+      reject(new Error(t('Ta przeglądarka nie pozwala zapisywać plików (np. tryb prywatny).')))
     }
   })
   return dbPromise
@@ -50,8 +51,8 @@ function run<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDB
 }
 
 function describe(error: DOMException | null): Error {
-  if (error?.name === 'QuotaExceededError') return new Error('Brak miejsca na urządzeniu na ten plik.')
-  return new Error('Nie udało się zapisać pliku na urządzeniu.')
+  if (error?.name === 'QuotaExceededError') return new Error(t('Brak miejsca na urządzeniu na ten plik.'))
+  return new Error(t('Nie udało się zapisać pliku na urządzeniu.'))
 }
 
 function newId(): string {

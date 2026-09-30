@@ -1,8 +1,9 @@
+import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { CustomMeetingDraft } from '../hooks/planUi'
 import type { ExtrasApi } from '../hooks/useExtras'
 import { parseDateKey } from '../lib/dates'
-import { MEETING_TYPES } from '../lib/usos'
+import { MEETING_TYPES, typeLabel } from '../lib/usos'
 import { Dialog } from './Dialog'
 
 interface Props {
@@ -33,11 +34,11 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const courseName = (courseChoice === NEW_COURSE ? newCourse : courseChoice).trim()
-    if (!courseName) return setError('Podaj nazwę przedmiotu.')
-    if (!parseDateKey(date)) return setError('Wybierz datę.')
-    if (!startTime || !endTime || endTime <= startTime) return setError('Podaj godziny: koniec musi być po początku.')
+    if (!courseName) return setError(t('Podaj nazwę przedmiotu.'))
+    if (!parseDateKey(date)) return setError(t('Wybierz datę.'))
+    if (!startTime || !endTime || endTime <= startTime) return setError(t('Podaj godziny: koniec musi być po początku.'))
     if (repeat && (!parseDateKey(until) || until < date)) {
-      return setError('Data końca powtarzania musi być po pierwszych zajęciach.')
+      return setError(t('Data końca powtarzania musi być po pierwszych zajęciach.'))
     }
     extras.saveCustomMeeting({
       id: draft.id,
@@ -53,28 +54,28 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
   }
 
   return (
-    <Dialog title={isNew ? 'Dodaj własne zajęcia' : 'Edytuj własne zajęcia'} onClose={onClose}>
+    <Dialog title={isNew ? t('Dodaj własne zajęcia') : t('Edytuj własne zajęcia')} onClose={onClose}>
       <form className="form-grid" onSubmit={handleSubmit}>
-        <p className="hint">Np. odrabianie, dodatkowe laboratorium albo zajęcia, których nie ma w USOS.</p>
+        <p className="hint">{t('Np. odrabianie, dodatkowe laboratorium albo zajęcia, których nie ma w USOS.')}</p>
 
         <label className="field">
-          <span className="field-label">Przedmiot</span>
+          <span className="field-label">{t('Przedmiot')}</span>
           <select className="text-input" value={courseChoice} onChange={(e) => setCourseChoice(e.target.value)}>
             {courseNames.map((name) => (
               <option key={name} value={name}>
                 {name}
               </option>
             ))}
-            <option value={NEW_COURSE}>+ Inny przedmiot…</option>
+            <option value={NEW_COURSE}>{t('+ Inny przedmiot…')}</option>
           </select>
         </label>
         {courseChoice === NEW_COURSE && (
           <label className="field">
-            <span className="field-label">Nazwa przedmiotu</span>
+            <span className="field-label">{t('Nazwa przedmiotu')}</span>
             <input
               className="text-input"
               value={newCourse}
-              placeholder="np. Lektorat angielski"
+              placeholder={t('np. Lektorat angielski')}
               onChange={(e) => setNewCourse(e.target.value)}
             />
           </label>
@@ -82,46 +83,46 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
 
         <div className="field-row">
           <label className="field">
-            <span className="field-label">Rodzaj</span>
+            <span className="field-label">{t('Rodzaj')}</span>
             <select className="text-input" value={type} onChange={(e) => setType(e.target.value)}>
-              {MEETING_TYPES.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
+              {MEETING_TYPES.map((id) => (
+                <option key={id} value={id}>
+                  {typeLabel(id)}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
             <span className="field-label">
-              Sala <span className="label-note">(opcjonalnie)</span>
+              {t('Sala')} <span className="label-note">{t('(opcjonalnie)')}</span>
             </span>
-            <input className="text-input" value={room} placeholder="np. 161" onChange={(e) => setRoom(e.target.value)} />
+            <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
           </label>
         </div>
 
         <label className="field">
-          <span className="field-label">Data</span>
+          <span className="field-label">{t('Data')}</span>
           <input className="text-input" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
         </label>
 
         <div className="field-row">
           <label className="field">
-            <span className="field-label">Od</span>
+            <span className="field-label">{t('Od')}</span>
             <input className="text-input" type="time" value={startTime} required onChange={(e) => setStartTime(e.target.value)} />
           </label>
           <label className="field">
-            <span className="field-label">Do</span>
+            <span className="field-label">{t('Do')}</span>
             <input className="text-input" type="time" value={endTime} required onChange={(e) => setEndTime(e.target.value)} />
           </label>
         </div>
 
         <label className="check-field">
           <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
-          Powtarzaj co tydzień
+          {t('Powtarzaj co tydzień')}
         </label>
         {repeat && (
           <label className="field">
-            <span className="field-label">Do kiedy (włącznie)</span>
+            <span className="field-label">{t('Do kiedy (włącznie)')}</span>
             <input className="text-input" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
           </label>
         )}
@@ -139,23 +140,23 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
               className="button danger"
               onClick={() => {
                 const question = draft.repeatWeeklyUntil
-                  ? 'Usunąć te zajęcia ze wszystkich tygodni?'
-                  : 'Usunąć te zajęcia?'
+                  ? t('Usunąć te zajęcia ze wszystkich tygodni?')
+                  : t('Usunąć te zajęcia?')
                 if (window.confirm(question)) {
                   extras.deleteCustomMeeting(draft.id!)
                   onClose()
                 }
               }}
             >
-              Usuń
+              {t('Usuń')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="button secondary" onClick={onClose}>
-            Anuluj
+            {t('Anuluj')}
           </button>
           <button type="submit" className="button">
-            Zapisz
+            {t('Zapisz')}
           </button>
         </div>
       </form>

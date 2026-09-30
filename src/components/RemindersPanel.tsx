@@ -1,3 +1,4 @@
+import { t, tk } from '../lib/i18n'
 import { useEffect, useState } from 'react'
 import type { ExtrasApi } from '../hooks/useExtras'
 import type { PrefsApi } from '../hooks/usePrefs'
@@ -49,7 +50,7 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
         ok: false,
         text:
           e instanceof Error && e.message === 'denied'
-            ? 'Powiadomienia są zablokowane. Na iPhonie: Ustawienia → Powiadomienia → Planer; na komputerze: ikona kłódki obok adresu.'
+            ? t('Powiadomienia są zablokowane. Na iPhonie: Ustawienia → Powiadomienia → Planer; na komputerze: ikona kłódki obok adresu.')
             : errorMessage(e),
       })
     } finally {
@@ -64,8 +65,8 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
       setDeviceOn(true)
       // Od razu widać, że powiadomienia się pokazują.
       const registration = await navigator.serviceWorker.ready
-      await registration.showNotification('Planer', { body: 'Przypomnienia o terminach są włączone.', tag: 'planer-on' })
-      return { ok: true, text: 'Włączone na tym urządzeniu.' }
+      await registration.showNotification('Planer', { body: t('Przypomnienia o terminach są włączone.'), tag: 'planer-on' })
+      return { ok: true, text: t('Włączone na tym urządzeniu.') }
     })
 
   const disable = () =>
@@ -77,17 +78,17 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
         extras?.deletePushDevice(id)
       }
       setDeviceOn(false)
-      return { ok: true, text: 'Wyłączone na tym urządzeniu.' }
+      return { ok: true, text: t('Wyłączone na tym urządzeniu.') }
     })
 
   const test = () =>
     run(async () => {
       const sub = await currentSubscription()
-      if (!sub) throw new Error('To urządzenie nie ma włączonych powiadomień.')
+      if (!sub) throw new Error(t('To urządzenie nie ma włączonych powiadomień.'))
       extras?.savePushDevice(await deviceId(sub), sub.toJSON(), deviceLabel(), true)
       return {
         ok: true,
-        text: 'Wysłane do serwera. Próbne powiadomienie przyjdzie w ciągu ok. 15 minut - tak często serwer sprawdza terminy.',
+        text: t('Wysłane do serwera. Próbne powiadomienie przyjdzie w ciągu ok. 15 minut - tak często serwer sprawdza terminy.'),
       }
     })
 
@@ -96,86 +97,84 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
 
   return (
     <div className="panel">
-      <h3 className="panel-title">Przypomnienia o terminach</h3>
+      <h3 className="panel-title">{t('Przypomnienia o terminach')}</h3>
       {!extras ? (
-        <p className="muted">Zaloguj się, żeby dostawać przypomnienia o kolokwiach i terminach.</p>
+        <p className="muted">{t('Zaloguj się, żeby dostawać przypomnienia o kolokwiach i terminach.')}</p>
       ) : (
         <>
           <p className="hint">
-            Powiadomienie o kolokwium, egzaminie albo projekcie z listy terminów - także przy zamkniętym Planerze.
-            Serwer sprawdza terminy co ok. 15 minut, więc przypomnienie może przyjść z lekkim opóźnieniem.
+            {t('Powiadomienie o kolokwium, egzaminie albo projekcie z listy terminów - także przy zamkniętym Planerze. Serwer sprawdza terminy co ok. 15 minut, więc przypomnienie może przyjść z lekkim opóźnieniem.')}
           </p>
 
           <div className="reminder-device">
             {support === 'ios-browser' ? (
               <p className="muted">
-                Na iPhonie powiadomienia działają tylko w Planerze dodanym do ekranu początkowego (Udostępnij → Do
-                ekranu początkowego). Otwórz go stamtąd i włącz przypomnienia.
+                {t('Na iPhonie powiadomienia działają tylko w Planerze dodanym do ekranu początkowego (Udostępnij → Do ekranu początkowego). Otwórz go stamtąd i włącz przypomnienia.')}
               </p>
             ) : support === 'unsupported' ? (
-              <p className="muted">Ta przeglądarka nie obsługuje powiadomień.</p>
+              <p className="muted">{t('Ta przeglądarka nie obsługuje powiadomień.')}</p>
             ) : deviceOn ? (
               <>
-                <span className="reminder-state is-on">Włączone na tym urządzeniu</span>
+                <span className="reminder-state is-on">{t('Włączone na tym urządzeniu')}</span>
                 <span className="reminder-actions">
                   <button type="button" className="button small secondary" disabled={busy} onClick={() => void test()}>
-                    Wyślij próbne
+                    {t('Wyślij próbne')}
                   </button>
                   <button type="button" className="button small secondary" disabled={busy} onClick={() => void disable()}>
-                    Wyłącz
+                    {t('Wyłącz')}
                   </button>
                 </span>
               </>
             ) : (
               <>
-                <span className="reminder-state">Wyłączone na tym urządzeniu</span>
+                <span className="reminder-state">{t('Wyłączone na tym urządzeniu')}</span>
                 <button
                   type="button"
                   className="button small"
                   disabled={busy || deviceOn === null}
                   onClick={() => void enable()}
                 >
-                  Włącz powiadomienia
+                  {t('Włącz powiadomienia')}
                 </button>
               </>
             )}
           </div>
           {status && <p className={status.ok ? 'hint' : 'error'}>{status.text}</p>}
 
-          <h4 className="material-heading">Plan zajęć</h4>
+          <h4 className="material-heading">{t('Plan zajęć')}</h4>
           <SwitchSetting
-            label="Zmiany w planie z USOS"
-            hint="Przeniesione lub odwołane zajęcia, zmiana sali - sprawdzane co ok. 2 godziny."
+            label={t('Zmiany w planie z USOS')}
+            hint={t('Przeniesione lub odwołane zajęcia, zmiana sali - sprawdzane co ok. 2 godziny.')}
             checked={prefs.planChanges}
             onChange={(planChanges) => update({ planChanges })}
           />
           <SwitchSetting
-            label="Plan dnia rano"
-            hint="O 7:00: ile zajęć, od której do której i gdzie pierwsze."
+            label={t('Plan dnia rano')}
+            hint={t('O 7:00: ile zajęć, od której do której i gdzie pierwsze.')}
             checked={prefs.morningSummary}
             onChange={(morningSummary) => update({ morningSummary })}
           />
           <SwitchSetting
-            label="Przed pierwszymi zajęciami"
-            hint="Ok. 30 minut wcześniej, z salą."
+            label={t('Przed pierwszymi zajęciami')}
+            hint={t('Ok. 30 minut wcześniej, z salą.')}
             checked={prefs.beforeFirstClass}
             onChange={(beforeFirstClass) => update({ beforeFirstClass })}
           />
           <p className="hint">
-            Działa z planem dodanym linkiem z USOSweb (nie z pliku). Uwzględnia plan z USOS, bez Twoich ręcznych zmian.
+            {t('Działa z planem dodanym linkiem z USOSweb (nie z pliku). Uwzględnia plan z USOS, bez Twoich ręcznych zmian.')}
           </p>
 
-          <h4 className="material-heading">Kiedy przypominać o terminach</h4>
+          <h4 className="material-heading">{t('Kiedy przypominać o terminach')}</h4>
           {REMINDER_KINDS.map((k) => (
             <SwitchSetting
               key={k.id}
-              label={k.label}
-              hint={k.hint}
+              label={tk(k.label)}
+              hint={tk(k.hint)}
               checked={prefs.reminders.includes(k.id)}
               onChange={(on) => toggleKind(k.id, on)}
             />
           ))}
-          <p className="hint">Te ustawienia są wspólne dla wszystkich Twoich urządzeń z włączonymi powiadomieniami.</p>
+          <p className="hint">{t('Te ustawienia są wspólne dla wszystkich Twoich urządzeń z włączonymi powiadomieniami.')}</p>
         </>
       )}
     </div>

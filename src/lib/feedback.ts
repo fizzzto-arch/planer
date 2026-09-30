@@ -1,5 +1,6 @@
 // Zgłoszenia od testerów: co działa, co nie, czego brakuje - z opcjonalnymi zdjęciami i nagraniami.
 // Załączniki, jak wspólne PDF-y, dzielimy na kawałki w bazie (darmowy plan nie ma magazynu plików).
+import { msg, t } from './i18n.ts'
 import { CHUNK_BYTES, chunkId } from './materials.ts'
 
 export type FeedbackKind = 'bug' | 'idea' | 'opinion'
@@ -7,21 +8,21 @@ export type FeedbackStatus = 'new' | 'seen' | 'done'
 
 // Do wyboru w formularzu: błąd albo opinia (pomysły to pole "Czego brakuje?" w opinii).
 export const FEEDBACK_KINDS: { id: FeedbackKind; label: string }[] = [
-  { id: 'bug', label: 'Błąd' },
-  { id: 'opinion', label: 'Opinia lub pomysł' },
+  { id: 'bug', label: msg('Błąd') },
+  { id: 'opinion', label: msg('Opinia lub pomysł') },
 ]
 
 // Nazwy rodzajów do wyświetlania - także "Pomysł" ze starszych zgłoszeń.
 export const FEEDBACK_KIND_LABELS: Record<FeedbackKind, string> = {
-  bug: 'Błąd',
-  idea: 'Pomysł',
-  opinion: 'Opinia lub pomysł',
+  bug: msg('Błąd'),
+  idea: msg('Pomysł'),
+  opinion: msg('Opinia lub pomysł'),
 }
 
 export const FEEDBACK_STATUS_LABELS: Record<FeedbackStatus, string> = {
-  new: 'Nowe',
-  seen: 'Przeczytane',
-  done: 'Załatwione',
+  new: msg('Nowe'),
+  seen: msg('Przeczytane'),
+  done: msg('Załatwione'),
 }
 
 // Początek treści zgłoszenia wysłanego automatycznie po błędzie (lib/errorReport.ts).
@@ -108,17 +109,17 @@ export function chunkCountFor(size: number): number {
 
 // Powód odrzucenia załączników albo null, gdy można je wysłać.
 export function checkAttachments(files: { type: string; size: number }[]): string | null {
-  if (files.length > MAX_ATTACHMENTS) return `Najwyżej ${MAX_ATTACHMENTS} załączniki.`
+  if (files.length > MAX_ATTACHMENTS) return t('Najwyżej {n} załączniki.', { n: MAX_ATTACHMENTS })
   for (const f of files) {
-    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return 'Dołączyć można tylko zdjęcia i nagrania.'
+    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return t('Dołączyć można tylko zdjęcia i nagrania.')
     if (f.type.startsWith('video/') && f.size > MAX_VIDEO_BYTES) {
-      return `Nagranie jest za duże (limit ${MAX_VIDEO_BYTES / 1024 / 1024} MB, czyli ok. 30 sekund). Przytnij je w Zdjęciach.`
+      return t('Nagranie jest za duże (limit {mb} MB, czyli ok. 30 sekund). Przytnij je w Zdjęciach.', { mb: MAX_VIDEO_BYTES / 1024 / 1024 })
     }
   }
-  if (files.reduce((s, f) => s + f.size, 0) > MAX_TOTAL_BYTES) return 'Załączniki są za duże razem - usuń któryś.'
+  if (files.reduce((s, f) => s + f.size, 0) > MAX_TOTAL_BYTES) return t('Załączniki są za duże razem - usuń któryś.')
   return null
 }
 
 export function isEmptyFeedback(f: NewFeedback): boolean {
-  return ![f.good, f.bad, f.missing, f.text].some((t) => t.trim())
+  return ![f.good, f.bad, f.missing, f.text].some((item) => item.trim())
 }

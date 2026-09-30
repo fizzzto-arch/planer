@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AccessStatus, Cloud, CloudUser } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
@@ -59,7 +60,7 @@ export function useCloud(plan: PlanApi) {
       .catch(() => {
         if (cancelled) return
         setState({ kind: 'signedOut' })
-        setSyncError('Nie udało się załadować logowania. Sprawdź internet.')
+        setSyncError(t('Nie udało się załadować logowania. Sprawdź internet.'))
       })
     return () => {
       cancelled = true
@@ -170,14 +171,14 @@ export function useCloud(plan: PlanApi) {
     if (!cloud || !uid) return
 
     if (action.kind === 'adopt') {
-      connectUrl(action.url).catch((e) => setSyncError(`Nie udało się pobrać planu z konta: ${errorMessage(e)}`))
+      connectUrl(action.url).catch((e) => setSyncError(t('Nie udało się pobrać planu z konta: {error}', { error: errorMessage(e) })))
     } else if (action.kind === 'upload') {
       cloud.saveIcalUrl(uid, action.url).catch((e) => setSyncError(errorMessage(e)))
     }
   }, [cloud, uid, cloudUrl, localUrl, connectUrl])
 
   const requireCloud = useCallback(() => {
-    if (!cloud) throw new Error('Logowanie jeszcze się ładuje, spróbuj za chwilę.')
+    if (!cloud) throw new Error(t('Logowanie jeszcze się ładuje, spróbuj za chwilę.'))
     return cloud
   }, [cloud])
 

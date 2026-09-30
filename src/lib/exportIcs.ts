@@ -1,4 +1,5 @@
 // Plan jako plik kalendarza (.ics) - z ręcznymi zmianami z Planera (link z USOS ich nie zna).
+import { t } from './i18n'
 import type { TimetableMeeting } from './timetable'
 import { shortBuilding, typeLabel } from './usos'
 
@@ -28,7 +29,7 @@ export function exportIcs(meetings: TimetableMeeting[], label: (course: string) 
   const events = meetings
     .filter((m) => !m.cancelled)
     .map((m) => {
-      const place = [m.room ? `s. ${m.room}` : '', shortBuilding(m.building) ?? m.building ?? ''].filter(Boolean).join(', ')
+      const place = [m.room ? t('s. {room}', { room: m.room }) : '', shortBuilding(m.building) ?? m.building ?? ''].filter(Boolean).join(', ')
       return [
         'BEGIN:VEVENT',
         `UID:${text(m.id)}@planer`,
@@ -37,7 +38,7 @@ export function exportIcs(meetings: TimetableMeeting[], label: (course: string) 
         `DTEND:${stamp(m.end)}`,
         `SUMMARY:${text(`${label(m.courseName)} (${typeLabel(m.type)})`)}`,
         ...(place ? [`LOCATION:${text(place)}`] : []),
-        ...(m.groupNumber !== null ? [`DESCRIPTION:${text(`${typeLabel(m.type)}, grupa ${m.groupNumber}`)}`] : []),
+        ...(m.groupNumber !== null ? [`DESCRIPTION:${text(t('{type}, grupa {n}', { type: typeLabel(m.type), n: m.groupNumber }))}`] : []),
         'END:VEVENT',
       ]
     })

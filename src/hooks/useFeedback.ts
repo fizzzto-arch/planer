@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Cloud, CloudDoc } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
@@ -28,7 +29,7 @@ export function useFeedback(client: Cloud | null, uid: string | null, email: str
 
   const submit = useCallback(
     async (feedback: NewFeedback, files: FeedbackFile[], onProgress: (done: number, total: number) => void) => {
-      if (!client || !uid) throw new Error('Zaloguj się, żeby wysłać zgłoszenie.')
+      if (!client || !uid) throw new Error(t('Zaloguj się, żeby wysłać zgłoszenie.'))
       await client.submitFeedback(uid, email ?? '', feedback, files, onProgress)
     },
     [client, uid, email],
@@ -50,7 +51,7 @@ export function useFeedback(client: Cloud | null, uid: string | null, email: str
 
   const download = useCallback(
     async (f: Feedback, index: number): Promise<Blob> => {
-      if (!client) throw new Error('Brak połączenia.')
+      if (!client) throw new Error(t('Brak połączenia.'))
       const a = f.attachments[index]
       const chunks = await client.downloadFeedbackFile(f.id, index, a.chunkCount)
       // Typ z bazy wpisał autor zgłoszenia - otwieramy tylko bezpieczne (zdjęcia, nagrania).

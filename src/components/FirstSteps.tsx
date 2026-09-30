@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { isIos, isStandalone } from '../lib/push'
@@ -30,32 +31,32 @@ export function FirstSteps() {
   const phone = window.matchMedia('(pointer: coarse)').matches
   const notificationsOn = 'Notification' in window && Notification.permission === 'granted'
   const steps: Step[] = [
-    { id: 'plan', title: 'Plan z USOS', hint: 'Gotowe - będzie aktualizował się sam.', done: true },
+    { id: 'plan', title: t('Plan z USOS'), hint: t('Gotowe - będzie aktualizował się sam.'), done: true },
     ...(phone
       ? [
           {
             id: 'home',
-            title: 'Planer na ekranie telefonu',
+            title: t('Planer na ekranie telefonu'),
             hint: isIos()
-              ? 'W Safari: Udostępnij → „Do ekranu początkowego”. Otwiera się wtedy jak aplikacja.'
-              : 'W Chrome: menu ⋮ → „Zainstaluj aplikację”.',
+              ? t('W Safari: Udostępnij → „Do ekranu początkowego”. Otwiera się wtedy jak aplikacja.')
+              : t('W Chrome: menu ⋮ → „Zainstaluj aplikację”.'),
             done: isStandalone(),
           },
         ]
       : []),
     {
       id: 'reminders',
-      title: 'Przypomnienia o kolokwiach',
-      hint: 'Powiadomienie tydzień i dzień przed terminem.',
+      title: t('Przypomnienia o kolokwiach'),
+      hint: t('Powiadomienie tydzień i dzień przed terminem.'),
       done: notificationsOn,
-      action: { label: 'Włącz', run: openSettings },
+      action: { label: t('Włącz'), run: openSettings },
     },
     {
       id: 'deadline',
-      title: 'Pierwszy termin',
-      hint: 'Dodaj kolokwium, egzamin albo oddanie projektu.',
+      title: t('Pierwszy termin'),
+      hint: t('Dodaj kolokwium, egzamin albo oddanie projektu.'),
       done: extras.extras.deadlines.length > 0,
-      action: { label: 'Dodaj', run: () => editDeadline({}) },
+      action: { label: t('Dodaj'), run: () => editDeadline({}) },
     },
   ]
   const doneCount = steps.filter((s) => s.done).length
@@ -74,13 +75,13 @@ export function FirstSteps() {
     <div className="panel first-steps">
       <div className="section-head">
         <h3 className="panel-title">
-          Pierwsze kroki{' '}
+          {t('Pierwsze kroki')}{' '}
           <span className="muted first-steps-count">
-            {doneCount} z {steps.length}
+            {t('{done} z {total}', { done: doneCount, total: steps.length })}
           </span>
         </h3>
         <button type="button" className="link-button" onClick={hide}>
-          Ukryj
+          {t('Ukryj')}
         </button>
       </div>
       <ol className="first-steps-list">

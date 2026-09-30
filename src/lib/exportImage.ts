@@ -1,4 +1,5 @@
 // Zdjęcie planu (canvas): poziomo - siatka tygodnia, pionowo - lista dni (pod ekran telefonu).
+import { t } from './i18n'
 import type { ExportEntry, ExportModel } from './exportModel'
 import { formatClock } from './timetable'
 
@@ -21,8 +22,8 @@ function hexToRgb(hex: string): [number, number, number] {
 function tint(hex: string, theme: ImageTheme): string {
   const [r, g, b] = hexToRgb(hex)
   const [br, bg, bb] = hexToRgb(PALETTE[theme].bg)
-  const t = theme === 'light' ? 0.17 : 0.3
-  const mix = (c: number, base: number) => Math.round(base + (c - base) * t)
+  const item = theme === 'light' ? 0.17 : 0.3
+  const mix = (c: number, base: number) => Math.round(base + (c - base) * item)
   return `rgb(${mix(r, br)}, ${mix(g, bg)}, ${mix(b, bb)})`
 }
 
@@ -50,9 +51,9 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, maxLin
 
 function ellipsize(ctx: CanvasRenderingContext2D, text: string, width: number, force = false): string {
   if (!force && ctx.measureText(text).width <= width) return text
-  let t = text.replace(/…$/, '')
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > width) t = t.slice(0, -1)
-  return `${t.trimEnd()}…`
+  let item2 = text.replace(/…$/, '')
+  while (item2.length > 1 && ctx.measureText(`${item2}…`).width > width) item2 = item2.slice(0, -1)
+  return `${item2.trimEnd()}…`
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -93,7 +94,7 @@ function drawNotes(ctx: CanvasRenderingContext2D, notes: string[], x: number, y:
   ctx.font = font(size, 700)
   if (!measure) {
     ctx.fillStyle = p.text
-    ctx.fillText('Uwagi', x, y)
+    ctx.fillText(t('Uwagi'), x, y)
   }
   h += size * 1.6
   ctx.font = font(size, 400)
@@ -264,13 +265,13 @@ function renderLandscape(model: ExportModel, theme: ImageTheme, scale: number): 
   if (legendH) {
     let x = pad
     ctx.font = font(15, 500)
-    for (const t of model.types) {
-      ctx.fillStyle = t.color
+    for (const item3 of model.types) {
+      ctx.fillStyle = item3.color
       roundRect(ctx, x, y + 1, 16, 16, 4)
       ctx.fill()
       ctx.fillStyle = p.text
-      ctx.fillText(t.name, x + 24, y + 1)
-      x += 24 + ctx.measureText(t.name).width + 28
+      ctx.fillText(item3.name, x + 24, y + 1)
+      x += 24 + ctx.measureText(item3.name).width + 28
     }
     y += legendH
   }
@@ -380,6 +381,6 @@ export function renderPlanImage(model: ExportModel, layout: 'landscape' | 'portr
 
 export function canvasToBlob(canvas: HTMLCanvasElement, type: 'image/png' | 'image/jpeg'): Promise<Blob> {
   return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Nie udało się utworzyć obrazu.'))), type, 0.92),
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(t('Nie udało się utworzyć obrazu.')))), type, 0.92),
   )
 }

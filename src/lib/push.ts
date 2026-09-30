@@ -1,3 +1,4 @@
+import { t } from './i18n'
 // Powiadomienia push w przeglądarce: czy da się je włączyć, subskrypcja tego urządzenia.
 import { VAPID_PUBLIC_KEY } from './pushConfig'
 
@@ -65,5 +66,5 @@ export function deviceLabel(): string {
   if (/Android/.test(ua)) return 'Android'
   if (/Windows/.test(ua)) return 'Windows'
   if (/Mac/.test(ua)) return 'Mac'
-  return 'Przeglądarka'
+  return t('Przeglądarka')
 }

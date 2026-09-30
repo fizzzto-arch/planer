@@ -1,3 +1,5 @@
+import { LANGUAGES, t } from '../lib/i18n'
+import { LANGUAGE_NAMES } from './LanguageSwitch'
 import type { PrefsApi } from '../hooks/usePrefs'
 import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias, type TextSize } from '../lib/prefs'
 import { ChoiceSetting, SwitchSetting } from './SettingControls'
@@ -7,18 +9,18 @@ interface Props {
   signedIn: boolean
 }
 
-const TEXT_SIZES: { value: TextSize; label: string }[] = [
-  { value: 'small', label: 'Mały' },
-  { value: 'normal', label: 'Normalny' },
-  { value: 'large', label: 'Duży' },
-]
+const TEXT_SIZES = (): { value: TextSize; label: string }[] => ([
+  { value: 'small', label: t('Mały') },
+  { value: 'normal', label: t('Normalny') },
+  { value: 'large', label: t('Duży') },
+])
 
 function SyncNote({ signedIn }: { signedIn: boolean }) {
   return (
     <p className="hint">
       {signedIn
-        ? 'Ustawienia zapisują się na koncie - te same na telefonie i komputerze.'
-        : 'Ustawienia zapisują się w tej przeglądarce. Po zalogowaniu będą na każdym urządzeniu.'}
+        ? t('Ustawienia zapisują się na koncie - te same na telefonie i komputerze.')
+        : t('Ustawienia zapisują się w tej przeglądarce. Po zalogowaniu będą na każdym urządzeniu.')}
     </p>
   )
 }
@@ -27,56 +29,64 @@ export function AppearancePanel({ prefsApi, signedIn }: Props) {
   const { prefs, update } = prefsApi
   return (
     <div className="panel">
-      <h3 className="panel-title">Wygląd</h3>
+      <h3 className="panel-title">{t('Wygląd')}</h3>
       <SyncNote signedIn={signedIn} />
+      {/* Etykieta w obu językach - łatwo znaleźć, nawet gdy nie rozumiesz obecnego. */}
       <ChoiceSetting
-        label="Motyw"
+        label="Język / Language"
+        hint={t('Nazwy przedmiotów zostają jak w USOS - możesz je skrócić niżej.')}
+        value={prefs.language}
+        options={LANGUAGES.map((lang) => ({ value: lang, label: LANGUAGE_NAMES[lang] }))}
+        onChange={(language) => update({ language })}
+      />
+      <ChoiceSetting
+        label={t('Motyw')}
         value={prefs.theme}
         options={[
-          { value: 'system', label: 'Jak system' },
-          { value: 'light', label: 'Jasny' },
-          { value: 'dark', label: 'Ciemny' },
+          { value: 'system', label: t('Jak system') },
+          { value: 'light', label: t('Jasny') },
+          { value: 'dark', label: t('Ciemny') },
         ]}
         onChange={(theme) => update({ theme })}
       />
       <ChoiceSetting
-        label="Animacje"
-        hint="„Jak system” wyłącza je, gdy system prosi o ograniczenie ruchu."
+        label={t('Animacje')}
+        hint={t('„Jak system” wyłącza je, gdy system prosi o ograniczenie ruchu.')}
         value={prefs.animations}
         options={[
-          { value: 'on', label: 'Włączone' },
-          { value: 'off', label: 'Wyłączone' },
-          { value: 'system', label: 'Jak system' },
+          { value: 'on', label: t('Włączone') },
+          { value: 'off', label: t('Wyłączone') },
+          { value: 'system', label: t('Jak system') },
         ]}
         onChange={(animations) => update({ animations })}
       />
       <ChoiceSetting
-        label="Rozmiar tekstu – telefon"
-        hint={prefsApi.isPhone ? 'To urządzenie korzysta z tego ustawienia.' : undefined}
+        label={t('Rozmiar tekstu – telefon')}
+        hint={prefsApi.isPhone ? t('To urządzenie korzysta z tego ustawienia.') : undefined}
         value={prefs.textSizePhone}
-        options={TEXT_SIZES}
+        options={TEXT_SIZES()}
         onChange={(textSizePhone) => update({ textSizePhone })}
       />
       <ChoiceSetting
-        label="Rozmiar tekstu – komputer"
-        hint={prefsApi.isPhone ? undefined : 'To urządzenie korzysta z tego ustawienia.'}
+        label={t('Rozmiar tekstu – komputer')}
+        hint={prefsApi.isPhone ? undefined : t('To urządzenie korzysta z tego ustawienia.')}
         value={prefs.textSizeDesktop}
-        options={TEXT_SIZES}
+        options={TEXT_SIZES()}
         onChange={(textSizeDesktop) => update({ textSizeDesktop })}
       />
       <SwitchSetting
-        label="Widok kompaktowy"
-        hint="Mniejsze odstępy - więcej zajęć mieści się na ekranie."
+        label={t('Widok kompaktowy')}
+        hint={t('Mniejsze odstępy - więcej zajęć mieści się na ekranie.')}
         checked={prefs.compact}
         onChange={(compact) => update({ compact })}
       />
       <ChoiceSetting
-        label="Widok na start"
+        label={t('Widok na start')}
         value={prefs.startView}
         options={[
-          { value: 'today', label: 'Dziś' },
-          { value: 'week', label: 'Tydzień' },
-          { value: 'courses', label: 'Przedmioty' },
+          { value: 'today', label: t('Dziś') },
+          { value: 'week', label: t('Tydzień') },
+          { value: 'courses', label: t('Przedmioty') },
         ]}
         onChange={(startView) => update({ startView })}
       />
@@ -88,30 +98,30 @@ export function PlanPrefsPanel({ prefsApi }: Pick<Props, 'prefsApi'>) {
   const { prefs, update } = prefsApi
   return (
     <div className="panel">
-      <h3 className="panel-title">Plan i terminy</h3>
+      <h3 className="panel-title">{t('Plan i terminy')}</h3>
       <SwitchSetting
-        label="Numer tygodnia semestru"
-        hint="Np. „tydzień 3 · nieparzysty”. Liczone z planu - tygodnie bez zajęć (np. święta) się nie liczą."
+        label={t('Numer tygodnia semestru')}
+        hint={t('Np. „tydzień 3 · nieparzysty”. Liczone z planu - tygodnie bez zajęć (np. święta) się nie liczą.')}
         checked={prefs.showWeekNumber}
         onChange={(showWeekNumber) => update({ showWeekNumber })}
       />
       <ChoiceSetting
-        label="Okienko od"
-        hint="Krótsza przerwa to zwykłe przejście między salami."
+        label={t('Okienko od')}
+        hint={t('Krótsza przerwa to zwykłe przejście między salami.')}
         value={prefs.gapMinutes}
         options={GAP_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
         onChange={(gapMinutes) => update({ gapMinutes })}
       />
       <SwitchSetting
-        label="Zawsze pokazuj weekend"
-        hint="W siatce tygodnia także sobota i niedziela, nawet bez zajęć."
+        label={t('Zawsze pokazuj weekend')}
+        hint={t('W siatce tygodnia także sobota i niedziela, nawet bez zajęć.')}
         checked={prefs.alwaysWeekend}
         onChange={(alwaysWeekend) => update({ alwaysWeekend })}
       />
       <ChoiceSetting
-        label="Nadchodzące terminy w „Dziś”"
+        label={t('Nadchodzące terminy w „Dziś”')}
         value={prefs.upcomingDays}
-        options={UPCOMING_OPTIONS.map((d) => ({ value: d, label: `${d} dni` }))}
+        options={UPCOMING_OPTIONS.map((d) => ({ value: d, label: t('{n} dni', { n: d }) }))}
         onChange={(upcomingDays) => update({ upcomingDays })}
       />
     </div>
@@ -130,11 +140,11 @@ export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> 
 
   return (
     <div className="panel">
-      <h3 className="panel-title">Skróty nazw przedmiotów</h3>
-      <p className="hint">Skrót zastępuje długą nazwę w planie. Puste pole = pełna nazwa.</p>
+      <h3 className="panel-title">{t('Skróty nazw przedmiotów')}</h3>
+      <p className="hint">{t('Skrót zastępuje długą nazwę w planie. Puste pole = pełna nazwa.')}</p>
       <SwitchSetting
-        label="Pokazuj skróty"
-        hint="Wyłączone = wszędzie pełne nazwy. Wpisane skróty zostają zapisane."
+        label={t('Pokazuj skróty')}
+        hint={t('Wyłączone = wszędzie pełne nazwy. Wpisane skróty zostają zapisane.')}
         checked={prefs.useAliases}
         onChange={(useAliases) => update({ useAliases })}
       />
@@ -151,7 +161,7 @@ export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> 
                 className="text-input alias-input"
                 value={prefs.courseAliases[name] ?? ''}
                 maxLength={40}
-                placeholder={suggestion !== name ? `np. ${suggestion}` : 'skrót'}
+                placeholder={suggestion !== name ? t('np. {suggestion}', { suggestion }) : t('skrót')}
                 onChange={(e) => setAlias(name, e.target.value)}
               />
             </li>

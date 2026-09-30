@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { usePlanUi } from '../hooks/planUi'
 import { useCourseStaff } from '../hooks/useCourseStaff'
 import { staffPeople, type StaffPerson } from '../lib/staff'
@@ -18,9 +19,9 @@ export function StaffSection({ meetings }: Props) {
 
   return (
     <div className="panel staff">
-      <h3 className="panel-title">Prowadzący</h3>
-      {status.kind === 'loading' && <p className="muted loading-line">Sprawdzam w USOS…</p>}
-      {status.kind === 'error' && <p className="muted">Nie udało się pobrać prowadzących z USOS. {status.message}</p>}
+      <h3 className="panel-title">{t('Prowadzący')}</h3>
+      {status.kind === 'loading' && <p className="muted loading-line">{t('Sprawdzam w USOS…')}</p>}
+      {status.kind === 'error' && <p className="muted">{t('Nie udało się pobrać prowadzących z USOS.')} {status.message}</p>}
       {list.length > 0 && (
         <>
           <div className="staff-list">
@@ -29,7 +30,7 @@ export function StaffSection({ meetings }: Props) {
             ))}
           </div>
           <p className="hint">
-            E-mail jest na profilu w USOSweb („wyślij wiadomość do użytkownika”) albo w Outlooku PW po nazwisku.
+            {t('E-mail jest na profilu w USOSweb („wyślij wiadomość do użytkownika”) albo w Outlooku PW po nazwisku.')}
           </p>
         </>
       )}
@@ -57,8 +58,8 @@ function Person({
       </span>
       <span className="staff-roles">{roles.join(' · ')}</span>
       <span className="staff-details">
-        {details || (withTitles && !info ? 'tytuł pojawi się wkrótce' : '')}
-        <span className="staff-link">profil w USOSweb ↗</span>
+        {details || (withTitles && !info ? t('tytuł pojawi się wkrótce') : '')}
+        <span className="staff-link">{t('profil w USOSweb ↗')}</span>
       </span>
     </a>
   )

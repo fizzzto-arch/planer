@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { Fragment, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDuration, isSameDay, minutesBetween } from '../lib/dates'
@@ -15,12 +16,12 @@ interface Props {
 function transitionNote(prev: PlanMeeting, next: PlanMeeting, minGap: number): string | null {
   const gap = minutesBetween(prev.end, next.start)
   const notes: string[] = []
-  if (gap < 0) notes.push('Zajęcia nakładają się!')
-  else if (gap >= minGap) notes.push(`Okienko ${formatDuration(gap)}`)
+  if (gap < 0) notes.push(t('Zajęcia nakładają się!'))
+  else if (gap >= minGap) notes.push(t('Okienko {duration}', { duration: formatDuration(gap) }))
 
   const from = shortBuilding(prev.building)
   const to = shortBuilding(next.building)
-  if (from && to && from !== to) notes.push(`zmiana budynku → ${to}`)
+  if (from && to && from !== to) notes.push(t('zmiana budynku → {to}', { to }))
 
   if (notes.length === 0) return null
   const text = notes.join(' · ')

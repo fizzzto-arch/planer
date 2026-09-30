@@ -1,3 +1,5 @@
+import { tx } from '../lib/i18nReact'
+import { t } from '../lib/i18n'
 import { useEffect, useState } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
@@ -43,7 +45,7 @@ function VerifyEmail({ cloud, email }: Pick<Props, 'cloud'> & { email: string })
     try {
       await refreshUser()
       // Jeśli potwierdzenie przyszło, ten ekran zniknie sam; jeśli nie - podpowiadamy.
-      setMessage({ ok: false, text: 'Jeszcze nie widzimy potwierdzenia. Kliknij link w mailu i spróbuj ponownie.' })
+      setMessage({ ok: false, text: t('Jeszcze nie widzimy potwierdzenia. Kliknij link w mailu i spróbuj ponownie.') })
     } catch (e) {
       setMessage({ ok: false, text: errorMessage(e) })
     } finally {
@@ -56,7 +58,7 @@ function VerifyEmail({ cloud, email }: Pick<Props, 'cloud'> & { email: string })
     try {
       await sendVerificationEmail()
       setCooldown(RESEND_COOLDOWN_S)
-      setMessage({ ok: true, text: `Wysłaliśmy nowy link na ${email}.` })
+      setMessage({ ok: true, text: t('Wysłaliśmy nowy link na {email}.', { email }) })
     } catch (e) {
       setMessage({ ok: false, text: errorMessage(e) })
     }
@@ -67,19 +69,19 @@ function VerifyEmail({ cloud, email }: Pick<Props, 'cloud'> & { email: string })
       <div className="gate-icon" aria-hidden="true">
         ✉️
       </div>
-      <h2 className="gate-title">Potwierdź swój e-mail</h2>
+      <h2 className="gate-title">{t('Potwierdź swój e-mail')}</h2>
       <p>
-        Wysłaliśmy link na <strong>{email}</strong>. Otwórz maila i kliknij link - ta strona sama to wykryje.
+        {tx('Wysłaliśmy link na {email}. Otwórz maila i kliknij link - ta strona sama to wykryje.', { email: <strong>{email}</strong> })}
       </p>
       <p className="hint">
-        Nie widzisz maila? Zajrzyj do spamu. Nadawca to noreply@planer-9feb3.firebaseapp.com.
+        {t('Nie widzisz maila? Zajrzyj do spamu. Nadawca to noreply@planer-9feb3.firebaseapp.com.')}
       </p>
       <div className="button-row gate-actions">
         <button type="button" className="button" disabled={checking} onClick={() => void checkNow()}>
-          {checking ? 'Sprawdzam…' : 'Już kliknąłem'}
+          {checking ? t('Sprawdzam…') : t('Już kliknąłem')}
         </button>
         <button type="button" className="button secondary" disabled={cooldown > 0} onClick={() => void resend()}>
-          {cooldown > 0 ? `Wyślij ponownie (${cooldown} s)` : 'Wyślij link ponownie'}
+          {cooldown > 0 ? t('Wyślij ponownie ({cooldown} s)', { cooldown }) : t('Wyślij link ponownie')}
         </button>
       </div>
       {message && <p className={message.ok ? 'success' : 'error'}>{message.text}</p>}
@@ -102,7 +104,7 @@ export function AccessGate({ cloud, onHelp }: Props) {
         {cloud.access === 'checking' && (
           <p className="muted loading-line">
             <span className="spinner" aria-hidden="true" />
-            Sprawdzam dostęp…
+            {t('Sprawdzam dostęp…')}
           </p>
         )}
 
@@ -111,18 +113,16 @@ export function AccessGate({ cloud, onHelp }: Props) {
             <div className="gate-icon" aria-hidden="true">
               ⏳
             </div>
-            <h2 className="gate-title">Konto utworzone ✓</h2>
+            <h2 className="gate-title">{t('Konto utworzone ✓')}</h2>
             <p>
-              E-mail <strong>{email}</strong> jest potwierdzony. Konto czeka teraz na zatwierdzenie przez
-              administratora Planera.
+              {tx('E-mail {email} jest potwierdzony. Konto czeka teraz na zatwierdzenie przez administratora Planera.', { email: <strong>{email}</strong> })}
             </p>
             {cloud.accessRequestError ? (
               <p className="hint">
-                Nie udało się jeszcze wysłać prośby do administratora ({cloud.accessRequestError}). Ponawiam
-                automatycznie - możesz też odświeżyć stronę.
+                {t('Nie udało się jeszcze wysłać prośby do administratora ({error}). Ponawiam automatycznie - możesz też odświeżyć stronę.', { error: cloud.accessRequestError })}
               </p>
             ) : (
-              <p className="hint">Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.</p>
+              <p className="hint">{t('Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.')}</p>
             )}
           </>
         )}
@@ -132,10 +132,9 @@ export function AccessGate({ cloud, onHelp }: Props) {
             <div className="gate-icon" aria-hidden="true">
               🚫
             </div>
-            <h2 className="gate-title">Brak dostępu</h2>
+            <h2 className="gate-title">{t('Brak dostępu')}</h2>
             <p>
-              Administrator nie zatwierdził konta <strong>{email}</strong>. Jeśli to pomyłka, odezwij się do niego
-              bezpośrednio.
+              {tx('Administrator nie zatwierdził konta {email}. Jeśli to pomyłka, odezwij się do niego bezpośrednio.', { email: <strong>{email}</strong> })}
             </p>
           </>
         )}
@@ -143,17 +142,17 @@ export function AccessGate({ cloud, onHelp }: Props) {
         {/* Błąd pokazujemy tylko, gdy utknęło sprawdzanie dostępu - na ekranie oczekiwania
             czerwony tekst sugerowałby problem, choć wszystko przebiega normalnie. */}
         {cloud.syncError && cloud.access === 'checking' && (
-          <p className="hint">Nie udało się sprawdzić dostępu - spróbuję ponownie za chwilę.</p>
+          <p className="hint">{t('Nie udało się sprawdzić dostępu - spróbuję ponownie za chwilę.')}</p>
         )}
 
         <p className="gate-footer">
-          Zalogowano jako <strong>{email}</strong> ·{' '}
+          {t('Zalogowano jako')} <strong>{email}</strong> ·{' '}
           <button type="button" className="link-button" onClick={() => void cloud.signOut()}>
-            Wyloguj
+            {t('Wyloguj')}
           </button>{' '}
           ·{' '}
           <button type="button" className="link-button" onClick={onHelp}>
-            Pomoc i prywatność
+            {t('Pomoc i prywatność')}
           </button>
         </p>
       </section>

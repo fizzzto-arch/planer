@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { addDays, formatWeekRange, startOfWeek } from '../lib/dates'
 import { candidateMeetings, type FixedMeeting } from '../lib/candidatePlan'
@@ -37,7 +38,7 @@ export function PlanPreview({ title, candidate, slots, fixed, now, onClose }: Pr
         <button
           type="button"
           className="icon-button"
-          aria-label="Poprzedni tydzień"
+          aria-label={t('Poprzedni tydzień')}
           disabled={weekIndex === 0}
           onClick={() => setWeekIndex((i) => i - 1)}
         >
@@ -46,14 +47,14 @@ export function PlanPreview({ title, candidate, slots, fixed, now, onClose }: Pr
         <div className="week-label">
           <strong>{formatWeekRange(weekStart)}</strong>
           <span className="muted">
-            tydzień {weekIndex + 1} z {weeks.length}
-            {changedIds.size > 0 && ' · nowe grupy mają pomarańczową ramkę'}
+            {t('tydzień {n} z {total}', { n: weekIndex + 1, total: weeks.length })}
+            {changedIds.size > 0 && ' · ' + t('nowe grupy mają pomarańczową ramkę')}
           </span>
         </div>
         <button
           type="button"
           className="icon-button"
-          aria-label="Następny tydzień"
+          aria-label={t('Następny tydzień')}
           disabled={weekIndex >= weeks.length - 1}
           onClick={() => setWeekIndex((i) => i + 1)}
         >
@@ -62,7 +63,7 @@ export function PlanPreview({ title, candidate, slots, fixed, now, onClose }: Pr
       </div>
 
       {weekItems.length === 0 ? (
-        <p className="empty-state">W tym tygodniu nie ma zajęć.</p>
+        <p className="empty-state">{t('W tym tygodniu nie ma zajęć.')}</p>
       ) : (
         <div key={weekStart.getTime()} className="preview-grid">
           <WeekGrid days={days} meetings={weekItems} now={now} readOnly highlightIds={changedIds} />

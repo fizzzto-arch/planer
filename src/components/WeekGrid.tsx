@@ -1,6 +1,7 @@
+import { t } from '../lib/i18n'
 import type { CSSProperties } from 'react'
 import { formatShortDay, formatTime, isSameDay, toDateKey } from '../lib/dates'
-import { dayLabel, shortDayLabel } from '../lib/academicCalendar'
+import { dayLabel, eventName, shortDayLabel } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel } from '../lib/extras'
 import { usePlanUi } from '../hooks/planUi'
@@ -81,7 +82,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
           <div key={day.getTime()} className={`grid-day-head${isSameDay(day, now) ? ' is-today' : ''}`}>
             {formatShortDay(day)}
             {special && (
-              <span className="calendar-label" title={special.name}>
+              <span className="calendar-label" title={eventName(special)}>
                 {shortDayLabel(special)}
               </span>
             )}
@@ -112,8 +113,8 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
               const building = shortBuilding(m.building)
               const details = [
                 typeLabel(m.type),
-                m.groupNumber !== null ? `gr. ${m.groupNumber}` : null,
-                m.room ? `s. ${m.room}` : null,
+                m.groupNumber !== null ? t('gr. {n}', { n: m.groupNumber }) : null,
+                m.room ? t('s. {room}', { room: m.room }) : null,
                 building,
               ].filter(Boolean)
               const durationMin = minuteOfDay(m.end) - minuteOfDay(m.start)
@@ -130,8 +131,8 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
                 `${formatTime(m.start)}–${formatTime(m.end)}`,
                 details.join(' · '),
                 ...deadlines.map((d) => `📌 ${d.title || deadlineKindLabel(d.kind)}`),
-                m.note ? `Notatka: ${m.note}` : null,
-                m.edited ? 'Zmienione ręcznie' : null,
+                m.note ? t('Notatka: {note}', { note: m.note }) : null,
+                m.edited ? t('Zmienione ręcznie') : null,
               ]
                 .filter(Boolean)
                 .join('\n')

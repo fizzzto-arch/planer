@@ -1,4 +1,5 @@
 // Plan w Excelu: arkusz "Plan" (siatka jak w Planerze, z kolorami i uwagami) i "Lista" (tabela do sortowania).
+import { t } from './i18n'
 import type { ExportModel } from './exportModel'
 import { formatDateShort, formatClock } from './timetable'
 import { buildXlsx, ref, type Cell, type CellStyle, type Sheet } from './xlsx'
@@ -9,9 +10,9 @@ const LINE = '#d9d9de'
 const HEADER_FILL = '#f0f0f3'
 
 // Kolor typu rozjaśniony do tła komórki.
-function lighten(hex: string, t = 0.22): string {
+function lighten(hex: string, item = 0.22): string {
   const n = parseInt(hex.slice(1), 16)
-  const mix = (c: number) => Math.round(255 + (c - 255) * t)
+  const mix = (c: number) => Math.round(255 + (c - 255) * item)
   const [r, g, b] = [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)]
   return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`
 }
@@ -40,15 +41,15 @@ function planSheet(model: ExportModel): Sheet {
   merges.push(`${ref(0, 2)}:${ref(lastCol, 2)}`)
 
   // Legenda typów nad siatką (pod siatką ginęła przy końcu arkusza).
-  model.types.forEach((t, i) =>
-    set(1 + i, 3, t.name, { fill: lighten(t.color), border: t.color, align: 'center', valign: 'center', size: 9 }),
+  model.types.forEach((item2, i) =>
+    set(1 + i, 3, item2.name, { fill: lighten(item2.color), border: item2.color, align: 'center', valign: 'center', size: 9 }),
   )
   rowHeights.set(3, 16)
 
   // Nagłówki dni.
   const headerRow = 4
   const header: CellStyle = { bold: true, fill: HEADER_FILL, align: 'center', valign: 'center', border: LINE }
-  set(0, headerRow, 'Godz.', header)
+  set(0, headerRow, t('Godz.'), header)
   model.days.forEach((d, i) => {
     const date = d.date ? ` ${formatDateShort(d.date)}` : ''
     set(dayCol[i], headerRow, `${d.name}${date}`, header)
@@ -115,7 +116,7 @@ function planSheet(model: ExportModel): Sheet {
   // Uwagi pod siatką.
   let row = firstRow + slots + 1
   if (model.notes.length) {
-    set(0, row, 'Uwagi', { bold: true })
+    set(0, row, t('Uwagi'), { bold: true })
     row++
     for (const note of model.notes) {
       set(0, row, `• ${note}`, { wrap: true, valign: 'top' })
@@ -129,7 +130,7 @@ function planSheet(model: ExportModel): Sheet {
   const dayWidth = 30
   const colWidths = [7, ...lanesPerDay.flatMap((lanes) => Array.from({ length: lanes }, () => Math.max(13, dayWidth / lanes))), 2]
   return {
-    name: 'Plan',
+    name: t('Plan'),
     cells,
     merges,
     colWidths,
@@ -143,7 +144,18 @@ function planSheet(model: ExportModel): Sheet {
 function listSheet(model: ExportModel): Sheet {
   const cells = new Map<string, Cell>()
   const week = model.days.some((d) => d.date)
-  const headers = ['Dzień', ...(week ? ['Data'] : []), 'Od', 'Do', 'Przedmiot', 'Typ', 'Grupa', 'Sala', 'Budynek', ...(week ? [] : ['Tygodnie'])]
+  const headers = [
+    t('Dzień'),
+    ...(week ? [t('Data')] : []),
+    t('Od'),
+    t('Do'),
+    t('Przedmiot'),
+    t('Typ'),
+    t('Grupa'),
+    t('Sala'),
+    t('Budynek'),
+    ...(week ? [] : [t('Tygodnie')]),
+  ]
   headers.forEach((h, c) => cells.set(ref(c, 1), { v: h, s: { bold: true, fill: HEADER_FILL, border: LINE } }))
   const sorted = [...model.entries].sort((a, b) => a.weekday - b.weekday || a.start - b.start)
   sorted.forEach((e, i) => {
@@ -158,13 +170,13 @@ function listSheet(model: ExportModel): Sheet {
       e.groupNumber ?? '',
       e.room ?? '',
       e.building ?? '',
-      ...(week ? [] : [e.when || 'co tydzień']),
+      ...(week ? [] : [e.when || t('co tydzień')]),
     ]
     values.forEach((v, c) => cells.set(ref(c, i + 2), { v, s: { border: LINE } }))
   })
   const widths = [13, ...(week ? [8] : []), 7, 7, 42, 13, 7, 9, 30, ...(week ? [] : [26])]
   return {
-    name: 'Lista',
+    name: t('Lista'),
     cells,
     merges: [],
     colWidths: widths,

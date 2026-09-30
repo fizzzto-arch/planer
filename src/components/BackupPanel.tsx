@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useRef, useState } from 'react'
 import { parseBackup, type ExtrasApi } from '../hooks/useExtras'
 import { toDateKey } from '../lib/dates'
@@ -17,8 +18,8 @@ export function BackupPanel({ extras }: Props) {
   if (!extras) {
     return (
       <div className="panel">
-        <h3 className="panel-title">Kopia zapasowa</h3>
-        <p className="hint">Zaloguj się, żeby zapisać kopię notatek, terminów i zmian planu.</p>
+        <h3 className="panel-title">{t('Kopia zapasowa')}</h3>
+        <p className="hint">{t('Zaloguj się, żeby zapisać kopię notatek, terminów i zmian planu.')}</p>
       </div>
     )
   }
@@ -29,10 +30,10 @@ export function BackupPanel({ extras }: Props) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `planer-kopia-${toDateKey(new Date())}.json`
+    a.download = t('planer-kopia-{date}.json', { date: toDateKey(new Date()) })
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 10_000)
-    setMessage({ ok: true, text: 'Kopia pobrana. Wspólne pliki PDF nie wchodzą do kopii - są w bazie grupy.' })
+    setMessage({ ok: true, text: t('Kopia pobrana. Wspólne pliki PDF nie wchodzą do kopii - są w bazie grupy.') })
   }
 
   async function restore(file: File) {
@@ -44,13 +45,13 @@ export function BackupPanel({ extras }: Props) {
         return
       }
       const total = Object.values(backup.collections).reduce((sum, docs) => sum + docs.length, 0)
-      const question = `Przywrócić ${total} ${plural(total, 'element', 'elementy', 'elementów')} z kopii? Elementy o tych samych identyfikatorach zostaną nadpisane, reszta zostaje bez zmian.`
+      const question = t('Przywrócić {total} {plural} z kopii? Elementy o tych samych identyfikatorach zostaną nadpisane, reszta zostaje bez zmian.', { total, plural: plural(total, 'element', 'elementy', 'elementów') })
       if (!window.confirm(question)) return
       setBusy(true)
       const count = await extras!.importBackup(backup)
-      setMessage({ ok: true, text: `Przywrócono ${count} ${plural(count, 'element', 'elementy', 'elementów')}.` })
+      setMessage({ ok: true, text: t('Przywrócono {count} {plural}.', { count, plural: plural(count, 'element', 'elementy', 'elementów') }) })
     } catch (e) {
-      setMessage({ ok: false, text: e instanceof SyntaxError ? 'To nie jest plik kopii Planera.' : errorMessage(e) })
+      setMessage({ ok: false, text: e instanceof SyntaxError ? t('To nie jest plik kopii Planera.') : errorMessage(e) })
     } finally {
       setBusy(false)
     }
@@ -58,14 +59,14 @@ export function BackupPanel({ extras }: Props) {
 
   return (
     <div className="panel">
-      <h3 className="panel-title">Kopia zapasowa</h3>
-      <p className="hint">Notatki, terminy, zmiany planu, skróty nazw, kolory i ustawienia - w jednym pliku.</p>
+      <h3 className="panel-title">{t('Kopia zapasowa')}</h3>
+      <p className="hint">{t('Notatki, terminy, zmiany planu, skróty nazw, kolory i ustawienia - w jednym pliku.')}</p>
       <div className="button-row">
         <button type="button" className="button secondary" onClick={download}>
-          Pobierz kopię
+          {t('Pobierz kopię')}
         </button>
         <button type="button" className="button secondary" disabled={busy} onClick={() => input.current?.click()}>
-          {busy ? 'Przywracam…' : 'Wczytaj kopię'}
+          {busy ? t('Przywracam…') : t('Wczytaj kopię')}
         </button>
       </div>
       <input
