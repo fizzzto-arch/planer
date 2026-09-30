@@ -200,7 +200,8 @@ export function HelpView({ onBack, onFeedback }: Props) {
         <Question q="Nie przychodzą przypomnienia">
           Sprawdź w Ustawieniach → Przypomnienia, czy na tym urządzeniu są włączone, i wyślij próbne. Na iPhonie
           działają tylko w Planerze dodanym do ekranu początkowego, a w ustawieniach telefonu (Powiadomienia → Planer)
-          muszą być dozwolone. Przypomnienie może przyjść kilkanaście minut później.
+          muszą być dozwolone. Przypomnienie może przyjść kilkanaście minut później. Wszystko, co Planer wysłał, jest
+          też pod kopertą na pasku zakładek - nawet jeśli powiadomienie zniknęło z telefonu.
         </Question>
         <Question q="Jak usunąć konto i dane?">
           Ustawienia → Konto → „Usuń konto”. Po podaniu hasła znikają: konto, notatki, terminy, zmiany, ustawienia,
@@ -231,8 +232,8 @@ function ReportProblem({ onFeedback }: { onFeedback?: () => void }) {
       <div className="panel help-report">
         <h3 className="panel-title">Coś nie działa albo masz pomysł?</h3>
         <p className="hint">
-          Wyślij zgłoszenie prosto z Planera - możesz dołączyć zrzut ekranu albo krótkie nagranie. Odpowiedź zobaczysz
-          przy swoim zgłoszeniu.
+          Wyślij zgłoszenie prosto z Planera - możesz dołączyć zrzut ekranu albo krótkie nagranie. Zgłoszenia są też
+          zawsze pod czerwonym trójkątem na pasku zakładek, a odpowiedź zobaczysz przy swoim zgłoszeniu.
         </p>
         <button type="button" className="button" onClick={onFeedback}>
           Napisz zgłoszenie
