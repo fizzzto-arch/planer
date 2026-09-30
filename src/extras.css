@@ -3239,3 +3239,35 @@ label.setting-row {
 .opt-note.is-warn {
   background: color-mix(in srgb, var(--warn) 14%, var(--surface));
 }
+
+/* Przyciski nad tygodniem: jeden rząd. Na telefonie krótkie etykiety (pełna nazwa w aria-label). */
+.week-actions {
+  flex-wrap: nowrap;
+}
+
+.week-actions .label-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .week-actions .button {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    padding-inline: 8px;
+  }
+
+  .week-actions .label-long {
+    display: none;
+  }
+
+  .week-actions .label-short {
+    display: inline;
+  }
+}
+
+/* "Przywróć z USOS" na karcie zmienionych zajęć. */
+.card-restore {
+  margin-left: 8px;
+  font-size: inherit;
+}

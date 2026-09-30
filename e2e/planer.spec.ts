@@ -45,6 +45,20 @@ test('tydzień: wybrany tydzień zostaje po wejściu w przedmiot, a wraca do bie
   await expect(page.getByText('ten tydzień')).toBeVisible()
 })
 
+test('zmiana sali i „Przywróć z USOS” prosto z karty zajęć', async ({ page }) => {
+  const card = page.locator('.card', { hasText: 'Analiza matematyczna' }).first()
+  await card.click()
+  await card.getByRole('button', { name: 'Zmień', exact: true }).click()
+  await page.getByLabel('Sala').fill('999')
+  await page.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(card.getByText('zmienione')).toBeVisible()
+  await expect(card.getByText('s. 999')).toBeVisible()
+
+  await card.getByRole('button', { name: 'Przywróć z USOS' }).click()
+  await expect(card.getByText('zmienione')).toHaveCount(0)
+  await expect(card.getByText('s. 121')).toBeVisible()
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()

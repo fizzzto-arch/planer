@@ -102,18 +102,32 @@ export function WeekView({ meetings, now, selectedWeek, onSelectWeek }: Props) {
           <button
             type="button"
             className="button small secondary"
+            aria-label={t('+ Dodaj zajęcia')}
             onClick={() => addCustomMeeting({ date: toDateKey(isCurrentWeek ? now : weekStart) })}
           >
-            {t('+ Dodaj zajęcia')}
+            <span className="label-long">{t('+ Dodaj zajęcia')}</span>
+            <span className="label-short">{t('+ Zajęcia')}</span>
           </button>
         )}
         {/* Eksport działa też bez konta - korzysta tylko z planu. */}
-        <button type="button" className="button small secondary" onClick={() => openExport(weekStart)}>
-          {t('Eksportuj plan')}
+        <button
+          type="button"
+          className="button small secondary"
+          aria-label={t('Eksportuj plan')}
+          onClick={() => openExport(weekStart)}
+        >
+          <span className="label-long">{t('Eksportuj plan')}</span>
+          <span className="label-short">{t('Eksportuj')}</span>
         </button>
         {extras && (
-          <button type="button" className="button small secondary" onClick={() => setFreeOpen(true)}>
-            {t('Wspólne okienka')}
+          <button
+            type="button"
+            className="button small secondary"
+            aria-label={t('Wspólne okienka')}
+            onClick={() => setFreeOpen(true)}
+          >
+            <span className="label-long">{t('Wspólne okienka')}</span>
+            <span className="label-short">{t('Okienka')}</span>
           </button>
         )}
       </div>

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatDay, formatDuration, formatTime, minutesBetween, toDateKey, toTimeKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
-import { deadlineKindLabel } from '../lib/extras'
+import { deadlineKindLabel, seriesKey } from '../lib/extras'
 import { shortBuilding, typeLabel, typeSlug } from '../lib/usos'
 import { NoteField } from './NoteField'
 
@@ -35,6 +35,19 @@ function NoteIcon() {
 
 export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = true }: Props) {
   const { extras, openCourse, editDeadline, editMeeting, deadlinesFor, displayName } = usePlanUi()
+
+  // Powrót do wersji z USOS prosto z karty: zmiana tych zajęć albo (po potwierdzeniu) całej grupy.
+  const restoreFromUsos = (meeting: PlanMeeting) => {
+    if (!extras || !meeting.original) return
+    if (extras.extras.meetingEdits.get(meeting.id)?.override) {
+      extras.saveMeetingEdit(meeting.id, { override: null })
+      return
+    }
+    const key = seriesKey(meeting.original)
+    if (key && window.confirm(t('To zmiana całej grupy. Przywrócić wersję z USOS dla wszystkich jej zajęć?'))) {
+      extras.saveSeriesEdit({ id: key, room: null, startTime: null, endTime: null })
+    }
+  }
   const isPast = m.end <= now
   const isNow = m.start <= now && now < m.end
   const building = shortBuilding(m.building)
@@ -123,6 +136,11 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           <div className="card-original">
             {t('W USOS:')} {formatDay(m.original.start)}, {formatTime(m.original.start)}–{formatTime(m.original.end)}
             {m.original.room && ', ' + t('s. {room}', { room: m.original.room })}
+            {extras && (
+              <button type="button" className="link-button card-restore" onClick={() => restoreFromUsos(m)}>
+                {t('Przywróć z USOS')}
+              </button>
+            )}
           </div>
         )}
 

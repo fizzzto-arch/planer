@@ -34,7 +34,7 @@ export const TESTER_TASKS: TesterTask[] = [
   {
     id: 'edit',
     title: msg('Zmień jedne zajęcia'),
-    how: msg('Rozwiń zajęcia w planie → Edytuj, np. zmień salę. Potem wróć do wersji z USOS przyciskiem „Przywróć z USOS”.'),
+    how: msg('Kliknij zajęcia w planie → „Zmień”, np. zmień salę. Potem na tej samej karcie kliknij „Przywróć z USOS”.'),
   },
   {
     id: 'homescreen',

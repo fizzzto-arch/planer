@@ -562,6 +562,7 @@ export const EN: Record<string, string> = {
   'Pliki wspólne dla grupy': 'Files shared with the group',
 
   // src/components/MeetingCard.tsx
+  'To zmiana całej grupy. Przywrócić wersję z USOS dla wszystkich jej zajęć?': 'This is a change for the whole group. Restore the USOS version for all its classes?',
   'Odwołane': 'Cancelled',
   'Trwa · zostało {duration}': 'In progress · {duration} left',
   'Za {duration}': 'In {duration}',
@@ -572,6 +573,7 @@ export const EN: Record<string, string> = {
   '(mapa)': '(map)',
   'Zobacz zajęcia w USOSweb': 'See the class in USOSweb',
   'W USOS:': 'In USOS:',
+  'Przywróć z USOS': 'Restore from USOS',
   'np. przynieść kalkulator': 'e.g. bring a calculator',
   '+ Notatka': '+ Note',
   'Zmień salę lub godzinę albo odwołaj zajęcia': 'Change the room or time, or cancel the class',
@@ -590,7 +592,6 @@ export const EN: Record<string, string> = {
   'Zmiana tylko zajęć z dnia {day}.': 'Changes only the class on {day}.',
   'Stała zmiana sali lub godzin dla wszystkich zajęć tej grupy (np. przeniesiona sala).': 'A permanent room or time change for all classes of this group (e.g. a moved room).',
   'Zajęcia odwołane': 'Class cancelled',
-  'Przywróć z USOS': 'Restore from USOS',
   'Przywróć grupę z USOS': 'Restore group from USOS',
 
   // src/components/NoteField.tsx
@@ -826,7 +827,9 @@ export const EN: Record<string, string> = {
   // src/components/WeekView.tsx
   'ten tydzień': 'this week',
   'wróć do tego tygodnia': 'back to this week',
+  '+ Zajęcia': '+ Class',
   'Eksportuj plan': 'Export timetable',
+  'Okienka': 'Free time',
   'dziś': 'today',
   'wolne': 'free',
 
@@ -1037,7 +1040,7 @@ export const EN: Record<string, string> = {
   'Dodaj kolokwium albo inny termin': 'Add a test or another deadline',
   'Przedmioty → + Dodaj termin. Spróbuj też listy „Do przygotowania”.': 'Courses → + Add deadline. Try the “To prepare” list too.',
   'Zmień jedne zajęcia': 'Change one class',
-  'Rozwiń zajęcia w planie → Edytuj, np. zmień salę. Potem wróć do wersji z USOS przyciskiem „Przywróć z USOS”.': 'Expand a class in the timetable → Edit, e.g. change the room. Then go back to the USOS version with “Restore from USOS”.',
+  'Kliknij zajęcia w planie → „Zmień”, np. zmień salę. Potem na tej samej karcie kliknij „Przywróć z USOS”.': 'Click a class in the timetable → “Change”, e.g. change the room. Then click “Restore from USOS” on the same card.',
   'Dodaj Planera do ekranu początkowego': 'Add Planer to your home screen',
   'iPhone: Safari → Udostępnij → Do ekranu początkowego. Android: menu przeglądarki → Zainstaluj aplikację.': 'iPhone: Safari → Share → Add to Home Screen. Android: browser menu → Install app.',
   'Włącz przypomnienia': 'Turn on reminders',
