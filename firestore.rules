@@ -25,7 +25,8 @@ service cloud.firestore {
     }
 
     // Prośby o dostęp: każdy widzi i zakłada tylko swoją (jako "pending"), decyduje administrator.
-    // Własną prośbę można usunąć - przy usuwaniu konta.
+    // Własną prośbę można usunąć - przy usuwaniu konta. Zatwierdzony tester zmienia w niej tylko
+    // listę odhaczonych zadań (testerTasks), żeby administrator widział postęp.
     match /access/{uid} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
       allow create: if signedIn()
@@ -33,7 +34,12 @@ service cloud.firestore {
         && request.auth.token.email_verified == true
         && request.resource.data.status == 'pending'
         && request.resource.data.email == request.auth.token.email;
-      allow update: if isAdmin();
+      allow update: if isAdmin()
+        || (isApproved()
+            && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testerTasks'])
+            && request.resource.data.testerTasks is list
+            && request.resource.data.testerTasks.size() <= 20);
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
     }
 

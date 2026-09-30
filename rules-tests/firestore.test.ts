@@ -107,6 +107,19 @@ describe('prośby o dostęp (access)', () => {
     await assertSucceeds(setDoc(doc(as(who), 'access', who.uid), ok))
   })
 
+  it('zatwierdzony tester zapisuje w swojej prośbie tylko listę zadań - nic więcej', async () => {
+    const mine = doc(as(ALICE), 'access', ALICE.uid)
+    await assertSucceeds(setDoc(mine, { testerTasks: ['plan', 'week'] }, { merge: true }))
+    // Razem z listą zadań nie przemyci statusu ani optymalizatora.
+    await assertFails(setDoc(mine, { testerTasks: ['plan'], optimizer: true }, { merge: true }))
+    await assertFails(setDoc(mine, { testerTasks: ['plan'], status: 'approved', email: 'inny@pw.edu.pl' }, { merge: true }))
+    await assertFails(setDoc(mine, { testerTasks: 'wszystkie' }, { merge: true }))
+    await assertFails(setDoc(mine, { testerTasks: Array.from({ length: 21 }, (_, i) => `t${i}`) }, { merge: true }))
+    // Cudzej prośby nie ruszy, a niezatwierdzony nie wpisze sobie postępu.
+    await assertFails(setDoc(doc(as(BOB), 'access', ALICE.uid), { testerTasks: [] }, { merge: true }))
+    await assertFails(setDoc(doc(as(PENDING), 'access', PENDING.uid), { testerTasks: ['plan'] }, { merge: true }))
+  })
+
   it('sam sobie nikt nie zatwierdzi konta ani nie przyzna optymalizatora - tylko administrator', async () => {
     await assertFails(updateDoc(doc(as(PENDING), 'access', PENDING.uid), { status: 'approved' }))
     await assertFails(updateDoc(doc(as(ALICE), 'access', ALICE.uid), { optimizer: true }))

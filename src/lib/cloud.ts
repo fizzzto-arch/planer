@@ -180,6 +180,7 @@ function createCloud(config: FirebaseOptions): Cloud {
                   status,
                   requestedAt: typeof requested?.toMillis === 'function' ? requested.toMillis() : null,
                   optimizer: data.optimizer === true,
+                  testerTasks: Array.isArray(data.testerTasks) ? data.testerTasks.filter((t): t is string => typeof t === 'string') : [],
                 },
               ]
             }),
@@ -192,6 +193,7 @@ function createCloud(config: FirebaseOptions): Cloud {
       wrap(() => setDoc(doc(db, 'access', uid), { status, decidedAt: serverTimestamp() }, { merge: true })),
 
     setOptimizerAccess: (uid, on) => wrap(() => setDoc(doc(db, 'access', uid), { optimizer: on }, { merge: true })),
+    saveTesterProgress: (uid, done) => wrap(() => setDoc(doc(db, 'access', uid), { testerTasks: done }, { merge: true })),
 
     watchData(uid, onData, onError) {
       return onSnapshot(

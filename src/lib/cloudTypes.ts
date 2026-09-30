@@ -17,6 +17,7 @@ export interface AccessRequest {
   status: AccessStatus
   requestedAt: number | null
   optimizer: boolean // dostęp do optymalizatora (wersja testowa), nadaje administrator
+  testerTasks: string[] // odhaczone zadania dla testerów (kopia z konta, żeby administrator widział postęp)
 }
 
 // Własna prośba o dostęp: status i dodatkowe uprawnienia.
@@ -68,6 +69,8 @@ export interface Cloud {
   watchAccessRequests(onRequests: (requests: AccessRequest[]) => void, onError: (message: string) => void): Unsubscribe
   setAccessStatus(uid: string, status: AccessStatus): Promise<void>
   setOptimizerAccess(uid: string, on: boolean): Promise<void>
+  // Kopia odhaczonych zadań testera w jego prośbie o dostęp (widzi ją administrator).
+  saveTesterProgress(uid: string, done: string[]): Promise<void>
 
   watchData(uid: string, onData: (data: CloudData) => void, onError: (message: string) => void): Unsubscribe
   saveIcalUrl(uid: string, url: string): Promise<void>

@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import type { AccessRequestsApi } from '../hooks/useAccessRequests'
 import type { AccessRequest } from '../lib/cloudTypes'
 import { formatUpdatedAt } from '../lib/dates'
+import { tasksFor } from '../lib/testerTasks'
 import { setSwipeDebug, swipeDebugStore } from '../lib/swipeDebug'
 import { SwitchSetting } from './SettingControls'
 
@@ -15,6 +16,9 @@ const STATUS_ORDER = { pending: 0, approved: 1, rejected: 2 } as const
 
 function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<Props, 'onViewAsUser'>) {
   const { uid, email, status, requestedAt, optimizer } = request
+  // Postęp w zadaniach dla testerów (lista zależy od tego, czy ma optymalizator).
+  const tasks = tasksFor(optimizer)
+  const tasksDone = tasks.filter((t) => request.testerTasks.includes(t.id))
   return (
     <li className={`access-row is-${status}`}>
       <span className="access-main">
@@ -24,6 +28,15 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<P
           {status === 'approved' && optimizer && ' · optymalizator'}
           {requestedAt && ` · zgłoszenie ${formatUpdatedAt(new Date(requestedAt), now)}`}
         </span>
+        {status === 'approved' && (
+          <span
+            className="access-meta"
+            title={tasksDone.length > 0 ? `Zrobione: ${tasksDone.map((t) => t.title).join(', ')}` : undefined}
+          >
+            zadania testera: {tasksDone.length}/{tasks.length}
+            {tasksDone.length === tasks.length && ' ✓'}
+          </span>
+        )}
       </span>
       <span className="access-actions">
         {/* Optymalizator (wersja testowa) dla wybranych osób - tylko przy zatwierdzonych kontach. */}

@@ -54,8 +54,8 @@ function createMockCloud(): Cloud {
 
   // Prośby o dostęp - przykładowe dane do panelu administratora (tylko w pamięci karty).
   const access = new Map<string, AccessRequest>([
-    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@pw.edu.pl', status: 'pending', requestedAt: Date.now() - 3_600_000, optimizer: false }],
-    ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000, optimizer: false }],
+    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@pw.edu.pl', status: 'pending', requestedAt: Date.now() - 3_600_000, optimizer: false, testerTasks: [] }],
+    ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000, optimizer: false, testerTasks: ['plan', 'week', 'note'] }],
   ])
   const accessListeners = new Set<() => void>()
   const feedbackStore = new Map<string, { data: Record<string, unknown>; files: Uint8Array[] }>()
@@ -135,7 +135,7 @@ function createMockCloud(): Cloud {
       return () => accessListeners.delete(emitOwn)
     },
     async requestAccess(uid, email) {
-      access.set(uid, { uid, email, status: 'pending', requestedAt: Date.now(), optimizer: false })
+      access.set(uid, { uid, email, status: 'pending', requestedAt: Date.now(), optimizer: false, testerTasks: [] })
       emitAccess()
     },
     watchAccessRequests(onRequests) {
@@ -147,6 +147,11 @@ function createMockCloud(): Cloud {
     async setAccessStatus(uid, status: AccessStatus) {
       const current = access.get(uid)
       if (current) access.set(uid, { ...current, status })
+      emitAccess()
+    },
+    async saveTesterProgress(uid, done) {
+      const current = access.get(uid)
+      if (current) access.set(uid, { ...current, testerTasks: done })
       emitAccess()
     },
     async setOptimizerAccess(uid, on) {

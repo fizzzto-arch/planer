@@ -203,7 +203,13 @@ export function useExtras(client: Cloud | null, uid: string | null) {
   )
 
   const saveTesterTasks = useCallback(
-    (done: string[]) => write((c, u) => c.setItem(u, 'settings', TESTER_TASKS_DOC, { done })),
+    (done: string[]) =>
+      write(async (c, u) => {
+        await c.setItem(u, 'settings', TESTER_TASKS_DOC, { done })
+        // Kopia dla administratora (postęp testerów). Bez niej zadania dalej działają -
+        // np. konto administratora nie ma prośby o dostęp albo reguły są jeszcze stare.
+        await c.saveTesterProgress(u, done).catch(() => undefined)
+      }),
     [write],
   )
 
