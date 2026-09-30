@@ -29,7 +29,8 @@ test('angielski: interfejs po angielsku, nazwy przedmiotów bez zmian, powrót d
 
   await tab(page, 'Settings').click()
   await expect(page.getByRole('heading', { name: 'Access to Planer' })).toBeVisible() // panel administratora
-  await page.getByRole('radio', { name: 'Polski' }).click()
+  // Przełącznik PL | EN na głównym pasku (jest też w ustawieniach).
+  await page.locator('.lang-toggle').getByRole('radio', { name: 'Polski' }).click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl')
   await expect(tab(page, 'Dziś')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Wygląd' })).toBeVisible()

@@ -3196,7 +3196,7 @@ label.setting-row {
   color: var(--warn);
   font-size: 0.7rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.45; /* zapas na ogonki liter (g, y, ę) - overflow ucinał je z dołu */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3206,6 +3206,53 @@ label.setting-row {
 .grid-day-head.is-today .calendar-label {
   color: var(--accent-text);
   opacity: 0.85;
+}
+
+/* Nazwa aplikacji i przełącznik języka w jednym rzędzie. */
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .brand-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* PL | EN jak klawisze na klawiaturze iPhone'a: wysokie, zaokrąglone, z cieniem od dołu. */
+.lang-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.lang-key {
+  min-width: 46px;
+  height: 38px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 25%, transparent);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lang-key.is-active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.lang-key:active {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 /* Optymalizator: WF / lektorat dobierane razem z grupami planu. */

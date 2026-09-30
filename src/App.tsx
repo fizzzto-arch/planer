@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { HelpView } from './components/HelpView'
 import { Welcome } from './components/Welcome'
 import { LanguageSwitch } from './components/LanguageSwitch'
+import { LanguageToggle } from './components/LanguageToggle'
 import { MeetingEditor } from './components/MeetingEditor'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { UpdateBanner } from './components/UpdateBanner'
@@ -701,7 +702,10 @@ function App() {
           </div>
         )}
         <header className="topbar">
-          <h1 className="brand">Planer</h1>
+          <div className="brand-row">
+            <h1 className="brand">Planer</h1>
+            <LanguageToggle value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
+          </div>
           <Tabs
             tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount)}
             value={view}
