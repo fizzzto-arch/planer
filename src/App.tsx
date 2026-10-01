@@ -10,6 +10,7 @@ import { HelpView } from './components/HelpView'
 import { Welcome } from './components/Welcome'
 import { LanguageSwitch } from './components/LanguageSwitch'
 import { LanguageToggle } from './components/LanguageToggle'
+import { ShareAppButton } from './components/ShareAppButton'
 import { MeetingEditor } from './components/MeetingEditor'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { UpdateBanner } from './components/UpdateBanner'
@@ -698,7 +699,10 @@ function App() {
         <header className="topbar">
           <div className="brand-row">
             <h1 className="brand">Planer</h1>
-            <LanguageToggle value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
+            <div className="brand-actions">
+              <ShareAppButton />
+              <LanguageToggle value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
+            </div>
           </div>
           <Tabs
             tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount)}

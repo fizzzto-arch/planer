@@ -768,6 +768,12 @@ export const EN: Record<string, string> = {
   ' · administrator': ' · administrator',
   'termin zajęć|terminy zajęć|terminów zajęć': 'class session|class sessions',
 
+  // src/components/ShareAppButton.tsx
+  'Planer - czytelny plan zajęć z USOS PW i WAT': 'Planer - a clear class timetable from USOS (PW) and WAT',
+  'Skopiuj link do Planera:': 'Copy the link to Planer:',
+  'Skopiowano link': 'Link copied',
+  'Udostępnij Planera': 'Share Planer',
+
   // src/components/SharingPanel.tsx
   'Pokazuj znajomym, kiedy mam zajęcia': 'Show friends when I have classes',
   'Tylko godziny zajęć na najbliższe 2 tygodnie - bez nazw przedmiotów, sal i grup. Widzą je wyłącznie osoby z Planera, które też to włączyły; Ty widzisz ich tak samo. Wyłączenie od razu usuwa Twoje godziny.': 'Only your class hours for the next 2 weeks - without course names, rooms or groups. Only Planer users who turned this on too can see them; you see theirs the same way. Turning it off removes your hours immediately.',

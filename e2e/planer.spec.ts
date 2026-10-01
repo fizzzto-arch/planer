@@ -81,6 +81,15 @@ test('ustawienia: „Przywróć cały plan z USOS” cofa wszystkie ręczne zmia
   await expect(page.locator('.card', { hasText: 'Analiza matematyczna' }).first().getByText('zmienione')).toHaveCount(0)
 })
 
+test('udostępnianie: wysyła sam adres Planera, bez parametrów i danych', async ({ page }) => {
+  await page.evaluate('navigator.share = async (data) => { window.sharedData = data }')
+  await page.getByRole('button', { name: 'Udostępnij Planera' }).click()
+  const shared = (await page.evaluate('window.sharedData')) as { url: string; title: string }
+  expect(shared.title).toBe('Planer')
+  expect(new URL(shared.url).search).toBe('') // bez ?mock ani innych parametrów
+  expect(new URL(shared.url).hash).toBe('')
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()

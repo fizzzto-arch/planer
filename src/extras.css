@@ -3269,18 +3269,17 @@ label.setting-row {
 }
 
 .lang-key {
-  min-width: 46px;
+  min-width: 64px; /* szerokie jak spacja na klawiaturze iPhonea */
   height: 38px;
   padding: 0 10px;
   border: none;
   border-radius: 8px;
-  background: var(--surface);
+  background: transparent; /* niewybrany: sam napis, bez tła */
   color: var(--muted);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 25%, transparent);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -3288,6 +3287,40 @@ label.setting-row {
 .lang-key.is-active {
   background: var(--accent);
   color: var(--accent-text);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 25%, transparent);
+}
+
+.brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Udostępnianie Planera: ikonka obok PL | EN, tej samej wysokości. */
+.share-app {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 38px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.share-app svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.share-app.is-copied {
+  color: var(--ok);
 }
 
 .lang-key:active {
