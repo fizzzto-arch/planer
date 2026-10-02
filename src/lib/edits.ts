@@ -15,6 +15,9 @@ const MAX_REPEATS = 60
 
 export const CUSTOM_ID_PREFIX = 'custom:'
 
+// Dzień tygodnia: 1 = poniedziałek ... 7 = niedziela.
+export const weekdayOf = (d: Date) => ((d.getDay() + 6) % 7) + 1
+
 function applyChange(m: Meeting, change: MeetingOverride): Meeting {
   const day = (change.date && parseDateKey(change.date)) || startOfDay(m.start)
   return {
@@ -68,8 +71,12 @@ export function applyEdits(
 
       const key = seriesKey(m)
       const series = key ? extras.seriesEdits.get(key) : undefined
-      if (series && (series.room || series.startTime || series.endTime)) {
+      // Zmiana grupy dotyczy zajęć z jednego dnia tygodnia (np. piątkowego wykładu), starsze - wszystkich.
+      const applies = series && (!series.fromWeekday || weekdayOf(m.start) === series.fromWeekday)
+      if (series && applies && (series.room || series.startTime || series.endTime || series.weekday)) {
+        const day = series.weekday ? addDays(startOfDay(m.start), series.weekday - weekdayOf(m.start)) : null
         result = applyChange(result, {
+          date: day ? toDateKey(day) : undefined,
           room: series.room ?? undefined,
           startTime: series.startTime ?? undefined,
           endTime: series.endTime ?? undefined,
@@ -131,13 +138,16 @@ export function buildOverride(base: Meeting, values: MeetingFormValues): Meeting
 export function buildSeriesEdit(
   id: string,
   original: Meeting,
-  values: Pick<MeetingFormValues, 'startTime' | 'endTime' | 'room'>,
+  values: Pick<MeetingFormValues, 'startTime' | 'endTime' | 'room'> & { weekday: number },
 ): SeriesEdit {
   const room = values.room.trim()
+  const fromWeekday = weekdayOf(original.start)
   return {
     id,
     room: room && room !== (original.room ?? '') ? room : null,
     startTime: values.startTime !== toTimeKey(original.start) ? values.startTime : null,
     endTime: values.endTime !== toTimeKey(original.end) ? values.endTime : null,
+    weekday: values.weekday !== fromWeekday ? values.weekday : null,
+    fromWeekday,
   }
 }

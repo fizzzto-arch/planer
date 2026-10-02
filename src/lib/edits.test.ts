@@ -134,13 +134,35 @@ describe('budowanie zmian z formularza', () => {
     expect(buildOverride(base, { ...values(m), room: '416' })).toEqual({ room: '416' })
   })
 
-  it('zmiana serii zapisuje różnice względem USOS', () => {
-    const m = lab('a', 9)
-    expect(buildSeriesEdit('k', m, { startTime: '14:15', endTime: '16:45', room: '416' })).toEqual({
+  it('zmiana serii zapisuje różnice względem USOS i dzień, którego dotyczy', () => {
+    const m = lab('a', 9) // piątek
+    expect(buildSeriesEdit('k', m, { startTime: '14:15', endTime: '16:45', room: '416', weekday: 5 })).toEqual({
       id: 'k',
       room: null,
       startTime: null,
       endTime: '16:45',
+      weekday: null,
+      fromWeekday: 5,
     })
+    expect(buildSeriesEdit('k', m, { startTime: '11:15', endTime: '13:00', room: '416', weekday: 4 }).weekday).toBe(4)
+  })
+
+  it('stała zmiana dnia: piątkowe zajęcia grupy co tydzień w czwartek, inne dni grupy bez zmian', () => {
+    // Ta sama grupa: piątki 9.10 i 16.10 oraz poniedziałek 12.10.
+    const plan = [lab('fri1', 9), lab('mon', 12), lab('fri2', 16)]
+    const edit = buildSeriesEdit('543976-102', plan[0], { startTime: '11:15', endTime: '13:00', room: '416', weekday: 4 })
+    const result = applyEdits(plan, extras({ seriesEdits: new Map([[edit.id, edit]]) }))
+    const byId = new Map(result.map((m) => [m.id, m]))
+    expect(byId.get('fri1')!.start).toEqual(new Date(2026, 9, 8, 11, 15)) // czwartek tego samego tygodnia
+    expect(byId.get('fri2')!.start).toEqual(new Date(2026, 9, 15, 11, 15))
+    expect(byId.get('fri2')!.end).toEqual(new Date(2026, 9, 15, 13, 0))
+    expect(byId.get('fri2')!.original?.start).toEqual(new Date(2026, 9, 16, 14, 15))
+    expect(byId.get('mon')!.edited).toBe(false)
+  })
+
+  it('starsze zmiany grupy (bez dnia) dalej dotyczą wszystkich zajęć grupy', () => {
+    const plan = [lab('fri', 9), lab('mon', 12)]
+    const seriesEdits = new Map([['543976-102', { id: '543976-102', room: '200', startTime: null, endTime: null }]])
+    expect(applyEdits(plan, extras({ seriesEdits })).every((m) => m.room === '200')).toBe(true)
   })
 })

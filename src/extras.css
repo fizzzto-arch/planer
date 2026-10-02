@@ -3329,6 +3329,12 @@ label.setting-row {
   box-shadow: none;
 }
 
+/* Przedmiot, który już jest w planie - nie do wybrania drugi raz. */
+.check-row.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* Optymalizator: WF / lektorat dobierane razem z grupami planu. */
 .extra-include {
   margin-bottom: 12px;

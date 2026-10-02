@@ -121,3 +121,13 @@ describe('szukanie przedmiotu spoza planu', () => {
     )
   })
 })
+
+describe('przedmioty, które już są w planie', () => {
+  it('ten sam kod albo ta sama nazwa (bez względu na wielkość liter i spacje) - już w planie', async () => {
+    const { isInPlan, planCourses } = await import('./extraCourses')
+    const plan = planCourses(['6420-EEH60-0SA-0008'], ['Język angielski - poziom B2', 'Analiza matematyczna'])
+    expect(isInPlan({ courseId: '6420-EEH60-0SA-0008', name: 'cokolwiek' }, plan)).toBe(true)
+    expect(isInPlan({ courseId: '6420-INNY-KOD', name: '  język angielski -  poziom B2 ' }, plan)).toBe(true)
+    expect(isInPlan({ courseId: '6420-NIEM-A1', name: 'Język niemiecki - poziom A1' }, plan)).toBe(false)
+  })
+})

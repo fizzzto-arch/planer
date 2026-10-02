@@ -8,6 +8,8 @@ import { errorMessage } from '../lib/errors'
 import {
   EXTRA_SOURCES,
   fetchExtraGroups,
+  isInPlan,
+  planCourses,
   planTermId,
   rankExtraGroups,
   searchCourses,
@@ -33,6 +35,7 @@ interface Props {
   // Dobór grupy razem ze zmianami grup w planie (propozycje optymalizatora). Brak = bez tej opcji.
   onInclude?: (groups: ExtraGroup[]) => void
   included?: ExtraGroup[][] // wyniki wyszukiwania już uwzględnione w propozycjach
+  planCourseIds?: string[] // kody przedmiotów z planu (z USOS) - tych nie dobieramy drugi raz
 }
 
 type Status = { kind: 'idle' } | { kind: 'loading'; progress?: GroupsProgress } | { kind: 'error'; message: string }
@@ -54,7 +57,7 @@ function gapText(minutes: number): string {
 }
 
 // Zajęcia spoza planu (WF, lektorat): wyszukiwanie w USOS i grupy, które najlepiej pasują do planu.
-export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapThreshold, onInclude, included = [] }: Props) {
+export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapThreshold, onInclude, included = [], planCourseIds = [] }: Props) {
   const { openExport } = usePlanUi()
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<ExtraSource>('wf')
@@ -67,6 +70,12 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
   const [groupsStatus, setGroupsStatus] = useState<Status>({ kind: 'idle' })
   const [shown, setShown] = useState(SHOW_STEP)
   const [preview, setPreview] = useState<ExtraGroup | null>(null)
+
+  // Przedmioty z planu - zapisany już lektorat nie może trafić drugi raz (inna grupa tego samego).
+  const inPlan = useMemo(() => {
+    const plan = planCourses(planCourseIds, planMeetings.map((m) => m.courseName))
+    return (c: ExtraCourse) => isInPlan(c, plan)
+  }, [planCourseIds, planMeetings])
 
   const timetable = useMemo(() => buildTimetable(meetings, now), [meetings, now])
   const ranking = useMemo(
@@ -100,7 +109,8 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
       const { courses, truncated } = await searchCourses(q, source, await ensureTerm())
       setFound(courses)
       setTruncated(truncated)
-      setSelected(new Set(courses.length <= 3 ? courses.map((c) => c.courseId) : []))
+      const free = courses.filter((c) => !inPlan(c))
+      setSelected(new Set(free.length <= 3 ? free.map((c) => c.courseId) : []))
       setSearchStatus({ kind: 'idle' })
     } catch (err) {
       setSearchStatus({ kind: 'error', message: errorMessage(err) })
@@ -109,7 +119,7 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
 
   async function findGroups() {
     if (!found || !timetable) return
-    const courses = found.filter((c) => selected.has(c.courseId))
+    const courses = found.filter((c) => selected.has(c.courseId) && !inPlan(c))
     setGroupsStatus({ kind: 'loading' })
     setShown(SHOW_STEP)
     try {
@@ -122,6 +132,8 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
       setGroupsStatus({ kind: 'error', message: errorMessage(err) })
     }
   }
+
+  const selectable = found?.filter((c) => !inPlan(c)) ?? []
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -172,16 +184,29 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
           {t('USOS pokazuje najwyżej 100 wyników, więc część mogła się nie zmieścić. Nie ma Twojego przedmiotu? Wklej jego kod (np. 6420-EEH60-0SA-0008) albo link do strony przedmiotu z USOSweb.')}
         </p>
       )}
+      {found && found.some((c) => inPlan(c)) && (
+        <p className="setting-hint">
+          {t('Przedmiot, który już masz w planie, jest wyszarzony - drugi raz nie ma sensu. Jego grupę możesz zmienić w „Dobierz grupy” (zajęcia z wyborem grup i propozycje).')}
+        </p>
+      )}
       {found && found.length > 0 && (
         <>
           <ul className="extra-courses">
             {found.map((c) => (
               <li key={c.courseId}>
-                <label className="check-row">
-                  <input type="checkbox" checked={selected.has(c.courseId)} onChange={() => toggle(c.courseId)} />
+                <label className={`check-row${inPlan(c) ? ' is-disabled' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(c.courseId) && !inPlan(c)}
+                    disabled={inPlan(c)}
+                    onChange={() => toggle(c.courseId)}
+                  />
                   <span>
                     {c.name}
-                    <span className="setting-hint">{c.courseId}</span>
+                    <span className="setting-hint">
+                      {c.courseId}
+                      {inPlan(c) && ` · ${t('już masz w planie')}`}
+                    </span>
                   </span>
                 </label>
               </li>
@@ -196,13 +221,17 @@ export function ExtraCoursesPanel({ planMeetings, meetings, now, settings, gapTh
             >
               {t('Dopasuj grupy')}{selected.size > 1 ? ` (${selected.size} ${plural(selected.size, 'przedmiot', 'przedmioty', 'przedmiotów')})` : ''}
             </button>
-            {found.length > 1 && (
+            {selectable.length > 1 && (
               <button
                 type="button"
                 className="link-button"
-                onClick={() => setSelected(selected.size === found.length ? new Set() : new Set(found.map((c) => c.courseId)))}
+                onClick={() =>
+                  setSelected(
+                    selected.size === selectable.length ? new Set() : new Set(selectable.map((c) => c.courseId)),
+                  )
+                }
               >
-                {selected.size === found.length ? t('Odznacz wszystkie') : t('Zaznacz wszystkie')}
+                {selected.size === selectable.length ? t('Odznacz wszystkie') : t('Zaznacz wszystkie')}
               </button>
             )}
           </div>

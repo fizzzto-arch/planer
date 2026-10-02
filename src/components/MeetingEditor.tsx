@@ -2,7 +2,8 @@ import { t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { ExtrasApi } from '../hooks/useExtras'
 import { formatDay, formatTime, toDateKey, toTimeKey } from '../lib/dates'
-import { buildOverride, buildSeriesEdit, seriesBase, type PlanMeeting } from '../lib/edits'
+import { buildOverride, buildSeriesEdit, seriesBase, weekdayOf, type PlanMeeting } from '../lib/edits'
+import { weekdayName } from '../lib/timetable'
 import { seriesKey } from '../lib/extras'
 import { typeLabel } from '../lib/usos'
 import { Dialog } from './Dialog'
@@ -24,6 +25,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
   const [endTime, setEndTime] = useState(toTimeKey(meeting.end))
   const [room, setRoom] = useState(meeting.room ?? '')
   const [cancelled, setCancelled] = useState(meeting.cancelled)
+  const [weekday, setWeekday] = useState(weekdayOf(meeting.start)) // tylko dla całej grupy
   const [error, setError] = useState<string | null>(null)
 
   const hasSingle = !!extras.extras.meetingEdits.get(meeting.id)?.override
@@ -36,6 +38,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
     setStartTime(toTimeKey(source.start))
     setEndTime(toTimeKey(source.end))
     setRoom(source.room ?? '')
+    setWeekday(weekdayOf(source.start))
     setError(null)
   }
 
@@ -46,7 +49,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
       return
     }
     if (scope === 'series' && key) {
-      extras.saveSeriesEdit(buildSeriesEdit(key, original, { startTime, endTime, room }))
+      extras.saveSeriesEdit(buildSeriesEdit(key, original, { startTime, endTime, room, weekday }))
     } else {
       const base = seriesBase(original, extras.extras)
       extras.saveMeetingEdit(meeting.id, {
@@ -89,8 +92,23 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
         <p className="hint">
           {scope === 'single'
             ? t('Zmiana tylko zajęć z dnia {day}.', { day: formatDay(meeting.start).toLowerCase() })
-            : t('Stała zmiana sali lub godzin dla wszystkich zajęć tej grupy (np. przeniesiona sala).')}
+            : t('Stała zmiana co tydzień: dzień, godziny albo sala tych zajęć grupy (w USOS: {day}). Np. wykład przeniesiony na stałe z piątku na czwartek.', {
+                day: weekdayName(weekdayOf(original.start)).toLowerCase(),
+              })}
         </p>
+
+        {scope === 'series' && (
+          <label className="field">
+            <span className="field-label">{t('Dzień tygodnia')}</span>
+            <select className="text-input" value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <option key={d} value={d}>
+                  {weekdayName(d)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {scope === 'single' && (
           <label className="field">
@@ -129,7 +147,8 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
         )}
 
         <p className="hint">
-          {t('W USOS:')} {formatTime(original.start)}–{formatTime(original.end)}
+          {t('W USOS:')} {scope === 'series' ? weekdayName(weekdayOf(original.start)).toLowerCase() + ' ' : ''}
+          {formatTime(original.start)}–{formatTime(original.end)}
           {original.room && ', ' + t('s. {room}', { room: original.room })}
         </p>
 

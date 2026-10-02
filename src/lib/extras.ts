@@ -80,6 +80,14 @@ export interface SeriesEdit {
   room: string | null
   startTime: string | null
   endTime: string | null
+  weekday?: number | null // nowy dzień tygodnia (1 = poniedziałek), w tym samym tygodniu
+  // Których zajęć grupy dotyczy zmiana (dzień tygodnia w USOS). Brak - wszystkich (starsze zmiany).
+  fromWeekday?: number | null
+}
+
+// Zmiana grupy bez żadnej zmiany (wszystko jak w USOS) - do usunięcia.
+export function isEmptySeriesEdit(edit: Omit<SeriesEdit, 'id'>): boolean {
+  return !edit.room && !edit.startTime && !edit.endTime && !edit.weekday
 }
 
 export interface CustomMeeting {
@@ -139,6 +147,7 @@ const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : 
 const optStr = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v : null)
 const optTime = (v: unknown): string | null => (typeof v === 'string' && isTimeKey(v) ? v : null)
 const optDate = (v: unknown): string | null => (typeof v === 'string' && parseDateKey(v) ? v : null)
+const optWeekday = (v: unknown): number | null => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 7 ? v : null)
 
 export function parseDeadline(id: string, raw: Raw): Deadline | null {
   const date = optDate(raw.date)
@@ -191,7 +200,14 @@ export function parseMeetingEdit(id: string, raw: Raw): MeetingEdit {
 }
 
 export function parseSeriesEdit(id: string, raw: Raw): SeriesEdit {
-  return { id, room: optStr(raw.room), startTime: optTime(raw.startTime), endTime: optTime(raw.endTime) }
+  return {
+    id,
+    room: optStr(raw.room),
+    startTime: optTime(raw.startTime),
+    endTime: optTime(raw.endTime),
+    weekday: optWeekday(raw.weekday),
+    fromWeekday: optWeekday(raw.fromWeekday),
+  }
 }
 
 export function parseCustomMeeting(id: string, raw: Raw): CustomMeeting | null {

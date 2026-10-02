@@ -11,7 +11,7 @@ import type { Meeting } from '../lib/usos'
 import { describeOption } from '../lib/optimizerSettings'
 import { groupsCacheMaxAge } from '../lib/usosGroups'
 import { candidateMeetings, extraGroupsSlot, extraSlotId } from '../lib/candidatePlan'
-import type { ExtraGroup } from '../lib/extraCourses'
+import { isInPlan, planCourses, type ExtraGroup } from '../lib/extraCourses'
 import { CandidateCard, MetricsGrid } from './CandidateCard'
 import { ExtraCoursesPanel } from './ExtraCoursesPanel'
 import { OptimizerSettingsPanel } from './OptimizerSettingsPanel'
@@ -39,12 +39,17 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
 
   // WF, lektorat: grupy z wyszukiwania dobierane razem ze zmianami grup w planie.
   const [included, setIncluded] = useState<ExtraGroup[][]>([])
+  // Kody przedmiotów z planu (id zajęć z wyborem grup to "kod|typ").
+  const planCourseIds = useMemo(() => [...new Set((planSlots ?? []).map((s) => s.id.split('|')[0]))], [planSlots])
   const extraSlots = useMemo(() => {
-    return included.flatMap((groups) => {
+    // Przedmiot, który już jest w planie (np. zapisany lektorat), nie wchodzi drugi raz.
+    const plan = planCourses(planCourseIds, planMeetings.map((m) => m.courseName))
+    return included.flatMap((all) => {
+      const groups = all.filter((g) => !isInPlan({ courseId: g.courseId, name: g.courseName }, plan))
       const slot = extraGroupsSlot(groups, meetings, new Date(weekStart))
-      return slot ? [{ slot, groups }] : []
+      return slot ? [{ slot, groups: all }] : []
     })
-  }, [included, meetings, weekStart])
+  }, [included, meetings, weekStart, planCourseIds, planMeetings])
   const slots = useMemo(
     () => (planSlots ? [...planSlots, ...extraSlots.map((e) => e.slot)] : null),
     [planSlots, extraSlots],
@@ -152,6 +157,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
             now={now}
             settings={settings}
             gapThreshold={prefs.gapMinutes}
+            planCourseIds={planCourseIds}
           />
         </>
       )}
@@ -168,6 +174,7 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
             // Ten sam przedmiot drugi raz - nowsze wyniki zastępują poprzednie.
             onInclude={(groups) => setIncluded((prev) => [...prev.filter((g) => extraSlotId(g) !== extraSlotId(groups)), groups])}
             included={extraSlots.map((e) => e.groups)}
+            planCourseIds={planCourseIds}
           />
 
           {extraSlots.length > 0 && (

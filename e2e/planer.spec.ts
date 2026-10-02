@@ -90,6 +90,60 @@ test('udostępnianie: wysyła sam adres Planera, bez parametrów i danych', asyn
   expect(new URL(shared.url).hash).toBe('')
 })
 
+test('lektorat, który już jest w planie, nie da się wybrać drugi raz', async ({ page }) => {
+  const LANG = '6420-EEH60-0SA-0008'
+  // Ćwiczenia z planu to w USOS właśnie ten lektorat (zapisany) - z dwiema grupami do wyboru.
+  await page.route('https://apps.usos.pw.edu.pl/services/**', async (route) => {
+    const url = new URL(route.request().url())
+    const q = url.searchParams
+    const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
+    if (url.pathname.endsWith('/courses/unit')) {
+      const unit = q.get('unit_id') ?? ''
+      return json({ course_id: unit === 'U-an-c' ? LANG : unit, term_id: '2026Z', classtype_id: 'CWI' })
+    }
+    if (url.pathname.endsWith('/courses/course')) return json({ name: { pl: 'Język angielski - poziom B2' }, terms: [{ id: '2026Z' }] })
+    if (url.pathname.endsWith('/tt/course_edition') && q.get('course_id') === LANG) {
+      const start = q.get('start') ?? ''
+      const at = (plus: number, time: string) => {
+        const [y, m, d] = start.split('-').map(Number)
+        return `${new Date(Date.UTC(y, m - 1, d + plus)).toISOString().slice(0, 10)} ${time}:00`
+      }
+      const act = (plus: number, group: number) => ({ start_time: at(plus, '10:15'), end_time: at(plus, '12:00'), classtype_id: 'CWI', group_number: group, unit_id: 'U-an-c' })
+      return json([act(2, 101), act(3, 102)])
+    }
+    return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
+  })
+
+  await tab(page, 'Przedmioty').click()
+  await page.getByRole('button', { name: /Dobierz grupy/ }).click()
+  await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
+  await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
+  await page.getByLabel('Nazwa, kod albo link przedmiotu').fill(LANG)
+  await page.getByRole('button', { name: 'Szukaj' }).click()
+  await expect(page.getByText(/· już masz w planie/)).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /Język angielski - poziom B2/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeDisabled()
+})
+
+test('stała zmiana grupy: ćwiczenia ze środy na czwartek co tydzień', async ({ page }) => {
+  const card = page.locator('.card', { hasText: 'Analiza matematyczna' }).first()
+  await card.click()
+  await card.getByRole('button', { name: 'Zmień', exact: true }).click()
+  await page.getByRole('radio', { name: 'Cała grupa' }).click()
+  await page.getByLabel('Dzień tygodnia').selectOption({ label: 'Czwartek' })
+  await page.getByRole('dialog').getByLabel('Od', { exact: true }).fill('11:15')
+  await page.getByRole('dialog').getByLabel('Do', { exact: true }).fill('13:00')
+  await page.getByRole('button', { name: 'Zapisz' }).click()
+
+  await tab(page, 'Przedmioty').click()
+  await page.getByText('Analiza matematyczna', { exact: true }).first().click()
+  // Następne zajęcia to już czwartek 11:15 (przeniesione ze środy 10:15).
+  await expect(page.getByText(/Następne zajęcia: Czwartek, 15 października, 11:15/)).toBeVisible()
+  await expect(page.getByText('Czwartek, 22 października').first()).toBeVisible()
+  // Dzień jako nagłówek zajęć już nie występuje (oryginał z USOS zostaje tylko w opisie zmiany).
+  await expect(page.getByText('Środa, 21 października', { exact: true })).toHaveCount(0)
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()

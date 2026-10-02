@@ -10,6 +10,7 @@ import {
   parseDeadline,
   parseMeetingEdit,
   parseSeriesEdit,
+  isEmptySeriesEdit,
   type CourseExtra,
   type CourseLink,
   type CustomMeeting,
@@ -158,12 +159,16 @@ export function useExtras(client: Cloud | null, uid: string | null) {
 
   const saveSeriesEdit = useCallback(
     (edit: SeriesEdit) => {
-      const { id, ...data } = edit
-      write((c, u) =>
-        !data.room && !data.startTime && !data.endTime
-          ? c.deleteItem(u, 'seriesEdits', id)
-          : c.setItem(u, 'seriesEdits', id, data),
-      )
+      const { id } = edit
+      // Wszystkie pola jawnie (null zamiast braku) - baza nie przyjmuje undefined.
+      const data = {
+        room: edit.room,
+        startTime: edit.startTime,
+        endTime: edit.endTime,
+        weekday: edit.weekday ?? null,
+        fromWeekday: edit.fromWeekday ?? null,
+      }
+      write((c, u) => (isEmptySeriesEdit(data) ? c.deleteItem(u, 'seriesEdits', id) : c.setItem(u, 'seriesEdits', id, data)))
     },
     [write],
   )

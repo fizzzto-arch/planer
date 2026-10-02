@@ -331,6 +331,8 @@ export const EN: Record<string, string> = {
   'Szukaj': 'Search',
   'Nic nie znalazłem w tym semestrze. Spróbuj innej nazwy albo „Wszędzie” - albo wklej kod przedmiotu lub link do niego z USOSweb.': 'Nothing found this semester. Try another name or “Everywhere” - or paste the course code or its link from USOSweb.',
   'USOS pokazuje najwyżej 100 wyników, więc część mogła się nie zmieścić. Nie ma Twojego przedmiotu? Wklej jego kod (np. 6420-EEH60-0SA-0008) albo link do strony przedmiotu z USOSweb.': 'USOS shows at most 100 results, so some may be missing. Your course is not there? Paste its code (e.g. 6420-EEH60-0SA-0008) or the link to its USOSweb page.',
+  'Przedmiot, który już masz w planie, jest wyszarzony - drugi raz nie ma sensu. Jego grupę możesz zmienić w „Dobierz grupy” (zajęcia z wyborem grup i propozycje).': 'A course you already have in your timetable is greyed out - taking it twice makes no sense. You can change its group in “Find groups” (classes with a choice of groups and suggestions).',
+  'już masz w planie': 'already in your timetable',
   'Dopasuj grupy': 'Match groups',
   'Odznacz wszystkie': 'Untick all',
   'Zaznacz wszystkie': 'Tick all',
@@ -592,7 +594,8 @@ export const EN: Record<string, string> = {
   'Tylko te zajęcia': 'Only this class',
   'Cała grupa': 'Whole group',
   'Zmiana tylko zajęć z dnia {day}.': 'Changes only the class on {day}.',
-  'Stała zmiana sali lub godzin dla wszystkich zajęć tej grupy (np. przeniesiona sala).': 'A permanent room or time change for all classes of this group (e.g. a moved room).',
+  'Stała zmiana co tydzień: dzień, godziny albo sala tych zajęć grupy (w USOS: {day}). Np. wykład przeniesiony na stałe z piątku na czwartek.': 'A permanent weekly change: the day, time or room of this group’s class (in USOS: {day}). E.g. a lecture moved for good from Friday to Thursday.',
+  'Dzień tygodnia': 'Day of the week',
   'Zajęcia odwołane': 'Class cancelled',
   'Przywróć grupę z USOS': 'Restore group from USOS',
 

@@ -50,6 +50,26 @@ export interface ExtraRanking {
   conflicts: number // grup, które kolidują z planem
 }
 
+// ---------- Przedmioty, które już są w planie ----------
+
+// Zapisany już lektorat (albo WF) nie ma sensu drugi raz - ani w tej samej, ani w innej grupie.
+// Ten sam przedmiot to ten sam kod z USOS albo ta sama nazwa (np. "Język angielski - poziom B2"
+// bywa kilkoma kodami - to dalej ten sam lektorat).
+export interface PlanCourses {
+  ids: ReadonlySet<string>
+  names: ReadonlySet<string>
+}
+
+const normalizeName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ')
+
+export function planCourses(courseIds: Iterable<string>, courseNames: Iterable<string>): PlanCourses {
+  return { ids: new Set(courseIds), names: new Set([...courseNames].map(normalizeName)) }
+}
+
+export function isInPlan(course: { courseId: string; name: string }, plan: PlanCourses): boolean {
+  return plan.ids.has(course.courseId) || plan.names.has(normalizeName(course.name))
+}
+
 // ---------- Ocena (bez sieci) ----------
 
 // Dwa tygodnie wzorcowe: nieparzysty i parzysty (dowolne daty, liczy się dzień tygodnia i godzina).
