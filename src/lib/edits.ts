@@ -18,15 +18,32 @@ export const CUSTOM_ID_PREFIX = 'custom:'
 // Dzień tygodnia: 1 = poniedziałek ... 7 = niedziela.
 export const weekdayOf = (d: Date) => ((d.getDay() + 6) % 7) + 1
 
-function applyChange(m: Meeting, change: MeetingOverride): Meeting {
-  const day = (change.date && parseDateKey(change.date)) || startOfDay(m.start)
+// Stała zmiana grupy (dzień, godziny, sala) jako zmiana tych zajęć; null - nie dotyczy ich.
+// Zmiana z dniem tygodnia dotyczy zajęć grupy z jednego dnia (fromWeekday), starsze - wszystkich.
+export function seriesOverride(start: Date, series: SeriesEdit | undefined): MeetingOverride | null {
+  if (!series) return null
+  if (series.fromWeekday && weekdayOf(start) !== series.fromWeekday) return null
+  if (!series.room && !series.startTime && !series.endTime && !series.weekday) return null
+  const day = series.weekday ? addDays(startOfDay(start), series.weekday - weekdayOf(start)) : null
   return {
+    date: day ? toDateKey(day) : undefined,
+    room: series.room ?? undefined,
+    startTime: series.startTime ?? undefined,
+    endTime: series.endTime ?? undefined,
+  }
+}
+
+// Zajęcia po zmianie (też terminy z optymalizatora - bez pola "odwołane").
+export function applyChange<T extends Pick<Meeting, 'start' | 'end' | 'room'>>(m: T, change: MeetingOverride): T {
+  const day = (change.date && parseDateKey(change.date)) || startOfDay(m.start)
+  const changed: T = {
     ...m,
     start: withTime(day, change.startTime ?? toTimeKey(m.start)),
     end: withTime(day, change.endTime ?? toTimeKey(m.end)),
     room: change.room ?? m.room,
-    cancelled: change.cancelled ?? m.cancelled,
   }
+  if (change.cancelled !== undefined) (changed as T & { cancelled: boolean }).cancelled = change.cancelled
+  return changed
 }
 
 function expandCustomMeetings(customs: Extras['customMeetings']): Meeting[] {
@@ -70,17 +87,9 @@ export function applyEdits(
       let edited = false
 
       const key = seriesKey(m)
-      const series = key ? extras.seriesEdits.get(key) : undefined
-      // Zmiana grupy dotyczy zajęć z jednego dnia tygodnia (np. piątkowego wykładu), starsze - wszystkich.
-      const applies = series && (!series.fromWeekday || weekdayOf(m.start) === series.fromWeekday)
-      if (series && applies && (series.room || series.startTime || series.endTime || series.weekday)) {
-        const day = series.weekday ? addDays(startOfDay(m.start), series.weekday - weekdayOf(m.start)) : null
-        result = applyChange(result, {
-          date: day ? toDateKey(day) : undefined,
-          room: series.room ?? undefined,
-          startTime: series.startTime ?? undefined,
-          endTime: series.endTime ?? undefined,
-        })
+      const series = seriesOverride(m.start, key ? extras.seriesEdits.get(key) : undefined)
+      if (series) {
+        result = applyChange(result, series)
         edited = true
       }
 

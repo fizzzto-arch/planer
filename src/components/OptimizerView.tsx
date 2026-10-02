@@ -10,7 +10,7 @@ import { deanFilter, deanGroupOf, deanGroups, optimize, type Candidate } from '.
 import type { Meeting } from '../lib/usos'
 import { describeOption } from '../lib/optimizerSettings'
 import { groupsCacheMaxAge } from '../lib/usosGroups'
-import { candidateMeetings, extraGroupsSlot, extraSlotId } from '../lib/candidatePlan'
+import { candidateMeetings, extraGroupsSlot, extraSlotId, withSeriesEdits } from '../lib/candidatePlan'
 import { isInPlan, planCourses, type ExtraGroup } from '../lib/extraCourses'
 import { CandidateCard, MetricsGrid } from './CandidateCard'
 import { ExtraCoursesPanel } from './ExtraCoursesPanel'
@@ -35,7 +35,13 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   const weekStart = startOfWeek(now).getTime()
   const upcoming = useMemo(() => planMeetings.filter((m) => m.start.getTime() >= weekStart), [planMeetings, weekStart])
   const maxAge = useMemo(() => groupsCacheMaxAge(planMeetings, now), [planMeetings, now])
-  const { slots: planSlots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
+  const { slots: usosSlots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
+  // Twoje stałe zmiany grup (dzień, godziny, sala) - liczymy z prawdziwym planem, nie z USOS.
+  const seriesEdits = extras?.extras.seriesEdits
+  const planSlots = useMemo(
+    () => (usosSlots && seriesEdits ? withSeriesEdits(usosSlots, seriesEdits) : usosSlots),
+    [usosSlots, seriesEdits],
+  )
 
   // WF, lektorat: grupy z wyszukiwania dobierane razem ze zmianami grup w planie.
   const [included, setIncluded] = useState<ExtraGroup[][]>([])

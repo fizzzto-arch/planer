@@ -42,3 +42,25 @@ describe('grupy spoza planu jako zajęcia do wyboru', () => {
     expect(changedIds.size).toBe(4)
   })
 })
+
+describe('stałe zmiany grup w optymalizatorze', () => {
+  it('przeniesiona na stałe grupa ma nowe terminy, inne grupy bez zmian', async () => {
+    const { withSeriesEdits } = await import('./candidatePlan')
+    const at = (day: number, h: number) => new Date(2026, 9, day, h, 15)
+    const option = (unitId: string, groupNumber: number, day: number) => ({
+      unitId,
+      groupNumber,
+      meetings: [day, day + 7].map((d) => ({ start: at(d, 10), end: at(d, 12), room: '121', building: null })),
+    })
+    // Piątki 9.10 i 16.10: moja grupa 101 i druga 102 o tej samej porze.
+    const slot = { id: 'AN|CWI', courseName: 'Analiza', classType: 'CWI', currentIndex: 0, options: [option('U1', 101, 9), option('U1', 102, 9)] }
+    const edit = { id: 'U1-101', room: '200', startTime: '11:15', endTime: '13:00', weekday: 4, fromWeekday: 5 }
+    const [changed] = withSeriesEdits([slot], new Map([[edit.id, edit]]))
+    expect(changed.options[0].meetings.map((m) => [m.start.getDate(), m.start.getHours(), m.room])).toEqual([
+      [8, 11, '200'],
+      [15, 11, '200'],
+    ])
+    expect(changed.options[1]).toBe(slot.options[1])
+    expect(withSeriesEdits([slot], new Map())[0]).toBe(slot)
+  })
+})

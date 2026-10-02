@@ -1,6 +1,7 @@
 // Plan "po zmianie" z optymalizatora jako zwykła lista zajęć - do podglądu tygodnia i eksportu.
 import { addDays, startOfWeek } from './dates'
-import type { PlanMeeting } from './edits'
+import { applyChange, seriesOverride, type PlanMeeting } from './edits'
+import type { SeriesEdit } from './extras'
 import type { ExtraGroup } from './extraCourses'
 import type { Candidate, OptMeeting, Slot } from './optimizer'
 import { semesterWeek } from './semesterWeek'
@@ -56,6 +57,28 @@ export function candidateMeetings(
     ...fixed.map((m, j) => toPlanMeeting(`fixed-${j}`, m, m.courseName, m.type, null)),
   ].sort((a, b) => a.start.getTime() - b.start.getTime())
   return { meetings, changedIds }
+}
+
+// Stałe zmiany grup (wykład przeniesiony z piątku na czwartek, inna sala) nałożone na terminy grup
+// z USOS - optymalizator liczy wtedy z prawdziwym planem, a nie z tym, co jest w USOS.
+export function withSeriesEdits(slots: Slot[], seriesEdits: ReadonlyMap<string, SeriesEdit>): Slot[] {
+  if (seriesEdits.size === 0) return slots
+  return slots.map((slot) => {
+    let changed = false
+    const options = slot.options.map((option) => {
+      const series = option.unitId ? seriesEdits.get(`${option.unitId}-${option.groupNumber}`) : undefined
+      if (!series) return option
+      changed = true
+      const meetings = option.meetings
+        .map((m) => {
+          const change = seriesOverride(m.start, series)
+          return change ? applyChange(m, change) : m
+        })
+        .sort((a, b) => a.start.getTime() - b.start.getTime())
+      return { ...option, meetings }
+    })
+    return changed ? { ...slot, options } : slot
+  })
 }
 
 // Zajęcia grupy spoza planu (WF, lektorat) w jednym tygodniu - w tygodnie z właściwą parzystością.
