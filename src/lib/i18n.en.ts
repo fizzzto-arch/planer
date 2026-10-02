@@ -856,6 +856,10 @@ export const EN: Record<string, string> = {
   'Bez reklam i śledzenia. Notatki i plan widzisz tylko Ty.': 'No ads, no tracking. Only you see your notes and timetable.',
   'Czytelny plan zajęć dla PW i WAT - w telefonie i na komputerze.': 'A clear class timetable for PW and WAT - on your phone and computer.',
 
+  // src/hooks/useAccessRequests.ts
+  'Nie udało się wczytać listy kont. Sprawdź, czy reguły w Firebase są aktualne - spróbuję ponownie za chwilę.': 'Could not load the account list. Check that the Firebase rules are up to date - will try again in a moment.',
+  'Nie udało się zmienić dostępu: {error}': 'Could not change access: {error}',
+
   // src/hooks/useCloud.ts
   'Nie udało się załadować logowania. Sprawdź internet.': 'Could not load sign-in. Check your internet connection.',
   'Nie udało się pobrać planu z konta: {error}': 'Could not load the timetable from your account: {error}',

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AccessRequest, AccessStatus, Cloud } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
+import { msg, t, tk } from '../lib/i18n'
 import { RETRY_AFTER_MS } from './useCloud'
 
-const LOAD_ERROR =
-  'Nie udało się wczytać listy kont. Sprawdź, czy reguły w Firebase są aktualne - spróbuję ponownie za chwilę.'
+const LOAD_ERROR = msg(
+  'Nie udało się wczytać listy kont. Sprawdź, czy reguły w Firebase są aktualne - spróbuję ponownie za chwilę.',
+)
 
 // Prośby o dostęp do Planera - dla administratora (client = null dla pozostałych).
 export function useAccessRequests(client: Cloud | null) {
@@ -22,7 +24,7 @@ export function useAccessRequests(client: Cloud | null) {
       },
       () => {
         // Firebase kończy nasłuch po błędzie (np. stare reguły) - zakładamy go ponownie.
-        setError(LOAD_ERROR)
+        setError(tk(LOAD_ERROR))
         retryTimer = setTimeout(() => setRetry((n) => n + 1), RETRY_AFTER_MS)
       },
     )
@@ -34,14 +36,14 @@ export function useAccessRequests(client: Cloud | null) {
 
   const setStatus = useCallback(
     (uid: string, status: AccessStatus) => {
-      client?.setAccessStatus(uid, status).catch((e) => setError(`Nie udało się zmienić dostępu: ${errorMessage(e)}`))
+      client?.setAccessStatus(uid, status).catch((e) => setError(t('Nie udało się zmienić dostępu: {error}', { error: errorMessage(e) })))
     },
     [client],
   )
 
   const setOptimizer = useCallback(
     (uid: string, on: boolean) => {
-      client?.setOptimizerAccess(uid, on).catch((e) => setError(`Nie udało się zmienić dostępu: ${errorMessage(e)}`))
+      client?.setOptimizerAccess(uid, on).catch((e) => setError(t('Nie udało się zmienić dostępu: {error}', { error: errorMessage(e) })))
     },
     [client],
   )
