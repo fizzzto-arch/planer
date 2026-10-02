@@ -144,3 +144,22 @@ describe('typy zajęć z USOS', () => {
     expect(typeLabel('XYZ')).toBe('XYZ')
   })
 })
+
+describe('lektoraty (w USOS: ćwiczenia)', () => {
+  it('język obcy jako lektorat, inne przedmioty i typy bez zmian', async () => {
+    const { classTypeOf, withLanguageClasses } = await import('./usos')
+    expect(classTypeOf('Język angielski - poziom B2', 'CWI')).toBe('LEK')
+    expect(classTypeOf('JĘZYK NIEMIECKI dla początkujących', 'CWI')).toBe('LEK')
+    expect(classTypeOf('Język hiszpański', 'CWI')).toBe('LEK')
+    expect(classTypeOf('Polski język migowy', 'CWI')).toBe('LEK')
+    expect(classTypeOf('Lektorat języka francuskiego', 'CWI')).toBe('LEK')
+    expect(classTypeOf('Języki i metody programowania', 'CWI')).toBe('CWI')
+    expect(classTypeOf('Język C w systemach wbudowanych', 'CWI')).toBe('CWI')
+    expect(classTypeOf('Analiza matematyczna', 'CWI')).toBe('CWI')
+    expect(classTypeOf('Język angielski - poziom B2', 'WYK')).toBe('WYK') // tylko ćwiczenia
+    const plan = [{ courseName: 'Język angielski - poziom B2', type: 'CWI' }, { courseName: 'Fizyka', type: 'CWI' }]
+    const out = withLanguageClasses(plan)
+    expect(out.map((m) => m.type)).toEqual(['LEK', 'CWI'])
+    expect(out[1]).toBe(plan[1]) // niezmienione zajęcia - ten sam obiekt
+  })
+})

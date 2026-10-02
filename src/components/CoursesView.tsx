@@ -5,10 +5,11 @@ import { formatTypes, summarizeCourses } from '../lib/courses'
 import { daysBetween, formatShortDay, formatTime, parseDateKey } from '../lib/dates'
 import { upcomingDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
-import { courseKey, type DeadlineKind } from '../lib/extras'
+import { GENERAL_NOTE, courseKey, type DeadlineKind } from '../lib/extras'
 import { plural } from '../lib/plural'
 import { typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
+import { NoteField } from './NoteField'
 
 const DAYS_AHEAD = 60
 // Egzaminy bywają w sesji za kilka miesięcy - przy tym filtrze patrzymy na cały semestr.
@@ -100,6 +101,22 @@ export function CoursesView({ meetings, now }: Props) {
         </p>
       ) : (
         <DeadlineList deadlines={deadlines} now={now} showCourse />
+      )}
+
+      {/* Notatki niezwiązane z przedmiotem, np. "z czego przenieść się do innej grupy". */}
+      {extras && (
+        <>
+          <h2 className="day-title secondary">{t('Notatki')}</h2>
+          <div className="panel general-note">
+            <NoteField
+              id="general-note"
+              value={extras.extras.courses.get(courseKey(GENERAL_NOTE))?.note ?? ''}
+              rows={4}
+              placeholder={t('Wszystko, co nie dotyczy jednego przedmiotu - np. z czego muszę się przenieść, co załatwić w dziekanacie')}
+              onSave={(text) => extras.saveCourseNote(GENERAL_NOTE, text)}
+            />
+          </div>
+        </>
       )}
 
       <h2 className="day-title secondary">{t('Przedmioty')}</h2>

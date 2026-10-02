@@ -126,6 +126,10 @@ export const EMPTY_EXTRAS: Extras = {
 }
 
 // Id dokumentu Firestore nie może zawierać "/", więc kodujemy nazwę.
+// Notatka ogólna (niezwiązana z przedmiotem) - zapisana jak notatka "przedmiotu" o tej nazwie,
+// więc synchronizacja, kopia zapasowa i usuwanie konta obejmują ją bez zmian w bazie.
+export const GENERAL_NOTE = '__planer_notatki_ogolne__'
+
 export function courseKey(courseName: string): string {
   return encodeURIComponent(courseName.trim())
 }

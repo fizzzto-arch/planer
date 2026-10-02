@@ -54,6 +54,23 @@ export function typeLabel(type: string): string {
 // Typy do wyboru przy dodawaniu własnych zajęć (nazwy przez typeLabel - w języku interfejsu).
 export const MEETING_TYPES: string[] = [...Object.keys(TYPE_LABELS), 'INNE']
 
+// Lektoraty są w USOS zapisane jako ćwiczenia, ale to inny rodzaj zajęć - w Planerze mają własny typ
+// (i kolor). Rozpoznajemy je po nazwie: "Język angielski - poziom B2", "Język niemiecki...",
+// "Polski język migowy". Nazwy języków to przymiotniki na -ski/-cki/-zki ("Języki i metody
+// programowania" czy "Język C" nimi nie są).
+const LANGUAGE_COURSE = /^(?:lektorat\b|(?:polski\s+)?język\s+\p{L}+(?:ski|cki|zki|owy)\b)/iu
+
+export function classTypeOf(courseName: string, type: string): string {
+  return type === 'CWI' && LANGUAGE_COURSE.test(courseName.trim()) ? 'LEK' : type
+}
+
+export function withLanguageClasses<T extends Pick<Meeting, 'courseName' | 'type'>>(meetings: T[]): T[] {
+  return meetings.map((m) => {
+    const type = classTypeOf(m.courseName, m.type)
+    return type === m.type ? m : { ...m, type }
+  })
+}
+
 // Typ, którego kolor ma dostać dany kod (FIZ -> WF); nieznane - "INNE".
 export function colorType(type: string): string {
   const main = COLOR_ALIASES[type] ?? type

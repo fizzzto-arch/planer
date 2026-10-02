@@ -5,6 +5,7 @@ import type { SeriesEdit } from './extras'
 import type { ExtraGroup } from './extraCourses'
 import type { Candidate, OptMeeting, Slot } from './optimizer'
 import { semesterWeek } from './semesterWeek'
+import { classTypeOf } from './usos'
 
 export function toPlanMeeting(
   id: string,
@@ -84,8 +85,8 @@ export function withSeriesEdits(slots: Slot[], seriesEdits: ReadonlyMap<string, 
 // Zajęcia grupy spoza planu (WF, lektorat) w jednym tygodniu - w tygodnie z właściwą parzystością.
 export function extraGroupWeek(group: ExtraGroup, weekStart: Date, odd: boolean | null): PlanMeeting[] {
   if (group.parity !== 'weekly' && odd !== null && odd !== (group.parity === 'odd')) return []
-  // WF z USOS ma typ "FIZ" - w Planerze kolor WF.
-  const type = group.classType === 'FIZ' ? 'WF' : group.classType
+  // WF z USOS ma typ "FIZ" - w Planerze kolor WF; lektorat (w USOS: ćwiczenia) - typ lektoratu.
+  const type = group.classType === 'FIZ' ? 'WF' : classTypeOf(group.courseName, group.classType)
   return group.meetings.map((m, i) => {
     const day = addDays(weekStart, m.weekday - 1)
     const at = (minutes: number) =>
@@ -130,7 +131,7 @@ export function extraGroupsSlot(
   return {
     id: extraSlotId(groups),
     courseName: first.courseName,
-    classType: first.classType === 'FIZ' ? 'WF' : first.classType,
+    classType: first.classType === 'FIZ' ? 'WF' : classTypeOf(first.courseName, first.classType),
     currentIndex: null,
     extra: true,
     options: usable.map((g) => ({

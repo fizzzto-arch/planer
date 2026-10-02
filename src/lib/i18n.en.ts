@@ -162,6 +162,8 @@ export const EN: Record<string, string> = {
   'Zaloguj się (Ustawienia), żeby dodawać kolokwia, egzaminy i notatki.': 'Sign in (Settings) to add tests, exams and notes.',
   'Brak terminów w najbliższych tygodniach. Dodaj kolokwium albo egzamin.': 'No deadlines in the coming weeks. Add a test or an exam.',
   'Brak takich terminów.': 'No such deadlines.',
+  'Notatki': 'Notes',
+  'Wszystko, co nie dotyczy jednego przedmiotu - np. z czego muszę się przenieść, co załatwić w dziekanacie': 'Anything not about a single course - e.g. which classes I need to switch, what to sort out at the dean’s office',
   'Następne:': 'Next:',
   'termin|terminy|terminów': 'deadline|deadlines',
 

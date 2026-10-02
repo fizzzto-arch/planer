@@ -7,7 +7,7 @@ import { useOptimizerSettings } from '../hooks/useOptimizerSettings'
 import { formatUpdatedAt, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { deanFilter, deanGroupOf, deanGroups, optimize, type Candidate } from '../lib/optimizer'
-import type { Meeting } from '../lib/usos'
+import { classTypeOf, type Meeting } from '../lib/usos'
 import { describeOption } from '../lib/optimizerSettings'
 import { groupsCacheMaxAge } from '../lib/usosGroups'
 import { candidateMeetings, extraGroupsSlot, extraSlotId, withSeriesEdits } from '../lib/candidatePlan'
@@ -38,10 +38,15 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   const { slots: usosSlots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
   // Twoje stałe zmiany grup (dzień, godziny, sala) - liczymy z prawdziwym planem, nie z USOS.
   const seriesEdits = extras?.extras.seriesEdits
-  const planSlots = useMemo(
-    () => (usosSlots && seriesEdits ? withSeriesEdits(usosSlots, seriesEdits) : usosSlots),
-    [usosSlots, seriesEdits],
-  )
+  const planSlots = useMemo(() => {
+    if (!usosSlots) return usosSlots
+    const edited = seriesEdits ? withSeriesEdits(usosSlots, seriesEdits) : usosSlots
+    // Lektorat (w USOS: ćwiczenia) - jak w planie, z własną nazwą typu.
+    return edited.map((s) => {
+      const classType = classTypeOf(s.courseName, s.classType)
+      return classType === s.classType ? s : { ...s, classType }
+    })
+  }, [usosSlots, seriesEdits])
 
   // WF, lektorat: grupy z wyszukiwania dobierane razem ze zmianami grup w planie.
   const [included, setIncluded] = useState<ExtraGroup[][]>([])

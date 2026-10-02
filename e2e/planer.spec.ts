@@ -144,6 +144,16 @@ test('stała zmiana grupy: ćwiczenia ze środy na czwartek co tydzień', async 
   await expect(page.getByText('Środa, 21 października', { exact: true })).toHaveCount(0)
 })
 
+test('notatka ogólna w zakładce Przedmioty zapisuje się i zostaje', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  const note = page.locator('#general-note')
+  await note.fill('Przenieść się z ćwiczeń z analizy do gr. 102')
+  await expect(page.getByText('Zapisano ✓')).toBeVisible()
+  await tab(page, 'Dziś').click()
+  await tab(page, 'Przedmioty').click()
+  await expect(page.locator('#general-note')).toHaveValue('Przenieść się z ćwiczeń z analizy do gr. 102')
+})
+
 test('termin: dodanie kolokwium widać na liście', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: '+ Dodaj termin' }).click()

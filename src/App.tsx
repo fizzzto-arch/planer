@@ -38,6 +38,7 @@ import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
+import { withLanguageClasses } from './lib/usos'
 import { locale, setLanguage, t } from './lib/i18n'
 
 type View = 'today' | 'week' | 'courses' | 'notifications' | 'report' | 'settings'
@@ -282,7 +283,8 @@ function App() {
   }, [])
 
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
-  const meetings = useMemo(() => applyEdits(plan.meetings, extras), [plan.meetings, extras])
+  // Lektoraty (w USOS: ćwiczenia) jako osobny typ z własnym kolorem.
+  const meetings = useMemo(() => applyEdits(withLanguageClasses(plan.meetings), extras), [plan.meetings, extras])
   // Wspólne okienka: publikacja moich godzin zajęć (gdy włączone w ustawieniach) i znajomi.
   // Kalendarz akademicki (dni wolne, sesja) - etykiety przy dniach.
   const calendarEvents = useAcademicCalendar()
