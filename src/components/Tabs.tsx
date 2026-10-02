@@ -82,6 +82,9 @@ export function Tabs<T extends string>({ tabs, value, onChange, controlRef }: Pr
     settle,
   }))
 
+  // Napisy zakładek (np. po zmianie języka) zmieniają ich szerokość - suwak liczymy od nowa.
+  const labels = tabs.map((tab) => tab.label).join('|')
+
   useLayoutEffect(() => {
     const list = listRef.current
     const indicator = indicatorRef.current
@@ -104,7 +107,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, controlRef }: Pr
       cancelAnimationFrame(frame)
       observer.disconnect()
     }
-  }, [activeIndex])
+  }, [activeIndex, labels])
 
   return (
     <nav

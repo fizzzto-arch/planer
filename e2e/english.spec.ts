@@ -78,3 +78,28 @@ test('angielski: mail z prośbą o zmianę grupy zostaje po polsku (idzie do pro
   await expect(mail).not.toContainText('Wed')
   await expect(page.locator('.mail-subject').first()).toContainText('Prośba o zmianę grupy')
 })
+
+test('zmiana języka nie odpina przesuwania palcem między zakładkami', async ({ page }, info) => {
+  test.skip(info.project.name !== 'android', 'syntetyczny dotyk - tylko Chromium z ekranem dotykowym')
+  // Przesunięcie palcem w lewo po widoku (jak na telefonie): następna zakładka.
+  const swipeLeft = () =>
+    page.evaluate(`(async () => {
+      const el = document.querySelector('[class^="view-enter"]').parentElement
+      const touch = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: 400 })
+      const fire = (type, x) => {
+        const t = touch(x)
+        el.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }))
+      }
+      fire('touchstart', 300)
+      for (const x of [270, 220, 160, 100, 60]) {
+        await new Promise((r) => setTimeout(r, 16))
+        fire('touchmove', x)
+      }
+      fire('touchend', 60)
+    })()`)
+
+  await page.locator('.lang-toggle').getByRole('radio', { name: 'Polski' }).click()
+  await expect(tab(page, 'Dziś')).toBeVisible()
+  await swipeLeft()
+  await expect(page.getByText('ten tydzień')).toBeVisible()
+})

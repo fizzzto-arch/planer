@@ -686,8 +686,7 @@ function App() {
 
   return (
     <PlanUiContext.Provider value={ui}>
-      {/* key: zmiana języka rysuje wszystko od nowa (także teksty zapamiętane w useMemo). */}
-      <main key={prefs.language} className="app" style={typeColors.style}>
+      <main className="app" style={typeColors.style}>
         {cloud.isAdmin && viewAsUser && (
           <div className="view-as-user-bar" role="status">
             <span>{t('Widok zwykłego użytkownika')}</span>
@@ -717,7 +716,9 @@ function App() {
         <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
           {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
           <div
-            key={page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}
+            // Język w kluczu: zmiana języka rysuje widok od nowa (także teksty zapamiętane w useMemo),
+            // a element z gestami (wyżej) zostaje ten sam - inaczej przesuwanie palcem by się odpięło.
+            key={`${prefs.language}:${page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}`}
             className={ENTER_CLASS[enter]}
           >
             <ErrorBoundary>
@@ -752,7 +753,9 @@ function App() {
         {page && (
           <div ref={underWrapRef} className="swipe-under" aria-hidden="true">
             <div ref={underRef} className="swipe-under-inner">
-              <Suspense fallback={null}>{mainView}</Suspense>
+              <Suspense key={prefs.language} fallback={null}>
+                {mainView}
+              </Suspense>
             </div>
             <div ref={dimRef} className="swipe-dim" />
           </div>
