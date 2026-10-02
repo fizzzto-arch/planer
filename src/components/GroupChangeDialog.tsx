@@ -1,4 +1,5 @@
-import { t } from '../lib/i18n'
+import { inLanguage, t } from '../lib/i18n'
+import { describeOption } from '../lib/optimizerSettings'
 import { useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useCourseStaff } from '../hooks/useCourseStaff'
@@ -47,12 +48,13 @@ export function GroupChangeDialog({ courseName, classType, from, to, fromWhen, t
     saveStudentInfo(next)
   }
 
-  const request: ChangeRequest = {
+  // Mail idzie do polskich prowadzących - typ zajęć i terminy zawsze po polsku, nawet w wersji angielskiej.
+  const request: ChangeRequest = inLanguage('pl', () => ({
     course: courseName,
     classType: typeLabel(classType),
-    from: { group: from.groupNumber, when: fromWhen },
-    to: { group: to.groupNumber, when: toWhen },
-  }
+    from: { group: from.groupNumber, when: describeOption(from) },
+    to: { group: to.groupNumber, when: describeOption(to) },
+  }))
   const lecturersOf = (group: number) => staff?.groups.find((g) => g.groupNumber === group)?.lecturers ?? []
   const target = lecturersOf(to.groupNumber)
   const sameTeacher =

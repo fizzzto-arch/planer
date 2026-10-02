@@ -58,3 +58,17 @@ describe('tłumaczenia', () => {
     setLanguage('pl')
   })
 })
+
+describe('tekst w innym języku niż interfejs', () => {
+  it('inLanguage tłumaczy w podanym języku i przywraca język interfejsu, także po błędzie', async () => {
+    const { inLanguage, getLanguage, midSentence } = await import('./i18n')
+    setLanguage('en')
+    expect(inLanguage('pl', () => t('Dziś'))).toBe('Dziś')
+    expect(getLanguage()).toBe('en')
+    expect(() => inLanguage('pl', () => { throw new Error('x') })).toThrow()
+    expect(getLanguage()).toBe('en')
+    expect(midSentence('Wednesday')).toBe('Wednesday')
+    setLanguage('pl')
+    expect(midSentence('Środa')).toBe('środa')
+  })
+})

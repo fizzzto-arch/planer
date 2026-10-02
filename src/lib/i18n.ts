@@ -31,6 +31,22 @@ export function getLanguage(): Language {
   return current
 }
 
+// Tekst w innym języku niż interfejs - np. maile do prowadzących zawsze po polsku.
+export function inLanguage<T>(lang: Language, build: () => T): T {
+  const previous = current
+  current = lang
+  try {
+    return build()
+  } finally {
+    current = previous
+  }
+}
+
+// Dzień albo data w środku zdania: po polsku małą literą ("w USOS: środa"), po angielsku jak jest.
+export function midSentence(text: string): string {
+  return current === 'pl' ? text.toLowerCase() : text
+}
+
 // Język do dat i sortowania ("pl-PL" / "en-GB" - tydzień od poniedziałku, 24 h).
 export function locale(lang: Language = current): string {
   return lang === 'en' ? 'en-GB' : 'pl-PL'

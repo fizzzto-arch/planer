@@ -1,4 +1,4 @@
-import { t } from '../lib/i18n'
+import { midSentence, t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { ExtrasApi } from '../hooks/useExtras'
 import { formatDay, formatTime, toDateKey, toTimeKey } from '../lib/dates'
@@ -91,9 +91,9 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
         )}
         <p className="hint">
           {scope === 'single'
-            ? t('Zmiana tylko zajęć z dnia {day}.', { day: formatDay(meeting.start).toLowerCase() })
+            ? t('Zmiana tylko zajęć z dnia {day}.', { day: midSentence(formatDay(meeting.start)) })
             : t('Stała zmiana co tydzień: dzień, godziny albo sala tych zajęć grupy (w USOS: {day}). Np. wykład przeniesiony na stałe z piątku na czwartek.', {
-                day: weekdayName(weekdayOf(original.start)).toLowerCase(),
+                day: midSentence(weekdayName(weekdayOf(original.start))),
               })}
         </p>
 
@@ -147,7 +147,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
         )}
 
         <p className="hint">
-          {t('W USOS:')} {scope === 'series' ? weekdayName(weekdayOf(original.start)).toLowerCase() + ' ' : ''}
+          {t('W USOS:')} {scope === 'series' ? midSentence(weekdayName(weekdayOf(original.start))) + ' ' : ''}
           {formatTime(original.start)}–{formatTime(original.end)}
           {original.room && ', ' + t('s. {room}', { room: original.room })}
         </p>
