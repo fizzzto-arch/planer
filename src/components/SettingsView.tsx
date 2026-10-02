@@ -1,5 +1,6 @@
 import { t } from '../lib/i18n'
-import { useState } from 'react'
+import { seriesKey } from '../lib/extras'
+import { useState, useMemo } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { usePlanUi } from '../hooks/planUi'
 import type { PlanApi } from '../hooks/usePlan'
@@ -52,9 +53,16 @@ export function SettingsView({
   const last = meetings[meetings.length - 1]
   const signedIn = cloud.state.kind === 'signedIn'
   // Ręczne zmiany planu (sala, godziny, odwołanie) - pojedyncze zajęcia i całe grupy.
-  const manualChanges = extras
-    ? [...extras.extras.meetingEdits.values()].filter((e) => e.override).length + extras.extras.seriesEdits.size
-    : 0
+  // Liczymy tylko zmiany zajęć z obecnego planu - stare (np. z poprzedniego semestru) nic już nie zmieniają,
+  // choć "Przywróć cały plan" usuwa także je.
+  const manualChanges = useMemo(() => {
+    if (!extras) return 0
+    const ids = new Set(meetings.map((m) => m.id))
+    const groups = new Set(meetings.map((m) => seriesKey(m)))
+    const single = [...extras.extras.meetingEdits.values()].filter((e) => e.override && ids.has(e.id)).length
+    const series = [...extras.extras.seriesEdits.keys()].filter((key) => groups.has(key)).length
+    return single + series
+  }, [extras, meetings])
 
   async function handleReset() {
     const question = signedIn
