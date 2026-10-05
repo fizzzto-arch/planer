@@ -654,7 +654,9 @@ export const EN: Record<string, string> = {
   // src/components/OptimizerView.tsx
   'Porównuję plany wszystkich grup Twoich przedmiotów z USOS i szukam układu, który najlepiej pasuje do Twoich kryteriów. Zmianę grupy trzeba potem załatwić w USOS albo w dziekanacie - Planer tylko podpowiada.': 'I compare the timetables of all groups of your courses in USOS and look for the set that best fits your criteria. You still have to arrange the group change in USOS or at the dean’s office - Planer only suggests.',
   'Pobieram plany wszystkich grup z USOS…': 'Loading all group timetables from USOS…',
+  'Odświeżam plany grup z USOS…': 'Refreshing group timetables from USOS…',
   'Plany grup z USOS: {when}': 'Group timetables from USOS: {when}',
+  '(mogą być nieaktualne)': '(may be out of date)',
   'W planie nie ma nadchodzących zajęć z USOS, dla których można dobierać grupy.': 'Your timetable has no upcoming USOS classes with groups to choose from.',
   'Dobieram też grupę': 'Also choosing a group for',
   'Każda propozycja ma najlepiej pasującą do niej grupę - na nią zapisujesz się w USOS.': 'Each suggestion includes the group that fits it best - that is the one you sign up for in USOS.',

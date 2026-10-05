@@ -1,6 +1,6 @@
 // Dobieranie grup zajęciowych: sprawdza wszystkie kombinacje grup bez kolizji
 // i ocenia je według kryteriów użytkownika (okienka, dni, wczesny start, późny koniec).
-import { startOfWeek, toDateKey } from './dates'
+import { startOfWeek } from './dates'
 
 export interface OptMeeting {
   start: Date
@@ -87,6 +87,32 @@ const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.
 // Od tej godziny liczymy "zajęty ranek" w trybie 'early' (pierwsze zajęcia na PW są o 8:15).
 const DAY_START = 8 * 60
 
+// Dzień i godziny zajęć liczone raz na zajęcia - evaluate oceniamy setki razy na tych samych
+// zajęciach, a odczyt dnia i godziny z daty (strefa czasowa) jest kosztowny.
+interface Timing {
+  day: number // rrrrmmdd (czas lokalny)
+  start: number // ms
+  end: number
+  startMinutes: number // minuty od północy
+  endMinutes: number
+}
+const timings = new WeakMap<OptMeeting, Timing>()
+
+function timingOf(m: OptMeeting): Timing {
+  let timing = timings.get(m)
+  if (!timing) {
+    timing = {
+      day: m.start.getFullYear() * 10_000 + m.start.getMonth() * 100 + m.start.getDate(),
+      start: m.start.getTime(),
+      end: m.end.getTime(),
+      startMinutes: minutesOfDay(m.start),
+      endMinutes: minutesOfDay(m.end),
+    }
+    timings.set(m, timing)
+  }
+  return timing
+}
+
 // Getday: 0 = niedziela; my liczymy od poniedziałku.
 const weekdayOf = (d: Date) => ((d.getDay() + 6) % 7) + 1
 
@@ -122,12 +148,12 @@ export function evaluate(
   gapThreshold: number,
   weeks: number,
 ): PlanMetrics {
-  const byDay = new Map<string, OptMeeting[]>()
+  const byDay = new Map<number, Timing[]>()
   for (const m of meetings) {
-    const key = toDateKey(m.start)
-    const list = byDay.get(key)
-    if (list) list.push(m)
-    else byDay.set(key, [m])
+    const timing = timingOf(m)
+    const list = byDay.get(timing.day)
+    if (list) list.push(timing)
+    else byDay.set(timing.day, [timing])
   }
 
   const startAfter = toMinutes(settings.startAfter)
@@ -137,16 +163,16 @@ export function evaluate(
   let late = 0
   let endSum = 0
   for (const day of byDay.values()) {
-    day.sort((a, b) => a.start.getTime() - b.start.getTime())
-    let lastEnd = day[0].end
+    day.sort((a, b) => a.start - b.start)
+    let last = day[0] // zajęcia, które kończą się najpóźniej
     for (let i = 1; i < day.length; i++) {
-      const gap = (day[i].start.getTime() - lastEnd.getTime()) / 60_000
+      const gap = (day[i].start - last.end) / 60_000
       if (gap >= gapThreshold) gaps += gap
-      if (day[i].end > lastEnd) lastEnd = day[i].end
+      if (day[i].end > last.end) last = day[i]
     }
-    early += Math.max(0, startAfter - minutesOfDay(day[0].start))
-    late += Math.max(0, minutesOfDay(lastEnd) - endBefore)
-    endSum += minutesOfDay(lastEnd)
+    early += Math.max(0, startAfter - day[0].startMinutes)
+    late += Math.max(0, last.endMinutes - endBefore)
+    endSum += last.endMinutes
   }
 
   const metrics = {
@@ -292,6 +318,16 @@ export function optimize(slots: Slot[], opts: OptimizeOptions): OptimizeResult {
     allowed[i] = [...bySignature.values()]
   }
 
+  // Kolizja dwóch grup liczona raz - przeszukiwanie pyta o te same pary tysiące razy.
+  const conflicts = new Map<GroupOption, Map<GroupOption, boolean>>()
+  const conflict = (a: GroupOption, b: GroupOption) => {
+    let row = conflicts.get(a)
+    if (!row) conflicts.set(a, (row = new Map()))
+    let result = row.get(b)
+    if (result === undefined) row.set(b, (result = optionsConflict(a, b)))
+    return result
+  }
+
   // Najpierw sloty z najmniejszym wyborem - szybciej odcinamy kolizje.
   const order = slots.map((_, i) => i).sort((a, b) => allowed[a].length - allowed[b].length)
   const choice = new Array<number>(slots.length).fill(0)
@@ -324,7 +360,7 @@ export function optimize(slots: Slot[], opts: OptimizeOptions): OptimizeResult {
       let clash = false
       for (let d = 0; d < depth && !clash; d++) {
         const other = order[d]
-        clash = optionsConflict(option, slots[other].options[choice[other]])
+        clash = conflict(option, slots[other].options[choice[other]])
       }
       if (clash) continue
       choice[slotIndex] = optionIndex

@@ -125,6 +125,52 @@ test('lektorat, który już jest w planie, nie da się wybrać drugi raz', async
   await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeDisabled()
 })
 
+test('plany grup pobierają się raz - potem tylko po "Odśwież"', async ({ page }) => {
+  let requests = 0
+  await page.route('https://apps.usos.pw.edu.pl/services/**', async (route) => {
+    requests++
+    const url = new URL(route.request().url())
+    const q = url.searchParams
+    const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
+    if (url.pathname.endsWith('/courses/unit')) {
+      const unit = q.get('unit_id') ?? ''
+      return json({ course_id: unit === 'U-an-c' ? 'AN' : unit, term_id: '2026Z', classtype_id: 'CWI' })
+    }
+    if (url.pathname.endsWith('/tt/course_edition') && q.get('course_id') === 'AN') {
+      const [y, m, d] = (q.get('start') ?? '').split('-').map(Number)
+      const at = (plus: number, time: string) => `${new Date(Date.UTC(y, m - 1, d + plus)).toISOString().slice(0, 10)} ${time}:00`
+      const act = (plus: number, group: number) => ({ start_time: at(plus, '10:15'), end_time: at(plus, '12:00'), classtype_id: 'CWI', group_number: group, unit_id: 'U-an-c' })
+      return json([act(2, 101), act(3, 102)])
+    }
+    return json([])
+  })
+  const open = async () => {
+    await tab(page, 'Przedmioty').click()
+    await page.getByRole('button', { name: /Dobierz grupy/ }).click()
+    await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
+    await expect(page.getByText(/Plany grup z USOS:/)).toBeVisible()
+  }
+
+  await open()
+  const first = requests
+  expect(first).toBeGreaterThan(0)
+
+  // Ponowne wejście i nowe uruchomienie aplikacji: dane z pamięci, bez pytania USOS.
+  await page.getByRole('button', { name: 'Wróć' }).click()
+  await open()
+  // Dwa dni później (początek semestru - dane mogą być nieaktualne, ale pobiera się dopiero na żądanie).
+  await page.clock.setFixedTime(new Date('2026-10-16T09:00:00+02:00'))
+  await page.reload()
+  await open()
+  await expect(page.getByText('(mogą być nieaktualne)')).toBeVisible()
+  expect(requests).toBe(first)
+
+  await page.getByRole('button', { name: 'Odśwież', exact: true }).click()
+  await expect.poll(() => requests).toBeGreaterThan(first)
+  await expect(page.getByText(/Plany grup z USOS:/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
+})
+
 test('stała zmiana grupy: ćwiczenia ze środy na czwartek co tydzień', async ({ page }) => {
   const card = page.locator('.card', { hasText: 'Analiza matematyczna' }).first()
   await card.click()

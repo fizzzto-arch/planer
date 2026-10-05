@@ -1458,6 +1458,33 @@ label.setting-row {
   background: var(--accent);
 }
 
+/* "Plany grup z USOS: ... Odśwież" - odświeżanie w tym samym miejscu, wyniki zostają pod spodem. */
+.opt-sync {
+  margin: 4px 0 12px;
+}
+
+.opt-sync .sync {
+  margin: 0;
+  min-height: 1.5em;
+}
+
+.opt-sync .spinner {
+  width: 12px;
+  height: 12px;
+}
+
+.opt-sync .opt-progress {
+  margin-top: 6px;
+}
+
+.opt-sync .error {
+  margin: 6px 0 0;
+}
+
+.opt-stale {
+  color: var(--warn);
+}
+
 .opt-block {
   margin-top: 14px;
   padding-top: 12px;

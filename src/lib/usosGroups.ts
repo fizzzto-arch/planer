@@ -8,13 +8,13 @@ import type { Meeting } from './usos'
 
 export const USOS_API = 'https://apps.usos.pw.edu.pl/services'
 const PARALLEL = 8 // tyle zapytań naraz - szybko, a bez zasypywania serwera USOS
-const CACHE_KEY = 'planer.groups.v1'
 const DAY_MS = 24 * 60 * 60 * 1000
 export const CACHE_MAX_AGE_MS = 7 * DAY_MS
 const FRESH_MAX_AGE_MS = DAY_MS
 
-// Jak długo ufać zapamiętanym planom grup. Na początku semestru (od 4 tygodni przed
-// do 3. tygodnia zajęć) USOS zmienia grupy, sale i terminy co chwilę - wtedy tylko dobę.
+// Po jakim czasie zapamiętane plany grup mogą być nieaktualne (podpowiadamy wtedy odświeżenie).
+// Na początku semestru (od 4 tygodni przed do 3. tygodnia zajęć) USOS zmienia grupy, sale
+// i terminy co chwilę - wtedy już po dobie.
 export function groupsCacheMaxAge(planMeetings: Pick<Meeting, 'start' | 'cancelled'>[], now: Date): number {
   const starting = semesters(planMeetings).some((s) => {
     const week = weekIndex(now, s)
@@ -192,24 +192,70 @@ export async function fetchSlots(meetings: Meeting[], onProgress: (p: GroupsProg
 }
 
 // ---------- Pamięć podręczna (w przeglądarce) ----------
+// Plany grup zmieniają się rzadko, a pobranie to ponad sto zapytań do USOS - pobieramy je tylko
+// na żądanie ("Odśwież") albo gdy w planie jest przedmiot, którego grup jeszcze nie znamy.
+
+const CACHE_KEY = 'planer.groups.v2'
+// Poprzedni zapis: zajęcia w kluczu "unitId:grupa,..." - zmiana grupy kasowała dane.
+const OLD_CACHE_KEY = 'planer.groups.v1'
+
+type StoredMeeting = Omit<OptMeeting, 'start' | 'end'> & { start: number; end: number }
 
 interface StoredSlots {
-  key: string // zestaw zajęć użytkownika - inny plan = nieaktualne dane
+  units?: string[]
+  key?: string // tylko stary zapis
   fetchedAt: number
-  slots: (Omit<Slot, 'options'> & {
-    options: (Omit<GroupOption, 'meetings'> & { meetings: (Omit<OptMeeting, 'start' | 'end'> & { start: number; end: number })[] })[]
-  })[]
+  slots: (Omit<Slot, 'options'> & { options: (Omit<GroupOption, 'meetings'> & { meetings: StoredMeeting[] })[] })[]
 }
 
-export function slotsCacheKey(meetings: Meeting[]): string {
+export interface CachedSlots {
+  units: string[] // zajęcia z USOS (unit_id), których grupy są w danych
+  slots: Slot[]
+  fetchedAt: number
+}
+
+// Zajęcia z USOS w planie - od nich zależy, które przedmioty i typy zajęć są w danych.
+export function planUnits(meetings: Pick<Meeting, 'unitId'>[]): string[] {
+  return [...new Set(meetings.flatMap((m) => (m.unitId ? [m.unitId] : [])))].sort()
+}
+
+// Zajęcia razem z grupami - zmienia się, gdy zmienisz grupę albo przedmiot.
+export function slotsCacheKey(meetings: Pick<Meeting, 'unitId' | 'groupNumber'>[]): string {
   return [...new Set(meetings.flatMap((m) => (m.unitId ? [`${m.unitId}:${m.groupNumber}`] : [])))].sort().join(',')
 }
 
-export function loadCachedSlots(key: string): { slots: Slot[]; fetchedAt: number } | null {
+// Zapamiętane plany grup dopasowane do obecnego planu: tylko jego zajęcia, terminy od "from"
+// i obecna grupa według planu (zmiana grupy nie wymaga pobierania od nowa).
+// null - brakuje danych któregoś przedmiotu.
+export function slotsForPlan(
+  cached: CachedSlots,
+  meetings: Pick<Meeting, 'unitId' | 'groupNumber'>[],
+  from: number,
+): Slot[] | null {
+  const units = planUnits(meetings)
+  const known = new Set(cached.units)
+  if (!units.every((u) => known.has(u))) return null
+  const wanted = new Set(units)
+  const current = new Set(slotsCacheKey(meetings).split(','))
+  return cached.slots.flatMap((slot) => {
+    if (!slot.options.some((o) => wanted.has(o.unitId))) return []
+    const options = slot.options
+      .map((o) => ({ ...o, meetings: o.meetings.filter((m) => m.start.getTime() >= from) }))
+      .filter((o) => o.meetings.length > 0)
+    if (options.length === 0) return []
+    const currentIndex = options.findIndex((o) => current.has(`${o.unitId}:${o.groupNumber}`))
+    return [{ ...slot, options, currentIndex: currentIndex >= 0 ? currentIndex : null }]
+  })
+}
+
+export function loadCachedSlots(): CachedSlots | null {
   try {
-    const stored = JSON.parse(localStorage.getItem(CACHE_KEY) ?? 'null') as StoredSlots | null
-    if (!stored || stored.key !== key) return null
+    const raw = localStorage.getItem(CACHE_KEY) ?? localStorage.getItem(OLD_CACHE_KEY)
+    const stored = JSON.parse(raw ?? 'null') as StoredSlots | null
+    if (!stored || !Array.isArray(stored.slots) || typeof stored.fetchedAt !== 'number') return null
+    const units = stored.units ?? (stored.key ?? '').split(',').filter(Boolean).map((unit) => unit.split(':')[0])
     return {
+      units,
       fetchedAt: stored.fetchedAt,
       slots: stored.slots.map((s) => ({
         ...s,
@@ -224,9 +270,9 @@ export function loadCachedSlots(key: string): { slots: Slot[]; fetchedAt: number
   }
 }
 
-export function saveCachedSlots(key: string, slots: Slot[], fetchedAt: number): void {
+export function saveCachedSlots({ units, slots, fetchedAt }: CachedSlots): void {
   const stored: StoredSlots = {
-    key,
+    units,
     fetchedAt,
     slots: slots.map((s) => ({
       ...s,
@@ -238,6 +284,7 @@ export function saveCachedSlots(key: string, slots: Slot[], fetchedAt: number): 
   }
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(stored))
+    localStorage.removeItem(OLD_CACHE_KEY)
   } catch {
     // brak miejsca - dane pobiorą się ponownie przy następnym otwarciu
   }

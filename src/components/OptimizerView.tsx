@@ -34,8 +34,11 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
   // Liczy się tylko to, co przed nami: od początku bieżącego tygodnia.
   const weekStart = startOfWeek(now).getTime()
   const upcoming = useMemo(() => planMeetings.filter((m) => m.start.getTime() >= weekStart), [planMeetings, weekStart])
+  // Plany grup z pamięci - z USOS tylko po "Odśwież" (albo gdy brakuje danych przedmiotu).
+  const groups = useGroupOptions(upcoming, weekStart)
+  const { slots: usosSlots, fetchedAt, refresh } = groups
   const maxAge = useMemo(() => groupsCacheMaxAge(planMeetings, now), [planMeetings, now])
-  const { slots: usosSlots, fetchedAt, status, refresh } = useGroupOptions(upcoming, maxAge)
+  const stale = fetchedAt !== null && now.getTime() - fetchedAt > maxAge
   // Twoje stałe zmiany grup (dzień, godziny, sala) - liczymy z prawdziwym planem, nie z USOS.
   const seriesEdits = extras?.extras.seriesEdits
   const planSlots = useMemo(() => {
@@ -128,34 +131,49 @@ export function OptimizerView({ planMeetings, meetings, now, onBack }: Props) {
         </p>
       </header>
 
-      {status.kind === 'loading' && (
+      {!usosSlots && groups.loading && (
         <div className="panel">
           <p className="loading-line">
             <span className="spinner" aria-hidden="true" />
             {t('Pobieram plany wszystkich grup z USOS…')}
           </p>
-          {status.progress && status.progress.total > 1 && (
-            <progress className="opt-progress" value={status.progress.done} max={status.progress.total} />
+          {groups.progress && groups.progress.total > 1 && (
+            <progress className="opt-progress" value={groups.progress.done} max={groups.progress.total} />
           )}
         </div>
       )}
 
-      {status.kind === 'error' && (
+      {!usosSlots && !groups.loading && groups.error && (
         <div className="panel">
-          <p className="error">{status.message}</p>
+          <p className="error">{groups.error}</p>
           <button type="button" className="button small" onClick={refresh}>
             {t('Spróbuj ponownie')}
           </button>
         </div>
       )}
 
-      {slots && status.kind !== 'loading' && (
-        <p className="sync">
-          {t('Plany grup z USOS: {when}', { when: fetchedAt ? formatUpdatedAt(new Date(fetchedAt), now) : '—' })}{' '}
-          <button type="button" className="link-button" onClick={refresh}>
-            {t('Odśwież')}
-          </button>
-        </p>
+      {/* Odświeżanie nie chowa wyników - liczą się z poprzednich danych, dopóki nie przyjdą nowe. */}
+      {usosSlots && (
+        <div className="opt-sync">
+          {groups.loading ? (
+            <p className="sync loading-line">
+              <span className="spinner" aria-hidden="true" />
+              {t('Odświeżam plany grup z USOS…')}
+            </p>
+          ) : (
+            <p className="sync">
+              {t('Plany grup z USOS: {when}', { when: fetchedAt ? formatUpdatedAt(new Date(fetchedAt), now) : '—' })}
+              {stale && <span className="opt-stale"> {t('(mogą być nieaktualne)')}</span>}{' '}
+              <button type="button" className="link-button" onClick={refresh}>
+                {t('Odśwież')}
+              </button>
+            </p>
+          )}
+          {groups.loading && groups.progress && groups.progress.total > 1 && (
+            <progress className="opt-progress" value={groups.progress.done} max={groups.progress.total} />
+          )}
+          {groups.error && <p className="error">{groups.error}</p>}
+        </div>
       )}
 
       {planSlots && planSlots.length === 0 && (

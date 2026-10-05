@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Meeting } from './usos'
-import { CACHE_MAX_AGE_MS, fetchSlots, groupsCacheMaxAge, parseUsosTime, shortBuildingId } from './usosGroups'
+import type { GroupOption, Slot } from './optimizer'
+import {
+  CACHE_MAX_AGE_MS,
+  fetchSlots,
+  groupsCacheMaxAge,
+  loadCachedSlots,
+  parseUsosTime,
+  saveCachedSlots,
+  shortBuildingId,
+  slotsForPlan,
+  type CachedSlots,
+} from './usosGroups'
 
 const meeting = (id: string, start: Date, over: Partial<Meeting> = {}): Meeting => ({
   id,
@@ -30,6 +41,63 @@ describe('pamięć planów grup', () => {
     expect(groupsCacheMaxAge(plan, new Date(2026, 9, 28))).toBe(CACHE_MAX_AGE_MS) // 4. tydzień
     expect(groupsCacheMaxAge(plan, new Date(2026, 7, 1))).toBe(CACHE_MAX_AGE_MS) // wakacje
     expect(groupsCacheMaxAge([], new Date(2026, 9, 7))).toBe(CACHE_MAX_AGE_MS)
+  })
+
+  // Laboratorium (U1): grupa 201 co tydzień, grupa 202 tylko w pierwszym tygodniu; wykład (U2).
+  const option = (unitId: string, groupNumber: number, days: number[]): GroupOption => ({
+    unitId,
+    groupNumber,
+    meetings: days.map((d) => ({ start: new Date(2026, 9, d, 8, 15), end: new Date(2026, 9, d, 10, 0), room: null, building: null })),
+  })
+  const slot = (id: string, options: GroupOption[]): Slot => ({ id, courseName: id, classType: 'LAB', options, currentIndex: 0 })
+  const cached: CachedSlots = {
+    units: ['U1', 'U2'],
+    fetchedAt: 1,
+    slots: [
+      slot('LAB', [option('U1', 201, [5, 12, 19]), option('U1', 202, [6])]),
+      slot('WYK', [option('U2', 1, [7, 14])]),
+    ],
+  }
+  const at = (unitId: string, groupNumber: number) => meeting(unitId + groupNumber, new Date(2026, 9, 12), { unitId, groupNumber })
+
+  it('zapamiętane grupy wystarczą po zmianie grupy - bez pobierania od nowa', () => {
+    const slots = slotsForPlan(cached, [at('U1', 202), at('U2', 1)], 0)!
+    expect(slots.map((s) => s.options[s.currentIndex!].groupNumber)).toEqual([202, 1])
+    // Przedmiot, który już się skończył, wypada; nowego (U3) nie znamy - trzeba pobrać.
+    expect(slotsForPlan(cached, [at('U1', 201)], 0)!.map((s) => s.id)).toEqual(['LAB'])
+    expect(slotsForPlan(cached, [at('U1', 201), at('U3', 1)], 0)).toBeNull()
+  })
+
+  it('tylko terminy od bieżącego tygodnia', () => {
+    const [lab, lecture] = slotsForPlan(cached, [at('U1', 202), at('U2', 1)], new Date(2026, 9, 12).getTime())!
+    // Grupa 202 nie ma już zajęć - nie ma jej do wyboru (ani jako obecnej).
+    expect(lab.options.map((o) => [o.groupNumber, o.meetings.length])).toEqual([[201, 2]])
+    expect(lab.currentIndex).toBeNull()
+    expect(lecture.options[0].meetings).toHaveLength(1)
+  })
+
+  it('zapis w przeglądarce; stary zapis (grupy w kluczu) czyta się bez pobierania', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => store.set(k, v),
+      removeItem: (k: string) => store.delete(k),
+    })
+    try {
+      const old = { key: 'U1:201,U2:1', fetchedAt: 5, slots: [{ ...cached.slots[1], options: [{ unitId: 'U2', groupNumber: 1, meetings: [{ start: 10, end: 20, room: null, building: null }] }] }] }
+      store.set('planer.groups.v1', JSON.stringify(old))
+      const loaded = loadCachedSlots()!
+      expect(loaded.units).toEqual(['U1', 'U2'])
+      expect(loaded.slots[0].options[0].meetings[0].start).toEqual(new Date(10))
+
+      saveCachedSlots(cached)
+      expect(store.has('planer.groups.v1')).toBe(false)
+      const again = loadCachedSlots()!
+      expect(again.units).toEqual(['U1', 'U2'])
+      expect(again.slots[0].options[0].meetings[2].start).toEqual(new Date(2026, 9, 19, 8, 15))
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 
