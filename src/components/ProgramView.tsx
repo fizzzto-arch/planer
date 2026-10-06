@@ -123,13 +123,6 @@ export function ProgramView({ meetings, now, onBack }: Props) {
       {current !== null && (
         <p className="program-position">
           <strong>{t('Semestr {n} z {total}', { n: current, total })}</strong>
-          <span className="muted">
-            {t('{done} z {total} h zajęć ({percent}%)', {
-              done: Math.round(hours.done),
-              total: hours.total,
-              percent: percent(hours.done, hours.total),
-            })}
-          </span>
         </p>
       )}
 
@@ -247,12 +240,15 @@ function CourseItem({ course, planName, usedIn, year, onOpenCourse }: CourseProp
     <li>
       <details id={courseId(course.name)} className={`program-course${planName ? ' is-in-plan' : ''}`}>
         <summary>
-          <span className="program-course-name">
-            {course.name}
-            {planName && <span className="badge program-in-plan">{t('w planie')}</span>}
-          </span>
+          <span className="program-course-name">{course.name}</span>
           <span className="program-course-ects">{course.ects} ECTS</span>
-          {meta.length > 0 && <span className="program-course-meta">{meta.join(' · ')}</span>}
+          {/* "w planie" na początku drugiej linijki - przy długiej nazwie nie spada samotnie do nowego wiersza. */}
+          {(planName || meta.length > 0) && (
+            <span className="program-course-meta">
+              {planName && <span className="badge program-in-plan">{t('w planie')}</span>}
+              {meta.length > 0 && <span className="program-course-hours">{meta.join(' · ')}</span>}
+            </span>
+          )}
         </summary>
         <div className="program-course-body">
           {!described && <p className="muted">{t('Katalog nie ma opisu tego przedmiotu.')}</p>}

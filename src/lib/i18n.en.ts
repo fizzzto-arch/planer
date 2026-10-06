@@ -744,7 +744,6 @@ export const EN: Record<string, string> = {
   'Semestry': 'Semesters',
   'Semestr {n}': 'Semester {n}',
   'Semestr {n} z {total}': 'Semester {n} of {total}',
-  '{done} z {total} h zajęć ({percent}%)': '{done} of {total} class hours ({percent}%)',
   'Katalog ECTS PW {year}': 'WUT ECTS Catalogue {year}',
   'co to znaczy?': 'what does this mean?',
   'Program z Katalogu ECTS PW dla rocznika {year} - nowszego wydania nie ma. Przedmioty i punkty zgadzają się z obecnym planem, ale prowadzący, literatura i zasady zaliczenia mogły się zmienić.': 'Programme from the WUT ECTS Catalogue for the {year} intake - there is no newer edition. Courses and credits match your current timetable, but lecturers, reading lists and assessment rules may have changed. Course descriptions are in Polish.',

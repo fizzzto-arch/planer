@@ -141,14 +141,16 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
   await page.getByRole('button', { name: /Program studiów/ }).click()
   await expect(page.getByText('Semestr 3 z 7')).toBeVisible()
   // Postęp w godzinach: semestry 1-2 (780 h) z całego programu (1740 h); zajęcia z planu jeszcze przed nami.
-  await expect(page.getByText('780 z 1740 h zajęć (45%)')).toBeVisible()
+  const steps = page.locator('.program-step-bar > span')
+  await expect(steps.nth(0)).toHaveAttribute('style', /width: 100%/)
+  await expect(steps.nth(2)).toHaveAttribute('style', /width: 0%/)
   const third = page.locator('#program-semester-3')
   await expect(third.locator('.program-semester-load')).toHaveText('7 przedmiotów · 4 egzaminy')
 
   // Bieżący semestr otwarty, przedmiot z planu oznaczony; po stuknięciu - sylabus.
   const radiology = page.locator('.program-course', { has: page.locator('.program-course-name', { hasText: /^Radiologia/ }) })
   await expect(radiology.getByText('w planie')).toBeVisible()
-  await expect(radiology.locator('.program-course-meta')).toHaveText('wyk. 30 h · lab. 15 h · egzamin')
+  await expect(radiology.locator('.program-course-hours')).toHaveText('wyk. 30 h · lab. 15 h · egzamin')
   await radiology.locator('summary').first().click()
   await expect(radiology.getByText(/wykład - zaliczenie na podstawie egzaminu/)).toBeVisible()
   // Zamiast ściany tekstu z sylabusa - krótki opis i tematy.

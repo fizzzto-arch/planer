@@ -3479,16 +3479,7 @@ label.setting-row {
 }
 
 .program-position {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 4px 12px;
   margin: 2px 0 6px;
-}
-
-.program-position .muted {
-  font-size: 0.85rem;
 }
 
 /* Źródło danych: jedna linijka, wyjaśnienie po stuknięciu. */
@@ -3623,10 +3614,7 @@ label.setting-row {
   font-weight: 600;
 }
 
-.program-course-name .badge {
-  margin-left: 6px;
-  vertical-align: 1px;
-}
+
 
 .program-course-ects {
   font-size: 0.85rem;
@@ -3636,6 +3624,10 @@ label.setting-row {
 
 .program-course-meta {
   grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
   font-size: 0.8rem;
   color: var(--muted);
 }
