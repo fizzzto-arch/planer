@@ -3425,3 +3425,148 @@ label.setting-row {
   margin-left: 8px;
   font-size: inherit;
 }
+
+/* ---------- Program studiów ---------- */
+
+.program-header {
+  --c: var(--accent);
+}
+
+.program-source {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.program-semester {
+  margin-bottom: 10px;
+}
+
+.program-semester.is-current {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.program-semester > summary,
+.program-course > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.program-semester > summary::-webkit-details-marker,
+.program-course > summary::-webkit-details-marker {
+  display: none;
+}
+
+.program-semester > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Strzałka: w prawo zwinięty, w dół rozwinięty. */
+.program-semester > summary::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 0 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.program-semester[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.program-semester-title {
+  font-weight: 700;
+}
+
+.program-semester.is-past .program-semester-title {
+  color: var(--muted);
+}
+
+.program-now,
+.program-in-plan {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.program-ects {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.program-courses {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.program-courses > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.program-course > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 10px 0;
+}
+
+.program-course-name {
+  font-weight: 600;
+}
+
+.program-course-name .badge {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.program-course-ects {
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.program-course-meta {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.program-course-body {
+  padding: 0 0 14px;
+}
+
+.program-field h4 {
+  margin: 10px 0 2px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.program-field p {
+  margin: 0;
+  font-size: 0.9rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.program-course-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.program-course-links a.button {
+  text-decoration: none;
+}
+
+.program-electives {
+  margin-top: 6px;
+}

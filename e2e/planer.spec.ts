@@ -125,6 +125,47 @@ test('lektorat, który już jest w planie, nie da się wybrać drugi raz', async
   await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeDisabled()
 })
 
+test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async ({ page }) => {
+  // Plan studenta 3. semestru Inżynierii Biomedycznej (nazwy jak w USOS).
+  await page.evaluate(() => {
+    const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 15).getTime()
+    const names = ['Grafika komputerowa', 'Radiologia', 'Podstawy automatyki', 'Laboratorium elektrotechniki']
+    const meetings = names.map((courseName, i) => ({
+      id: `ib-${i}`, courseName, type: 'WYK', start: at(15 + i, 10), end: at(15 + i, 12), room: '1', building: null,
+      address: null, groupNumber: 1, unitId: null, usosUrl: null, cancelled: false,
+    }))
+    localStorage.setItem('planer.plan.v1', JSON.stringify({ source: { kind: 'file', name: 'ib.ics' }, updatedAt: Date.now(), meetings }))
+  })
+  await page.reload()
+  await tab(page, 'Przedmioty').click()
+  await page.getByRole('button', { name: /Program studiów/ }).click()
+  await expect(page.getByText('Jesteś na 3. semestrze z 7')).toBeVisible()
+
+  // Bieżący semestr otwarty, przedmiot z planu oznaczony; po stuknięciu - sylabus.
+  const radiology = page.locator('.program-course', { has: page.locator('.program-course-name', { hasText: /^Radiologia/ }) })
+  await expect(radiology.getByText('w planie')).toBeVisible()
+  await radiology.locator('summary').click()
+  await expect(radiology.getByText(/wykład - zaliczenie na podstawie egzaminu/)).toBeVisible()
+  await expect(radiology.getByRole('link', { name: 'Pełny sylabus' })).toHaveAttribute('href', /idPrzedmiot\/900264$/)
+
+  // Inny semestr zwinięty - rozwija się po stuknięciu.
+  const fourth = page.locator('.program-semester', { has: page.locator('.program-semester-title', { hasText: 'Semestr 4' }) })
+  await expect(fourth).not.toHaveAttribute('open')
+  await fourth.locator('summary').first().click()
+  await expect(fourth.locator('.program-course-name', { hasText: 'Metody numeryczne' })).toBeVisible()
+
+  await radiology.getByRole('button', { name: 'Przedmiot w Planerze' }).click()
+  await expect(page.getByRole('heading', { name: 'Radiologia' })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByText('Jesteś na 3. semestrze z 7')).toBeVisible()
+})
+
+test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await expect(page.getByText('Nadchodzące terminy')).toBeVisible()
+  await expect(page.getByRole('button', { name: /Program studiów/ })).toHaveCount(0)
+})
+
 test('plany grup pobierają się raz - potem tylko po "Odśwież"', async ({ page }) => {
   let requests = 0
   await page.route('https://apps.usos.pw.edu.pl/services/**', async (route) => {

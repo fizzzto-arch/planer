@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useState, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { formatTypes, summarizeCourses } from '../lib/courses'
 import { daysBetween, formatShortDay, formatTime, parseDateKey } from '../lib/dates'
@@ -10,6 +10,8 @@ import { plural } from '../lib/plural'
 import { typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { NoteField } from './NoteField'
+import { PROGRAM_NAMES } from '../lib/programs/ibNames'
+import { currentCourseNames, matchesProgram } from '../lib/studyProgram'
 
 const DAYS_AHEAD = 60
 // Egzaminy bywają w sesji za kilka miesięcy - przy tym filtrze patrzymy na cały semestr.
@@ -30,7 +32,9 @@ interface Props {
 }
 
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, openCourse, openOptimizer, isAdmin, canOptimize, editDeadline, displayName } = usePlanUi()
+  const { extras, openCourse, openOptimizer, openProgram, isAdmin, canOptimize, editDeadline, displayName } = usePlanUi()
+  // Program studiów (na razie tylko Inżynieria Biomedyczna) - gdy przedmioty z planu do niego pasują.
+  const hasProgram = useMemo(() => matchesProgram(PROGRAM_NAMES, currentCourseNames(meetings, now)), [meetings, now])
   const [filter, setFilter] = useState<KindFilter>('all')
   const courses = summarizeCourses(meetings, now)
   const all = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD_EXAMS) : []
@@ -60,6 +64,25 @@ export function CoursesView({ meetings, now }: Props) {
               {t('Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni')}
               {isAdmin ? t(' (widoczne dla Ciebie i osób, którym dasz dostęp)') : t(' - wersja testowa, daj znać, co działa')}
             </span>
+          </span>
+          <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </button>
+      )}
+
+      {hasProgram && (
+        <button type="button" className="optimizer-entry program-entry" onClick={openProgram}>
+          <span className="optimizer-entry-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" />
+            </svg>
+          </span>
+          <span className="optimizer-entry-text">
+            <strong>
+              {t('Program studiów')} <span className="alpha-badge">alpha</span>
+            </strong>
+            <span>{t('Wszystkie semestry i przedmioty Twojego kierunku, z sylabusami')}</span>
           </span>
           <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
             <path d="m9 6 6 6-6 6" />

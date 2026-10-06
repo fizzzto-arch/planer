@@ -49,6 +49,7 @@ const ExportView = lazy(() => import('./components/ExportView').then((m) => ({ d
 const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
 const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
 const FeedbackView = lazy(() => import('./components/FeedbackView').then((m) => ({ default: m.FeedbackView })))
+const ProgramView = lazy(() => import('./components/ProgramView').then((m) => ({ default: m.ProgramView })))
 
 // Funkcja, nie stała - tekst w bieżącym języku.
 const loading = () => (
@@ -199,6 +200,7 @@ function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extr
 type Page =
   | { kind: 'course'; name: string }
   | { kind: 'optimizer' }
+  | { kind: 'program' } // program studiów (semestry i przedmioty z sylabusami)
   | { kind: 'export'; weekStart: number } // tydzień, z którego otwarto eksport
   | { kind: 'help' }
   | { kind: 'feedback' } // uwagi i pomysły (administrator: skrzynka zgłoszeń)
@@ -208,12 +210,14 @@ function readPageFromHistory(): Page {
   const state = window.history.state as {
     course?: unknown
     optimizer?: unknown
+    program?: unknown
     export?: unknown
     help?: unknown
     feedback?: unknown
   } | null
   if (typeof state?.course === 'string') return { kind: 'course', name: state.course }
   if (state?.optimizer === true) return { kind: 'optimizer' }
+  if (state?.program === true) return { kind: 'program' }
   if (typeof state?.export === 'number') return { kind: 'export', weekStart: state.export }
   if (state?.help === true) return { kind: 'help' }
   if (state?.feedback === true) return { kind: 'feedback' }
@@ -337,6 +341,14 @@ function App() {
     pageNow.current = { kind: 'optimizer' }
     window.history.pushState({ optimizer: true }, '')
     setPage({ kind: 'optimizer' })
+    setEnter('rise')
+    window.scrollTo({ top: 0 })
+  }, [])
+
+  const openProgram = useCallback(() => {
+    pageNow.current = { kind: 'program' }
+    window.history.pushState({ program: true }, '')
+    setPage({ kind: 'program' })
     setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
@@ -506,6 +518,7 @@ function App() {
       materials,
       openCourse,
       openOptimizer,
+      openProgram,
       openExport,
       openHelp,
       openFeedback,
@@ -541,6 +554,7 @@ function App() {
       materials,
       openCourse,
       openOptimizer,
+      openProgram,
       openExport,
       openHelp,
       openFeedback,
@@ -728,6 +742,8 @@ function App() {
                 {/* Optymalizator tylko dla administratora i osób, którym go przyznał - inni nie wejdą nawet z historii. */}
                 {page?.kind === 'optimizer' && canOptimize ? (
                   <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+                ) : page?.kind === 'program' ? (
+                  <ProgramView meetings={meetings} now={now} onBack={closePage} />
                 ) : page?.kind === 'help' ? (
                   <HelpView onBack={closePage} onFeedback={cloud.uid ? openFeedback : undefined} />
                 ) : page?.kind === 'feedback' && cloud.uid ? (
