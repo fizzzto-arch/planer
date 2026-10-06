@@ -117,14 +117,16 @@ function BellIcon({ unread }: { unread: number }) {
   )
 }
 
-// Zgłoszenia: żółty trójkąt ostrzegawczy z ciemnym wykrzyknikiem; kropka - nowe zgłoszenia (administrator).
+// Zgłoszenia: dymek z wykrzyknikiem (uwaga, pomysł, problem) - pełna ikona w kolorze zakładki, jak dzwonek
+// i zębatka; wykrzyknik wycięty, więc na aktywnej zakładce ma kolor jej tła. Kropka - nowe zgłoszenia (administrator).
 function ReportIcon({ alert = false }: { alert?: boolean }) {
   return (
     <span className="tab-icon-wrap">
-      <svg className="tab-icon tab-icon-warning" viewBox="0 0 24 24" aria-hidden="true">
-        <path className="warning-sign" d="M10.27 3.5 1.9 18a2 2 0 0 0 1.73 3h16.74a2 2 0 0 0 1.73-3L13.73 3.5a2 2 0 0 0-3.46 0z" />
-        <path className="warning-mark" d="M12 9v5" />
-        <circle className="warning-dot" cx="12" cy="17.3" r="1.25" />
+      <svg className="tab-icon tab-icon-filled" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          fillRule="evenodd"
+          d="M5 3h14a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-8.6l-4.8 3.7c-.53.4-1.3.03-1.3-.64V18H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm7 2.9c-.7 0-1.25.56-1.25 1.25v4.2a1.25 1.25 0 0 0 2.5 0v-4.2c0-.69-.56-1.25-1.25-1.25zm0 7.6a1.35 1.35 0 1 0 0 2.7 1.35 1.35 0 0 0 0-2.7z"
+        />
       </svg>
       {alert && <span className="tab-alert" />}
     </span>
