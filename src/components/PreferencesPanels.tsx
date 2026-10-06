@@ -28,7 +28,7 @@ function SyncNote({ signedIn }: { signedIn: boolean }) {
 export function AppearancePanel({ prefsApi, signedIn }: Props) {
   const { prefs, update } = prefsApi
   return (
-    <div className="panel">
+    <div className="panel" id="settings-appearance">
       <h3 className="panel-title">{t('Wygląd')}</h3>
       <SyncNote signedIn={signedIn} />
       {/* Etykieta w obu językach - łatwo znaleźć, nawet gdy nie rozumiesz obecnego. */}
@@ -97,7 +97,7 @@ export function AppearancePanel({ prefsApi, signedIn }: Props) {
 export function PlanPrefsPanel({ prefsApi }: Pick<Props, 'prefsApi'>) {
   const { prefs, update } = prefsApi
   return (
-    <div className="panel">
+    <div className="panel" id="settings-plan">
       <h3 className="panel-title">{t('Plan i terminy')}</h3>
       <SwitchSetting
         label={t('Numer tygodnia semestru')}
@@ -139,7 +139,7 @@ export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> 
   }
 
   return (
-    <div className="panel">
+    <div className="panel" id="settings-aliases">
       <h3 className="panel-title">{t('Skróty nazw przedmiotów')}</h3>
       <p className="hint">{t('Skrót zastępuje długą nazwę w planie. Puste pole = pełna nazwa.')}</p>
       <SwitchSetting

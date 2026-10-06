@@ -33,6 +33,10 @@ export const EN: Record<string, string> = {
   'Zaloguj się, żeby zgłosić problem albo pomysł.': 'Sign in to report a problem or share an idea.',
   'Widok zwykłego użytkownika': 'Regular user view',
   'Wróć do administratora': 'Back to administrator',
+  'Puść, żeby szukać': 'Release to search',
+  'Szukaj': 'Search',
+  'Szukaj w Planerze': 'Search Planer',
+  'Szukaj (Ctrl+K)': 'Search (Ctrl+K)',
 
   // src/components/AccessGate.tsx
   'Jeszcze nie widzimy potwierdzenia. Kliknij link w mailu i spróbuj ponownie.': 'We do not see the confirmation yet. Click the link in the email and try again.',
@@ -343,7 +347,6 @@ export const EN: Record<string, string> = {
   'nazwa, kod albo link z USOSweb': 'name, code or link from USOSweb',
   'Nazwa, kod albo link przedmiotu': 'Course name, code or link',
   'Szukam…': 'Searching…',
-  'Szukaj': 'Search',
   'Nic nie znalazłem w tym semestrze. Spróbuj innej nazwy albo „Wszędzie” - albo wklej kod przedmiotu lub link do niego z USOSweb.': 'Nothing found this semester. Try another name or “Everywhere” - or paste the course code or its link from USOSweb.',
   'USOS pokazuje najwyżej 100 wyników, więc część mogła się nie zmieścić. Nie ma Twojego przedmiotu? Wklej jego kod (np. 6420-EEH60-0SA-0008) albo link do strony przedmiotu z USOSweb.': 'USOS shows at most 100 results, so some may be missing. Your course is not there? Paste its code (e.g. 6420-EEH60-0SA-0008) or the link to its USOSweb page.',
   'Przedmiot, który już masz w planie, jest wyszarzony - drugi raz nie ma sensu. Jego grupę możesz zmienić w „Dobierz grupy” (zajęcia z wyborem grup i propozycje).': 'A course you already have in your timetable is greyed out - taking it twice makes no sense. You can change its group in “Find groups” (classes with a choice of groups and suggestions).',
@@ -797,6 +800,14 @@ export const EN: Record<string, string> = {
   'Kiedy przypominać o terminach': 'When to remind about deadlines',
   'Te ustawienia są wspólne dla wszystkich Twoich urządzeń z włączonymi powiadomieniami.': 'These settings are shared by all your devices with notifications on.',
 
+  // src/components/SearchPanel.tsx
+  'Sale': 'Rooms',
+  'Materiały': 'Materials',
+  'Ustawienia i funkcje': 'Settings and features',
+  'Wyszukiwanie': 'Search',
+  'Przedmioty, prowadzący, zasady zaliczenia, terminy, sale, notatki, materiały i ustawienia - wpisz kilka liter.': 'Courses, lecturers, assessment rules, deadlines, rooms, notes, materials and settings - type a few letters.',
+  'Nic nie znaleziono dla „{query}”.': 'Nothing found for “{query}”.',
+
   // src/components/SettingsView.tsx
   'Wylogować się i usunąć plan z tej przeglądarki? Plan zapisany na koncie zostaje.': 'Sign out and remove the timetable from this browser? The timetable saved to your account stays.',
   'Usunąć plan i zapisany link z tej przeglądarki?': 'Remove the timetable and saved link from this browser?',
@@ -1101,6 +1112,18 @@ export const EN: Record<string, string> = {
   ' o {time}': ' at {time}',
   'Za tydzień, {day} {date}': 'In a week, {day} {date}',
   'Za godzinę': 'In an hour',
+
+  // src/lib/searchIndex.ts
+  'Koordynator': 'Coordinator',
+  'Sala {room}': 'Room {room}',
+  'Następne: {when} – {course}': 'Next: {when} – {course}',
+  'Notatka ogólna w zakładce Przedmioty': 'General note in the Courses tab',
+  'Link': 'Link',
+  'Plik': 'File',
+  'Program studiów · sem. {n} · {ects} ECTS': 'Study programme · sem. {n} · {ects} ECTS',
+  'Język': 'Language',
+  'Dodaj termin': 'Add deadline',
+  'Dodaj zajęcia': 'Add class',
 
   // src/lib/staff.ts
   'Koordynator przedmiotu': 'Course coordinator',

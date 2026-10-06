@@ -26,7 +26,7 @@ export interface PlanUi {
   materials: SharedMaterialsApi | null // wspólne pliki przedmiotów; null = niezalogowany
   openCourse: (courseName: string) => void
   openOptimizer: () => void // "Dobierz grupy"
-  openProgram: () => void // program studiów
+  openProgram: (course?: string) => void // program studiów; course - od razu ten przedmiot
   // eksport planu (zdjęcie, PDF, Excel, kalendarz); source = inny plan, np. propozycja z optymalizatora
   openExport: (weekStart: Date, source?: ExportSource) => void
   openHelp: () => void // pomoc i prywatność

@@ -119,7 +119,7 @@ test('lektorat, który już jest w planie, nie da się wybrać drugi raz', async
   await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
   await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
   await page.getByLabel('Nazwa, kod albo link przedmiotu').fill(LANG)
-  await page.getByRole('button', { name: 'Szukaj' }).click()
+  await page.getByRole('button', { name: 'Szukaj', exact: true }).click()
   await expect(page.getByText(/· już masz w planie/)).toBeVisible()
   await expect(page.getByRole('checkbox', { name: /Język angielski - poziom B2/ })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Dopasuj grupy' })).toBeDisabled()
@@ -416,7 +416,7 @@ test('lektorat: wklejony link z USOSweb znajduje przedmiot', async ({ page }) =>
   await page
     .getByLabel('Nazwa, kod albo link przedmiotu')
     .fill('https://usosweb.usos.pw.edu.pl/kontroler.php?_action=katalog2/przedmioty/pokazPrzedmiot&prz_kod=6420-EEH60-0SA-0008')
-  await page.getByRole('button', { name: 'Szukaj' }).click()
+  await page.getByRole('button', { name: 'Szukaj', exact: true }).click()
   await expect(page.getByText('Język angielski - poziom B2')).toBeVisible()
   await expect(page.getByText('6420-EEH60-0SA-0008')).toBeVisible()
   // Jeden wynik jest od razu zaznaczony - można dopasowywać grupy.
@@ -462,7 +462,7 @@ test('lektorat w propozycjach: grupa kolidująca z planem mieści się po zmiani
   await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
   await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
   await page.getByLabel('Nazwa, kod albo link przedmiotu').fill(LANG)
-  await page.getByRole('button', { name: 'Szukaj' }).click()
+  await page.getByRole('button', { name: 'Szukaj', exact: true }).click()
   await page.getByRole('button', { name: 'Dopasuj grupy' }).click()
   await expect(page.getByText('Każda grupa koliduje z Twoim planem.')).toBeVisible()
 
@@ -580,4 +580,80 @@ test('kalendarz akademicki: święto przy dniu w tygodniu', async ({ page }) => 
   await expect(
     page.getByText('Narodowe Święto Niepodległości').or(page.getByTitle('Narodowe Święto Niepodległości')).first(),
   ).toBeVisible()
+})
+
+test('wyszukiwanie: lupa (Android, komputer) - przedmiot, sala, ustawienie', async ({ page }, info) => {
+  test.skip(info.project.name === 'iphone', 'na iPhonie wyszukiwanie otwiera pociągnięcie w dół')
+  const open = async () => {
+    await page.getByRole('button', { name: 'Szukaj w Planerze' }).click()
+    await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toBeVisible()
+  }
+  const search = page.getByRole('searchbox', { name: 'Szukaj' })
+
+  // Przedmiot - bez polskich znaków i od środka nazwy; Enter otwiera pierwszy wynik.
+  await open()
+  await search.fill('analiza mat')
+  await expect(page.locator('.search-hit').first()).toContainText('Analiza matematyczna')
+  await search.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Analiza matematyczna' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toHaveCount(0)
+
+  // Sala: kiedy najbliższe zajęcia.
+  await open()
+  await search.fill('418')
+  await expect(page.locator('.search-group', { hasText: 'Sale' }).getByText(/Sala 418/)).toBeVisible()
+  await search.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toHaveCount(0)
+
+  // Ustawienie: przejście prosto do sekcji.
+  await open()
+  await search.fill('kolory')
+  await page.locator('.search-hit', { hasText: 'Kolory zajęć' }).click()
+  await expect(page.locator('#settings-colors')).toBeInViewport()
+
+  // Nic nie pasuje.
+  await open()
+  await search.fill('xyzqw')
+  await expect(page.getByText('Nic nie znaleziono dla „xyzqw”.')).toBeVisible()
+})
+
+test('wyszukiwanie: Ctrl+K na komputerze', async ({ page }, info) => {
+  test.skip(info.project.name !== 'komputer', 'skrót klawiszowy - komputer')
+  await page.keyboard.press('Control+k')
+  await expect(page.getByRole('searchbox', { name: 'Szukaj' })).toBeFocused()
+})
+
+test('wyszukiwanie: na iPhonie bez lupy', async ({ page }, info) => {
+  test.skip(info.project.name !== 'iphone', 'tylko iPhone')
+  await expect(page.getByRole('heading', { name: 'Planer' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Szukaj w Planerze' })).toHaveCount(0)
+})
+
+test.describe('wyszukiwanie: pociągnięcie w dół (jak na iPhonie)', () => {
+  // Syntetyczny dotyk działa w Chromium - telefon z Androidem udaje iPhone'a.
+  test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' })
+
+  test('pociągnięcie otwiera wyszukiwanie, krótkie - nie', async ({ page }, info) => {
+    test.skip(info.project.name !== 'android', 'syntetyczny dotyk - tylko Chromium z ekranem dotykowym')
+    await expect(page.getByRole('button', { name: 'Szukaj w Planerze' })).toHaveCount(0)
+    const pullDown = (to: number) =>
+      page.evaluate(`(async () => {
+        const el = document.querySelector('.topbar')
+        const touch = (y) => new Touch({ identifier: 1, target: el, clientX: 180, clientY: y })
+        const fire = (type, y) => {
+          const t = touch(y)
+          el.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }))
+        }
+        fire('touchstart', 150)
+        for (let y = 150; y <= ${to}; y += 30) {
+          await new Promise((r) => setTimeout(r, 16))
+          fire('touchmove', y)
+        }
+        fire('touchend', ${to})
+      })()`)
+    await pullDown(210) // za mało
+    await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toHaveCount(0)
+    await pullDown(390)
+    await expect(page.getByRole('searchbox', { name: 'Szukaj' })).toBeVisible()
+  })
 })

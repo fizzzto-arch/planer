@@ -85,7 +85,7 @@ export function SettingsView({
       <ColorsPanel typeColors={typeColors} signedIn={signedIn} />
       <AliasesPanel prefsApi={prefsApi} courseNames={courseNames} />
 
-      <div className="panel">
+      <div className="panel" id="settings-source">
         <h3 className="panel-title">{t('Źródło planu')}</h3>
         <dl className="facts">
           <dt>{t('Źródło')}</dt>

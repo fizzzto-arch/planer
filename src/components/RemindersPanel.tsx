@@ -96,7 +96,7 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
     update({ reminders: REMINDER_KINDS.map((k) => k.id).filter((id) => (id === kind ? on : prefs.reminders.includes(id))) })
 
   return (
-    <div className="panel">
+    <div className="panel" id="settings-reminders">
       <h3 className="panel-title">{t('Przypomnienia o terminach')}</h3>
       {!extras ? (
         <p className="muted">{t('Zaloguj się, żeby dostawać przypomnienia o kolokwiach i terminach.')}</p>

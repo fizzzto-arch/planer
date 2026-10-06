@@ -12,7 +12,7 @@ export function ColorsPanel({ typeColors, signedIn }: Props) {
   const { colors, setColor, reset, isCustom } = typeColors
 
   return (
-    <div className="panel">
+    <div className="panel" id="settings-colors">
       <h3 className="panel-title">{t('Kolory zajęć')}</h3>
       <p className="hint">
         {t('Domyślnie jak w USOS. Kliknij kolor, żeby go zmienić.')}

@@ -17,7 +17,7 @@ export function BackupPanel({ extras }: Props) {
 
   if (!extras) {
     return (
-      <div className="panel">
+      <div className="panel" id="settings-backup">
         <h3 className="panel-title">{t('Kopia zapasowa')}</h3>
         <p className="hint">{t('Zaloguj się, żeby zapisać kopię notatek, terminów i zmian planu.')}</p>
       </div>
@@ -58,7 +58,7 @@ export function BackupPanel({ extras }: Props) {
   }
 
   return (
-    <div className="panel">
+    <div className="panel" id="settings-backup">
       <h3 className="panel-title">{t('Kopia zapasowa')}</h3>
       <p className="hint">{t('Notatki, terminy, zmiany planu, skróty nazw, kolory i ustawienia - w jednym pliku.')}</p>
       <div className="button-row">

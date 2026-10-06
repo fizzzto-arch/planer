@@ -6,7 +6,7 @@ import { SwitchSetting } from './SettingControls'
 export function SharingPanel({ prefsApi, email }: { prefsApi: PrefsApi; email: string | null }) {
   const { prefs, update } = prefsApi
   return (
-    <div className="panel">
+    <div className="panel" id="settings-sharing">
       <h3 className="panel-title">{t('Wspólne okienka')}</h3>
       <SwitchSetting
         label={t('Pokazuj znajomym, kiedy mam zajęcia')}

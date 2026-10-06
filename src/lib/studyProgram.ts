@@ -37,6 +37,9 @@ export interface StudyProgram {
 
 export const SYLLABUS_URL = 'https://ects.pw.edu.pl/menu3/view2/idPrzedmiot/'
 
+// Identyfikator przedmiotu na stronie programu (przejście do niego np. z wyszukiwania).
+export const programCourseDomId = (name: string) => `program-course-${normalizeCourseName(name).replace(/ /g, '-')}`
+
 // Nazwa do porównań: małe litery, bez interpunkcji. "Matematyka - Analiza 2" pasuje też do "Analiza 2".
 export function normalizeCourseName(name: string): string {
   return name

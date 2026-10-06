@@ -35,7 +35,11 @@ import { usePrefs } from './hooks/usePrefs'
 import { displayName } from './lib/prefs'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
-import { formatUpdatedAt, toDateKey, toTimeKey } from './lib/dates'
+import { formatUpdatedAt, startOfWeek, toDateKey, toTimeKey } from './lib/dates'
+import { isIOS } from './lib/platform'
+import { revealWhenReady } from './lib/reveal'
+import type { SearchAction } from './lib/searchIndex'
+import { PULL_THRESHOLD, usePullToSearch } from './hooks/usePullToSearch'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 import { withLanguageClasses } from './lib/usos'
@@ -50,6 +54,7 @@ const SettingsView = lazy(() => import('./components/SettingsView').then((m) => 
 const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
 const FeedbackView = lazy(() => import('./components/FeedbackView').then((m) => ({ default: m.FeedbackView })))
 const ProgramView = lazy(() => import('./components/ProgramView').then((m) => ({ default: m.ProgramView })))
+const SearchPanel = lazy(() => import('./components/SearchPanel').then((m) => ({ default: m.SearchPanel })))
 
 // Funkcja, nie stała - tekst w bieżącym języku.
 const loading = () => (
@@ -202,7 +207,7 @@ function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extr
 type Page =
   | { kind: 'course'; name: string }
   | { kind: 'optimizer' }
-  | { kind: 'program' } // program studiów (semestry i przedmioty z sylabusami)
+  | { kind: 'program'; course?: string } // program studiów; course - przedmiot do pokazania (np. z wyszukiwania)
   | { kind: 'export'; weekStart: number } // tydzień, z którego otwarto eksport
   | { kind: 'help' }
   | { kind: 'feedback' } // uwagi i pomysły (administrator: skrzynka zgłoszeń)
@@ -213,13 +218,14 @@ function readPageFromHistory(): Page {
     course?: unknown
     optimizer?: unknown
     program?: unknown
+    programCourse?: unknown
     export?: unknown
     help?: unknown
     feedback?: unknown
   } | null
   if (typeof state?.course === 'string') return { kind: 'course', name: state.course }
   if (state?.optimizer === true) return { kind: 'optimizer' }
-  if (state?.program === true) return { kind: 'program' }
+  if (state?.program === true) return { kind: 'program', course: typeof state.programCourse === 'string' ? state.programCourse : undefined }
   if (typeof state?.export === 'number') return { kind: 'export', weekStart: state.export }
   if (state?.help === true) return { kind: 'help' }
   if (state?.feedback === true) return { kind: 'feedback' }
@@ -347,10 +353,10 @@ function App() {
     window.scrollTo({ top: 0 })
   }, [])
 
-  const openProgram = useCallback(() => {
-    pageNow.current = { kind: 'program' }
-    window.history.pushState({ program: true }, '')
-    setPage({ kind: 'program' })
+  const openProgram = useCallback((course?: string) => {
+    pageNow.current = { kind: 'program', course }
+    window.history.pushState({ program: true, programCourse: course }, '')
+    setPage({ kind: 'program', course })
     setEnter('rise')
     window.scrollTo({ top: 0 })
   }, [])
@@ -390,6 +396,23 @@ function App() {
     }
   }, [])
 
+  // Wyszukiwanie: lupa (Android, komputer), Ctrl+K albo "/" (komputer), pociągnięcie w dół (iPhone).
+  const [searchOpen, setSearchOpen] = useState(false)
+  const ios = useMemo(() => isIOS(), [])
+  const pull = usePullToSearch(ios && !searchOpen, () => setSearchOpen(true))
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable="true"]')
+      if ((e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey)) {
+        if (document.querySelector('dialog[open]')) return
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // Zmiana zakładki: nowy widok wjeżdża z tej strony, w którą "idziemy".
   const changeView = useCallback(
     (next: View) => {
@@ -401,6 +424,38 @@ function App() {
       setView(next)
     },
     [view, page, closePage],
+  )
+
+  // Wybrany wynik wyszukiwania.
+  const runSearchAction = useCallback(
+    (action: SearchAction) => {
+      switch (action.type) {
+        case 'course':
+          return openCourse(action.name)
+        case 'deadline':
+          return setDeadlineDraft(action.deadline)
+        case 'settings':
+          changeView('settings')
+          return revealWhenReady(action.anchor)
+        case 'program':
+          return openProgram(action.course)
+        case 'view':
+          return changeView(action.view)
+        case 'export':
+          return openExport(startOfWeek(new Date()))
+        case 'optimizer':
+          return openOptimizer()
+        case 'help':
+          return openHelp()
+        case 'feedback':
+          return changeView('report')
+        case 'addDeadline':
+          return setDeadlineDraft({})
+        case 'addMeeting':
+          return setCustomDraft({})
+      }
+    },
+    [openCourse, changeView, openProgram, openExport, openOptimizer, openHelp],
   )
 
   // Gest "wstecz": przesunięcie w prawo na podstronie. Aplikacja z ekranu początkowego nie ma paska Safari,
@@ -717,6 +772,8 @@ function App() {
           <div className="brand-row">
             <h1 className="brand">Planer</h1>
             <div className="brand-actions">
+              {/* Na iPhonie wyszukiwanie otwiera pociągnięcie w dół (jak w Ustawieniach iOS), gdzie indziej - lupa. */}
+              {!ios && <SearchButton onClick={() => setSearchOpen(true)} />}
               <ShareAppButton />
               <LanguageToggle value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
             </div>
@@ -745,7 +802,7 @@ function App() {
                 {page?.kind === 'optimizer' && canOptimize ? (
                   <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
                 ) : page?.kind === 'program' ? (
-                  <ProgramView meetings={meetings} now={now} onBack={closePage} />
+                  <ProgramView meetings={meetings} now={now} focusCourse={page.course} onBack={closePage} />
                 ) : page?.kind === 'help' ? (
                   <HelpView onBack={closePage} onFeedback={cloud.uid ? openFeedback : undefined} />
                 ) : page?.kind === 'feedback' && cloud.uid ? (
@@ -803,8 +860,38 @@ function App() {
             onClose={() => setCustomDraft(null)}
           />
         )}
+        {pull > 0 && (
+          <div
+            className={`pull-search${pull >= PULL_THRESHOLD ? ' is-ready' : ''}`}
+            style={{ transform: `translate(-50%, ${pull - 46}px)`, opacity: Math.min(1, pull / PULL_THRESHOLD) }}
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m15.5 15.5 5 5" />
+            </svg>
+            {pull >= PULL_THRESHOLD ? t('Puść, żeby szukać') : t('Szukaj')}
+          </div>
+        )}
+        {searchOpen && (
+          <Suspense fallback={null}>
+            <SearchPanel meetings={meetings} now={now} onClose={() => setSearchOpen(false)} onAction={runSearchAction} />
+          </Suspense>
+        )}
       </main>
     </PlanUiContext.Provider>
+  )
+}
+
+// Lupa w górnym pasku (Android, komputer) - otwiera wyszukiwanie; na komputerze także Ctrl+K i "/".
+function SearchButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="share-app search-app" aria-label={t('Szukaj w Planerze')} title={t('Szukaj (Ctrl+K)')} onClick={onClick}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10.5" cy="10.5" r="6.5" />
+        <path d="m15.5 15.5 5 5" />
+      </svg>
+    </button>
   )
 }
 

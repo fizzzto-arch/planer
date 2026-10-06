@@ -16,7 +16,7 @@ export function AccountPanel({ cloud }: Props) {
   if (state.kind === 'disabled') return null
 
   return (
-    <div className="panel">
+    <div className="panel" id="settings-account">
       <h3 className="panel-title">{t('Konto i synchronizacja')}</h3>
       {state.kind === 'loading' && <p className="muted">{t('Łączenie…')}</p>}
 

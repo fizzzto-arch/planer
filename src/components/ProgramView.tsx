@@ -1,6 +1,7 @@
 import { msg, t, tk } from '../lib/i18n'
-import { useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
+import { revealElement, revealWhenReady } from '../lib/reveal'
 import type { PlanMeeting } from '../lib/edits'
 import { plural } from '../lib/plural'
 import { PROGRAM } from '../lib/programs/ib'
@@ -12,7 +13,7 @@ import {
   hoursProgress,
   isElective,
   meetingsDone,
-  normalizeCourseName,
+  programCourseDomId,
   programPosition,
   semesterEcts,
   semesterLoad,
@@ -23,6 +24,7 @@ import {
 interface Props {
   meetings: PlanMeeting[]
   now: Date
+  focusCourse?: string // przedmiot z programu do pokazania od razu (np. z wyszukiwania)
   onBack: () => void
 }
 
@@ -45,24 +47,11 @@ const shortYear = (year: string) => year.replace(/^(\d{4})\/\d{2}(\d{2})$/, '$1/
 const DEGREES: Record<string, string> = { inż: msg('studia inżynierskie'), mgr: msg('studia magisterskie') }
 
 const semesterId = (n: number) => `program-semester-${n}`
-const courseId = (name: string) => `program-course-${normalizeCourseName(name).replace(/ /g, '-')}`
+const courseId = programCourseDomId
 const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0)
 
-// Przejście do semestru albo przedmiotu: rozwija go (i wszystko, w czym leży) i przewija do niego.
-function reveal(id: string) {
-  const el = document.getElementById(id)
-  if (!el) return
-  for (let node: HTMLElement | null = el; node; node = node.parentElement) {
-    if (node instanceof HTMLDetailsElement) node.open = true
-  }
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  el.classList.remove('is-flash')
-  void el.offsetWidth // ponowne odpalenie animacji przy kolejnym przejściu
-  el.classList.add('is-flash')
-}
-
 // Cały program kierunku: semestry z przedmiotami, punktami i sylabusami (z Katalogu ECTS PW).
-export function ProgramView({ meetings, now, onBack }: Props) {
+export function ProgramView({ meetings, now, focusCourse, onBack }: Props) {
   const { openCourse } = usePlanUi()
   const program: StudyProgram = PROGRAM
   const position = useMemo(() => programPosition(program, currentCourseNames(meetings, now)), [program, meetings, now])
@@ -70,6 +59,10 @@ export function ProgramView({ meetings, now, onBack }: Props) {
   const total = program.semesters.at(-1)?.number ?? 0
   const year = shortYear(program.year)
   const current = position.semester
+
+  useEffect(() => {
+    if (focusCourse) revealWhenReady(courseId(focusCourse))
+  }, [focusCourse])
 
   // Godziny zajęć za Tobą: wcześniejsze semestry w całości, obecny - z odbytych zajęć w planie
   // (rośnie z każdymi zajęciami, także w trakcie).
@@ -111,7 +104,7 @@ export function ProgramView({ meetings, now, onBack }: Props) {
             style={{ '--hours': Math.max(s.hours, 1) } as CSSProperties}
             aria-label={t('Semestr {n}', { n: s.number })}
             aria-current={s.number === current ? 'step' : undefined}
-            onClick={() => reveal(semesterId(s.number))}
+            onClick={() => revealElement(semesterId(s.number))}
           >
             <span className="program-step-bar">
               <span style={{ width: `${percent(s.done, s.hours)}%` }} />
@@ -270,7 +263,7 @@ function CourseItem({ course, planName, usedIn, year, onOpenCourse }: CourseProp
               <h4>{t('Przyda się w')}</h4>
               <div className="program-links">
                 {usedIn.map((u) => (
-                  <button key={u.name} type="button" className="program-link" onClick={() => reveal(courseId(u.name))}>
+                  <button key={u.name} type="button" className="program-link" onClick={() => revealElement(courseId(u.name))}>
                     {u.name} <span>· {t('sem. {n}', { n: u.semester })}</span>
                   </button>
                 ))}
