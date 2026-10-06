@@ -6,8 +6,20 @@ import { ASSESSMENTS } from './programs/ibAssessment'
 
 describe('zaliczenie przedmiotu', () => {
   it('jedna linijka na liście przedmiotów: skrót z regulaminu albo złożona z wierszy', () => {
-    expect(assessmentLine(ASSESSMENTS['Podstawy Automatyki'])).toBe('egzamin (55 pkt) · 7 ćwiczeń lab. (35 pkt)')
-    expect(assessmentLine(ASSESSMENTS['Mechanika i Wytrzymałość materiałów'])).toBe('ćwiczenia – kolokwia – 50% oceny · egzamin – 50% oceny')
+    expect(assessmentLine(ASSESSMENTS['Podstawy Automatyki'])).toBe('egzamin 55 pkt · lab. 35 pkt')
+    expect(assessmentLine({ ...ASSESSMENTS['Mechanika i Wytrzymałość materiałów'], summary: undefined })).toBe('ćwiczenia – kolokwia – 50% oceny · egzamin – 50% oceny')
+  })
+
+  it('każdy przedmiot ma krótką wersję na listę (mieści się w linijce na telefonie)', () => {
+    for (const [name, a] of Object.entries(ASSESSMENTS)) {
+      expect(a.summary, name).toBeTruthy()
+      expect(a.summary!.length, name).toBeLessThanOrEqual(33)
+    }
+  })
+
+  it('nazewnictwo: kolokwium, nie sprawdzian (krótkie testy przed zajęciami - wejściówki)', () => {
+    const all = JSON.stringify(ASSESSMENTS)
+    expect(all).not.toMatch(/sprawdzian/i)
   })
 
   it('semestr 3: zasady z regulaminów 2026/27 (poza Laboratorium elektrotechniki - bez regulaminu)', () => {

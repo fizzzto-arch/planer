@@ -3788,13 +3788,11 @@ label.setting-row {
   color: var(--muted);
 }
 
-/* Na liście przedmiotów - najwyżej dwie linijki. */
+/* Na liście przedmiotów - jedna linijka (krótka wersja zasad); pełne na stronie przedmiotu. */
 .course-row-assessment {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .assessment-notes h4 {
