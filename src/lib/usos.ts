@@ -153,13 +153,26 @@ export function parseUsosCalendar(text: string): Meeting[] {
 // poprzedniej wersji wszystko, co zaczęło się przed chwilą pobrania.
 const HISTORY_DAYS = 180
 
+//
+// Te same zajęcia rozpoznajemy też po terminie, nie tylko po identyfikatorze: USOS potrafi nadać
+// zajęciom nowy identyfikator, a trwające zajęcia są jeszcze w świeżych danych - stara kopia
+// z historii i nowa pokazywałyby się obok siebie.
+const sameClass = (m: Meeting) => `${m.courseName}|${m.type}|${m.start.getTime()}|${m.end.getTime()}`
+
 export function mergeWithHistory(previous: Meeting[], fresh: Meeting[], now: Date): Meeting[] {
   const cutoff = now.getTime()
   const oldest = cutoff - HISTORY_DAYS * 24 * 60 * 60 * 1000
   const freshIds = new Set(fresh.map((m) => m.id))
-  const kept = previous.filter((m) => {
+  const taken = new Set(fresh.map(sameClass))
+  const kept: Meeting[] = []
+  // Od końca: z dwóch kopii w historii zostaje nowsza (z późniejszego pobrania).
+  for (let i = previous.length - 1; i >= 0; i--) {
+    const m = previous[i]
     const item = m.start.getTime()
-    return item < cutoff && item >= oldest && !freshIds.has(m.id)
-  })
+    const key = sameClass(m)
+    if (item >= cutoff || item < oldest || freshIds.has(m.id) || taken.has(key)) continue
+    taken.add(key)
+    kept.push(m)
+  }
   return [...kept, ...fresh].sort((a, b) => a.start.getTime() - b.start.getTime())
 }

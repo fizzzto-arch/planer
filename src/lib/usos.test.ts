@@ -106,6 +106,17 @@ describe('mergeWithHistory', () => {
     const merged = mergeWithHistory([trwajace], [trwajace], now)
     expect(merged).toHaveLength(1)
   })
+
+  it('te same zajęcia z nowym identyfikatorem z USOS - jedna kopia (także w starej historii)', () => {
+    const now = new Date(2026, 9, 6, 17)
+    const as = (id: string, m: Meeting) => ({ ...m, id })
+    const monday = at('pon', 5, 16)
+    const tuesday = at('wt', 6, 16) // trwa w chwili pobrania - jest w świeżych danych z nowym id
+    // Historia sprzed poprawki: poniedziałkowe zajęcia już dwa razy (stary i nowy identyfikator).
+    const previous = [as('pon-stare', monday), as('pon-nowe', monday), as('wt-stare', tuesday)]
+    const merged = mergeWithHistory(previous, [as('wt-nowe', tuesday)], now).map((m) => m.id)
+    expect(merged).toEqual(['pon-nowe', 'wt-nowe'])
+  })
 })
 
 describe('drobne formatowanie', () => {
