@@ -140,17 +140,15 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: /Program studiów/ }).click()
   await expect(page.getByText('Semestr 3 z 7')).toBeVisible()
-  await expect(page.getByText('60 ECTS za Tobą')).toBeVisible()
+  // Postęp w godzinach: semestry 1-2 (780 h) z całego programu (1740 h); zajęcia z planu jeszcze przed nami.
+  await expect(page.getByText('780 z 1740 h zajęć (45%)')).toBeVisible()
   const third = page.locator('#program-semester-3')
   await expect(third.locator('.program-semester-load')).toHaveText('7 przedmiotów · 4 egzaminy')
 
   // Bieżący semestr otwarty, przedmiot z planu oznaczony; po stuknięciu - sylabus.
   const radiology = page.locator('.program-course', { has: page.locator('.program-course-name', { hasText: /^Radiologia/ }) })
   await expect(radiology.getByText('w planie')).toBeVisible()
-  // Postęp z planu (jedne zajęcia, w piątek) i godziny jako znaczki.
-  await expect(radiology.getByText(/0 z 1 zajęć za Tobą · następne: Pt., 16.10 10:15/)).toBeVisible()
-  await expect(radiology.locator('.program-form')).toHaveText(['W 30', 'L 15'])
-  await expect(radiology.locator('.program-exam')).toHaveText('egzamin')
+  await expect(radiology.locator('.program-course-meta')).toHaveText('wyk. 30 h · lab. 15 h · egzamin')
   await radiology.locator('summary').first().click()
   await expect(radiology.getByText(/wykład - zaliczenie na podstawie egzaminu/)).toBeVisible()
   // Zamiast ściany tekstu z sylabusa - krótki opis i tematy.
@@ -181,10 +179,54 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
   await expect(page.getByText('Semestr 3 z 7')).toBeVisible()
 })
 
+test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium jednym stuknięciem', async ({ page }) => {
+  await page.evaluate(() => {
+    const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 15).getTime()
+    const names = ['Grafika komputerowa', 'Radiologia', 'Podstawy automatyki', 'Laboratorium elektrotechniki']
+    const meetings = names.map((courseName, i) => ({
+      id: `ib-${i}`, courseName, type: i === 2 ? 'CWI' : 'WYK', start: at(15 + i, 10), end: at(15 + i, 12), room: '1', building: null,
+      address: null, groupNumber: 1, unitId: null, usosUrl: null, cancelled: false,
+    }))
+    localStorage.setItem('planer.plan.v1', JSON.stringify({ source: { kind: 'file', name: 'ib.ics' }, updatedAt: Date.now(), meetings }))
+  })
+  await page.reload()
+  await tab(page, 'Przedmioty').click()
+  const row = page.locator('.course-row', { hasText: 'Podstawy automatyki' })
+  await expect(row.getByText('Zaliczenie: ćwiczenia – kolokwia · egzamin końcowy')).toBeVisible()
+  await row.click()
+
+  const panel = page.locator('.assessment')
+  await expect(panel.getByRole('heading', { name: 'Zaliczenie' })).toBeVisible()
+  await expect(panel.locator('.assessment-form')).toHaveText(['Ćwiczenia', 'Całość'])
+  await expect(panel.getByText(/Na podstawie: sylabus 2021\/22/)).toBeVisible()
+
+  // "+ Dodaj datę" przy kolokwiach - edytor z rodzajem i tytułem, zostaje tylko wpisać datę.
+  const colloquia = panel.locator('li', { hasText: 'kolokwia' })
+  await colloquia.getByRole('button', { name: '+ Dodaj datę' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Tytuł')).toHaveValue('Kolokwium 1')
+  await expect(dialog.getByRole('radio', { name: 'Kolokwium' })).toBeChecked()
+  await dialog.getByLabel('Data').fill('2026-10-28')
+  await dialog.getByLabel('Godzina').fill('10:15')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(colloquia.getByText('w terminach: 1')).toBeVisible()
+  // Egzamin jest jeden - po dodaniu przycisk znika.
+  const exam = panel.locator('li', { hasText: 'egzamin końcowy' })
+  await exam.getByRole('button', { name: '+ Dodaj datę' }).click()
+  await expect(dialog.getByLabel('Tytuł')).toHaveValue('Egzamin')
+  await dialog.getByLabel('Data').fill('2027-02-03')
+  await dialog.getByLabel('Godzina').fill('09:00')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(exam.getByText('w terminach: 1 z 1')).toBeVisible()
+  await expect(exam.getByRole('button', { name: '+ Dodaj datę' })).toHaveCount(0)
+})
+
 test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await expect(page.getByText('Nadchodzące terminy')).toBeVisible()
   await expect(page.getByRole('button', { name: /Program studiów/ })).toHaveCount(0)
+  await expect(page.getByText(/^Zaliczenie:/)).toHaveCount(0)
 })
 
 test('plany grup pobierają się raz - potem tylko po "Odśwież"', async ({ page }) => {

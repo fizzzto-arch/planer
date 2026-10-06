@@ -84,6 +84,14 @@ export const EN: Record<string, string> = {
   'Diagnostyka gestów': 'Gesture diagnostics',
   'Pokazuje na dole ekranu, co telefon wysyła przy przesuwaniu palcem. Tylko na tym urządzeniu.': 'Shows at the bottom of the screen what the phone sends while swiping. Only on this device.',
 
+  // src/components/AssessmentSection.tsx
+  'Zaliczenie': 'Assessment',
+  'w terminach: {n} z {total}': 'in deadlines: {n} of {total}',
+  'w terminach: {n}': 'in deadlines: {n}',
+  '+ Dodaj datę': '+ Add date',
+  'Na podstawie: {source}. Dokładne zasady (liczba kolokwiów, punkty, progi) są w regulaminie przedmiotu.': 'Based on: {source}. The exact rules (number of tests, points, thresholds) are in the course regulations.',
+  'Regulamin w USOSweb ↗': 'Regulations in USOSweb ↗',
+
   // src/components/AuthForm.tsx
   'Hasło musi mieć co najmniej {n} znaków.': 'The password must be at least {n} characters long.',
   'Wpisz najpierw swój e-mail, wyślemy na niego link do ustawienia hasła.': 'Enter your email first - we will send a link to set a new password.',
@@ -167,6 +175,7 @@ export const EN: Record<string, string> = {
   'Notatki': 'Notes',
   'Wszystko, co nie dotyczy jednego przedmiotu - np. z czego muszę się przenieść, co załatwić w dziekanacie': 'Anything not about a single course - e.g. which classes I need to switch, what to sort out at the dean’s office',
   'Następne:': 'Next:',
+  'Zaliczenie:': 'Assessment:',
   'termin|terminy|terminów': 'deadline|deadlines',
 
   // src/components/CourseView.tsx
@@ -722,27 +731,22 @@ export const EN: Record<string, string> = {
   'skrót': 'abbreviation',
 
   // src/components/ProgramView.tsx
-  'W': 'Lec',
-  'wykład': 'lecture',
-  'Ć': 'Tut',
-  'ćwiczenia': 'tutorial',
-  'L': 'Lab',
-  'laboratorium': 'laboratory',
-  'P': 'Proj',
-  'projekt': 'project',
-  'K': 'CL',
-  'lekcje komputerowe': 'computer lab',
+  'wyk.': 'lec.',
+  'ćw.': 'tut.',
+  'lab.': 'lab',
+  'proj.': 'proj.',
+  'lek. komp.': 'comp. lab',
   'studia inżynierskie': 'engineering degree (BEng)',
   'studia magisterskie': 'master\'s degree',
   'stacjonarne': 'full-time',
   'Semestry': 'Semesters',
   'Semestr {n}': 'Semester {n}',
   'Semestr {n} z {total}': 'Semester {n} of {total}',
-  '{n} ECTS za Tobą + obieralne': '{n} ECTS done + electives',
-  '{n} ECTS za Tobą': '{n} ECTS done',
+  '{done} z {total} h zajęć ({percent}%)': '{done} of {total} class hours ({percent}%)',
   'Katalog ECTS PW {year}': 'WUT ECTS Catalogue {year}',
   'co to znaczy?': 'what does this mean?',
   'Program z Katalogu ECTS PW dla rocznika {year} - nowszego wydania nie ma. Przedmioty i punkty zgadzają się z obecnym planem, ale prowadzący, literatura i zasady zaliczenia mogły się zmienić.': 'Programme from the WUT ECTS Catalogue for the {year} intake - there is no newer edition. Courses and credits match your current timetable, but lecturers, reading lists and assessment rules may have changed. Course descriptions are in Polish.',
+  'Godziny bez przedmiotów obieralnych.': 'Hours exclude electives.',
   'Katalog ECTS': 'ECTS Catalogue',
   'teraz': 'now',
   'za Tobą': 'done',
@@ -750,14 +754,11 @@ export const EN: Record<string, string> = {
   '{n} ECTS': '{n} ECTS',
   'bez egzaminów': 'no exams',
   'Przedmioty obieralne do wyboru ({n})': 'Electives to choose from ({n})',
-  'w planie': 'in timetable',
   'egzamin': 'exam',
   'specjalność: {name}': 'specialisation: {name}',
-  '{done} z {total} zajęć za Tobą': '{done} of {total} classes done',
-  'następne: {when}': 'next: {when}',
+  'w planie': 'in timetable',
   'Katalog nie ma opisu tego przedmiotu.': 'The catalogue has no description of this course.',
   'Tematy': 'Topics',
-  'Zaliczenie': 'Assessment',
   'Wymagania': 'Prerequisites',
   'Przyda się w': 'Useful later in',
   'sem. {n}': 'sem. {n}',
@@ -960,6 +961,9 @@ export const EN: Record<string, string> = {
   'Zimowa sesja egzaminacyjna': 'Winter exam session',
   'Wakacje wiosenne': 'Spring break',
   'Letnia sesja egzaminacyjna': 'Summer exam session',
+
+  // src/lib/assessment.ts
+  'Całość': 'Whole course',
 
   // src/lib/cloud.ts
   'Nieprawidłowy e-mail lub hasło.': 'Incorrect email or password.',

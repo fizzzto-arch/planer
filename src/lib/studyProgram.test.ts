@@ -4,7 +4,8 @@ import { PROGRAM_NAMES } from './programs/ibNames'
 import {
   currentCourseNames,
   dependents,
-  ectsBefore,
+  hoursProgress,
+  meetingsDone,
   matchesProgram,
   programCourseKey,
   programPosition,
@@ -83,12 +84,29 @@ describe('program studiów', () => {
     ])
   })
 
-  it('obciążenie semestru i punkty za Tobą', () => {
+  it('obciążenie semestru: przedmioty i egzaminy', () => {
     const semester = (n: number) => PROGRAM.semesters.find((s) => s.number === n)!.courses
     expect(semesterLoad(semester(3))).toEqual({ courses: 7, exams: 4 })
     expect(semesterLoad(semester(5)).courses).toBe(5) // bez listy obieralnych
-    expect(ectsBefore(PROGRAM, 3)).toEqual({ ects: 60, electives: false })
-    expect(ectsBefore(PROGRAM, 6).electives).toBe(true)
+  })
+
+  it('postęp w godzinach: wcześniejsze semestry w całości, obecny według odbytych zajęć', () => {
+    const none = hoursProgress(PROGRAM, 3, () => 0)
+    expect(none.total).toBe(1740) // bez przedmiotów obieralnych
+    expect(none.done).toBe(780) // semestry 1 i 2
+    // Radiologia (45 h) w połowie - 22,5 h więcej.
+    const half = hoursProgress(PROGRAM, 3, (name) => (name === 'Radiologia' ? 0.5 : 0))
+    expect(half.done).toBe(802.5)
+    expect(half.semesters.find((s) => s.number === 3)).toEqual({ number: 3, hours: 300, done: 22.5 })
+    expect(hoursProgress(PROGRAM, null, () => 1).done).toBe(0)
+  })
+
+  it('odbyte zajęcia: skończone w całości, trwające w części, odwołane się nie liczą', () => {
+    const at = (day: number, hour: number) => ({ start: new Date(2026, 9, day, hour), end: new Date(2026, 9, day, hour + 2) })
+    const now = new Date(2026, 9, 14, 11) // w połowie zajęć 14.10 10:00-12:00
+    const meetings = [at(7, 10), at(14, 10), at(21, 10), { ...at(28, 10), cancelled: true }]
+    expect(meetingsDone(meetings, now)).toBeCloseTo(1.5 / 3)
+    expect(meetingsDone([], now)).toBe(0)
   })
 
   it('obecne przedmioty: zajęcia z ostatnich dwóch tygodni, bez historii poprzedniego semestru', () => {

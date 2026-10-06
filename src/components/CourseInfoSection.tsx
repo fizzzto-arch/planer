@@ -1,6 +1,6 @@
 import { t } from '../lib/i18n'
-import { useEffect, useState } from 'react'
-import { fetchCourseId, loadCachedCourseId, meetingCounts, saveCachedCourseId, USOSWEB_COURSE_URL } from '../lib/courseInfo'
+import { useCourseId } from '../hooks/useCourseId'
+import { meetingCounts, USOSWEB_COURSE_URL } from '../lib/courseInfo'
 import { typeLabel, type Meeting } from '../lib/usos'
 
 interface Props {
@@ -10,27 +10,7 @@ interface Props {
 
 // Postęp: ile spotkań każdego typu za Tobą, i link do przedmiotu w USOSweb (literatura, zaliczenie).
 export function CourseInfoSection({ meetings, now }: Props) {
-  const unitId = meetings.find((m) => m.unitId)?.unitId ?? null
-  const [courseId, setCourseId] = useState<{ unitId: string; id: string } | null>(() => {
-    const cached = unitId ? loadCachedCourseId(unitId) : null
-    return cached && unitId ? { unitId, id: cached } : null
-  })
-  const current = courseId?.unitId === unitId ? courseId.id : null
-
-  useEffect(() => {
-    if (!unitId || current) return
-    let cancelled = false
-    fetchCourseId(unitId)
-      .then((id) => {
-        if (cancelled) return
-        saveCachedCourseId(unitId, id)
-        setCourseId({ unitId, id })
-      })
-      .catch(() => undefined) // bez linku - postęp i tak widać
-    return () => {
-      cancelled = true
-    }
-  }, [unitId, current])
+  const current = useCourseId(meetings.find((m) => m.unitId)?.unitId ?? null)
 
   const counts = meetingCounts(meetings, now)
   if (counts.length === 0) return null

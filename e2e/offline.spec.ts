@@ -8,7 +8,11 @@ test('bez internetu: start z pamięci telefonu, plan widoczny', async ({ page, c
   await page.goto('./')
   await expect(page.getByText('Analiza matematyczna').first()).toBeVisible()
   // Service worker przejmuje stronę i zapamiętuje pliki (część już przy instalacji).
-  await page.waitForFunction('navigator.serviceWorker && navigator.serviceWorker.controller')
+  // Warunek jako funkcja, nie napis - napis strona musiałaby wykonać przez eval, a CSP na to nie pozwala.
+  await page.waitForFunction(() => {
+    const nav = (globalThis as unknown as { navigator: { serviceWorker?: { controller: unknown } } }).navigator
+    return Boolean(nav.serviceWorker?.controller)
+  })
   await page.reload()
   await expect(page.getByText('Analiza matematyczna').first()).toBeVisible()
 

@@ -112,12 +112,41 @@ export function semesterEcts(courses: ProgramCourse[]): number {
   return courses.filter((c) => !isElective(c)).reduce((sum, c) => sum + c.ects, 0)
 }
 
-// Punkty z semestrów przed obecnym; electives = któryś miał przedmioty do wyboru (ich punktów nie znamy).
-export function ectsBefore(program: StudyProgram, semester: number): { ects: number; electives: boolean } {
-  const past = program.semesters.filter((s) => s.number < semester)
+export const courseHours = (c: ProgramCourse) => Object.values(c.hours ?? {}).reduce((sum, h) => sum + h, 0)
+
+// Jaka część zajęć się odbyła: skończone liczą się w całości, trwające - w części, która minęła.
+export function meetingsDone(meetings: { start: Date; end: Date; cancelled?: boolean }[], now: Date): number {
+  const held = meetings.filter((m) => !m.cancelled)
+  if (held.length === 0) return 0
+  const time = now.getTime()
+  const done = held.reduce((sum, m) => {
+    const length = m.end.getTime() - m.start.getTime()
+    return sum + (length > 0 ? Math.min(1, Math.max(0, (time - m.start.getTime()) / length)) : time >= m.end.getTime() ? 1 : 0)
+  }, 0)
+  return done / held.length
+}
+
+export interface HoursProgress {
+  total: number
+  done: number
+  semesters: { number: number; hours: number; done: number }[]
+}
+
+// Godziny zajęć całego programu (bez przedmiotów do wyboru - ich godzin nie znamy) i ile z nich za Tobą:
+// wcześniejsze semestry w całości, obecny według odbytych zajęć (fraction: przedmiot z programu -> 0..1).
+export function hoursProgress(program: StudyProgram, current: number | null, fraction: (name: string) => number): HoursProgress {
+  const semesters = program.semesters.map((s) => {
+    const counted = s.courses.filter((c) => !isElective(c))
+    const hours = counted.reduce((sum, c) => sum + courseHours(c), 0)
+    let done = 0
+    if (current !== null && s.number < current) done = hours
+    else if (s.number === current) done = counted.reduce((sum, c) => sum + courseHours(c) * fraction(c.name), 0)
+    return { number: s.number, hours, done }
+  })
   return {
-    ects: past.reduce((sum, s) => sum + semesterEcts(s.courses), 0),
-    electives: past.some((s) => s.courses.some(isElective)),
+    total: semesters.reduce((sum, s) => sum + s.hours, 0),
+    done: semesters.reduce((sum, s) => sum + s.done, 0),
+    semesters,
   }
 }
 

@@ -12,6 +12,9 @@ import { MeetingCard } from './MeetingCard'
 import { NoteField } from './NoteField'
 import { StaffSection } from './StaffSection'
 import { CourseInfoSection } from './CourseInfoSection'
+import { AssessmentSection } from './AssessmentSection'
+import { programAssessments } from '../lib/courseAssessment'
+import { useMemo } from 'react'
 
 interface Props {
   courseName: string
@@ -54,6 +57,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
   const activeDeadlines = deadlines.filter((d) => !d.done && isOpen(d.date))
   const closedDeadlines = deadlines.filter((d) => d.done || !isOpen(d.date))
   const note = extras?.extras.courses.get(courseKey(courseName))?.note ?? ''
+  // Zaliczenie z programu studiów (na razie Inżynieria Biomedyczna) - gdy plan do niego pasuje.
+  const assessment = useMemo(() => programAssessments(meetings, now)?.(courseName) ?? null, [meetings, now, courseName])
 
   return (
     <section className={`course-page type-${typeSlug(summary?.mainType ?? 'INNE')}`}>
@@ -103,6 +108,14 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
                 </details>
               )}
             </div>
+          )}
+
+          {assessment && (
+            <AssessmentSection
+              courseName={courseName}
+              assessment={assessment}
+              unitId={courseMeetings.find((m) => m.unitId)?.unitId ?? null}
+            />
           )}
 
           {/* Prowadzący bieżących zajęć - przedmiot o tej samej nazwie z poprzedniego semestru ma inne grupy. */}

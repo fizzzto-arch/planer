@@ -3432,15 +3432,16 @@ label.setting-row {
   --c: var(--accent);
 }
 
-/* Pasek studiów: odcinek na semestr - za Tobą, teraz, przed Tobą. */
+/* Pasek studiów w godzinach zajęć: odcinek na semestr (długość według godzin), wypełnia się płynnie. */
 .program-steps {
-  display: grid;
-  grid-template-columns: repeat(var(--count, 7), minmax(0, 1fr));
-  gap: 4px;
+  display: flex;
+  gap: 3px;
   margin: 4px 0 6px;
 }
 
 .program-step {
+  flex: var(--hours, 1) 1 0;
+  min-width: 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3458,15 +3459,14 @@ label.setting-row {
   height: 8px;
   border-radius: 4px;
   background: var(--border);
-  transition: background-color 160ms ease;
+  overflow: hidden;
 }
 
-.program-step.is-done .program-step-bar {
-  background: color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-
-.program-step.is-now .program-step-bar {
+.program-step-bar > span {
+  display: block;
+  height: 100%;
   background: var(--accent);
+  transition: width 300ms ease;
 }
 
 .program-step-number {
@@ -3634,60 +3634,9 @@ label.setting-row {
   white-space: nowrap;
 }
 
-/* Godziny w kolorach form zajęć z planu, egzamin na czerwono. */
 .program-course-meta {
   grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.program-form,
-.program-exam {
-  padding: 1px 7px;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: color-mix(in srgb, var(--c) 16%, transparent);
-  color: color-mix(in srgb, var(--c) 70%, var(--text));
-}
-
-.program-exam {
-  --c: var(--danger);
-}
-
-.program-specialty {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-/* Postęp przedmiotu z planu: ile zajęć za Tobą. */
-.program-progress {
-  grid-column: 1 / -1;
-  display: block;
-  margin-top: 4px;
-}
-
-.program-progress-bar {
-  display: block;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-.program-progress-bar > span {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-}
-
-.program-progress-text {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -3811,4 +3760,68 @@ label.setting-row {
   .is-flash {
     animation: none;
   }
+}
+
+/* ---------- Zaliczenie przedmiotu ---------- */
+
+.assessment-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.assessment-rows > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 7px 0;
+}
+
+.assessment-rows > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.assessment-form {
+  flex-shrink: 0;
+  min-width: 92px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: color-mix(in srgb, var(--c) 72%, var(--text));
+}
+
+.assessment-text {
+  flex: 1 1 160px;
+}
+
+.assessment-add {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.assessment-grading {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+}
+
+.assessment-source {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Na liście przedmiotów - najwyżej dwie linijki. */
+.course-row-assessment {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }

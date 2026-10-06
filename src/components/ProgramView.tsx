@@ -1,7 +1,6 @@
 import { msg, t, tk } from '../lib/i18n'
 import { useMemo, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
-import { formatShortDay, formatTime } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { plural } from '../lib/plural'
 import { PROGRAM } from '../lib/programs/ib'
@@ -10,8 +9,9 @@ import {
   SYLLABUS_URL,
   currentCourseNames,
   dependents,
-  ectsBefore,
+  hoursProgress,
   isElective,
+  meetingsDone,
   normalizeCourseName,
   programPosition,
   semesterEcts,
@@ -26,14 +26,18 @@ interface Props {
   onBack: () => void
 }
 
-// Formy zajęć: skrót na znaczku, pełna nazwa w podpowiedzi, kolor jak w planie.
-const FORMS: { key: string; short: string; full: string; color: string }[] = [
-  { key: 'W', short: msg('W'), full: msg('wykład'), color: 'var(--c-wyk)' },
-  { key: 'C', short: msg('Ć'), full: msg('ćwiczenia'), color: 'var(--c-cwi)' },
-  { key: 'L', short: msg('L'), full: msg('laboratorium'), color: 'var(--c-lab)' },
-  { key: 'P', short: msg('P'), full: msg('projekt'), color: 'var(--c-pro)' },
-  { key: 'K', short: msg('K'), full: msg('lekcje komputerowe'), color: 'var(--c-lab)' },
+const HOURS: [string, string][] = [
+  ['W', msg('wyk.')],
+  ['C', msg('ćw.')],
+  ['L', msg('lab.')],
+  ['P', msg('proj.')],
+  ['K', msg('lek. komp.')],
 ]
+
+const hoursText = (course: ProgramCourse) =>
+  HOURS.filter(([key]) => course.hours?.[key])
+    .map(([key, label]) => `${tk(label)} ${course.hours![key]} h`)
+    .join(' · ')
 
 // "2021/2022" -> "2021/22"
 const shortYear = (year: string) => year.replace(/^(\d{4})\/\d{2}(\d{2})$/, '$1/$2')
@@ -42,6 +46,7 @@ const DEGREES: Record<string, string> = { inż: msg('studia inżynierskie'), mgr
 
 const semesterId = (n: number) => `program-semester-${n}`
 const courseId = (name: string) => `program-course-${normalizeCourseName(name).replace(/ /g, '-')}`
+const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0)
 
 // Przejście do semestru albo przedmiotu: rozwija go (i wszystko, w czym leży) i przewija do niego.
 function reveal(id: string) {
@@ -56,12 +61,6 @@ function reveal(id: string) {
   el.classList.add('is-flash')
 }
 
-interface Progress {
-  done: number
-  total: number
-  next: Date | null
-}
-
 // Cały program kierunku: semestry z przedmiotami, punktami i sylabusami (z Katalogu ECTS PW).
 export function ProgramView({ meetings, now, onBack }: Props) {
   const { openCourse } = usePlanUi()
@@ -71,18 +70,17 @@ export function ProgramView({ meetings, now, onBack }: Props) {
   const total = program.semesters.at(-1)?.number ?? 0
   const year = shortYear(program.year)
   const current = position.semester
-  const before = current !== null ? ectsBefore(program, current) : null
 
-  // Postęp przedmiotów z planu: ile zajęć za Tobą i kiedy następne.
-  const progress = useMemo(() => {
-    const result = new Map<string, Progress>()
-    for (const planName of position.inPlan.values()) {
-      const own = meetings.filter((m) => m.courseName === planName && !m.cancelled)
-      const upcoming = own.filter((m) => m.start > now).sort((a, b) => a.start.getTime() - b.start.getTime())
-      result.set(planName, { done: own.filter((m) => m.end <= now).length, total: own.length, next: upcoming[0]?.start ?? null })
-    }
-    return result
-  }, [position, meetings, now])
+  // Godziny zajęć za Tobą: wcześniejsze semestry w całości, obecny - z odbytych zajęć w planie
+  // (rośnie z każdymi zajęciami, także w trakcie).
+  const hours = useMemo(
+    () =>
+      hoursProgress(program, current, (name) => {
+        const planName = position.inPlan.get(name)
+        return planName ? meetingsDone(meetings.filter((m) => m.courseName === planName), now) : 0
+      }),
+    [program, current, position, meetings, now],
+  )
 
   return (
     <section className="program">
@@ -103,35 +101,35 @@ export function ProgramView({ meetings, now, onBack }: Props) {
         </p>
       </header>
 
-      {/* Pasek studiów: semestry za Tobą, obecny i te przed Tobą; stuknięcie przenosi do semestru. */}
-      <nav className="program-steps" aria-label={t('Semestry')} style={{ '--count': program.semesters.length } as CSSProperties}>
-        {program.semesters.map((s) => {
-          const state = current === null ? '' : s.number < current ? ' is-done' : s.number === current ? ' is-now' : ''
-          return (
-            <button
-              key={s.number}
-              type="button"
-              className={`program-step${state}`}
-              aria-label={t('Semestr {n}', { n: s.number })}
-              aria-current={s.number === current ? 'step' : undefined}
-              onClick={() => reveal(semesterId(s.number))}
-            >
-              <span className="program-step-bar" />
-              <span className="program-step-number">{s.number}</span>
-            </button>
-          )
-        })}
+      {/* Postęp studiów w godzinach zajęć: odcinek na semestr (długość według godzin); stuknięcie przenosi do semestru. */}
+      <nav className="program-steps" aria-label={t('Semestry')}>
+        {hours.semesters.map((s) => (
+          <button
+            key={s.number}
+            type="button"
+            className={`program-step${s.number === current ? ' is-now' : ''}`}
+            style={{ '--hours': Math.max(s.hours, 1) } as CSSProperties}
+            aria-label={t('Semestr {n}', { n: s.number })}
+            aria-current={s.number === current ? 'step' : undefined}
+            onClick={() => reveal(semesterId(s.number))}
+          >
+            <span className="program-step-bar">
+              <span style={{ width: `${percent(s.done, s.hours)}%` }} />
+            </span>
+            <span className="program-step-number">{s.number}</span>
+          </button>
+        ))}
       </nav>
-      {current !== null && before && (
+      {current !== null && (
         <p className="program-position">
           <strong>{t('Semestr {n} z {total}', { n: current, total })}</strong>
-          {before.ects > 0 && (
-            <span className="muted">
-              {before.electives
-                ? t('{n} ECTS za Tobą + obieralne', { n: before.ects })
-                : t('{n} ECTS za Tobą', { n: before.ects })}
-            </span>
-          )}
+          <span className="muted">
+            {t('{done} z {total} h zajęć ({percent}%)', {
+              done: Math.round(hours.done),
+              total: hours.total,
+              percent: percent(hours.done, hours.total),
+            })}
+          </span>
         </p>
       )}
 
@@ -141,6 +139,7 @@ export function ProgramView({ meetings, now, onBack }: Props) {
         </summary>
         <p>
           {t('Program z Katalogu ECTS PW dla rocznika {year} - nowszego wydania nie ma. Przedmioty i punkty zgadzają się z obecnym planem, ale prowadzący, literatura i zasady zaliczenia mogły się zmienić.', { year })}{' '}
+          {t('Godziny bez przedmiotów obieralnych.')}{' '}
           <a href={program.url} target="_blank" rel="noreferrer">
             {t('Katalog ECTS')}
           </a>
@@ -154,7 +153,6 @@ export function ProgramView({ meetings, now, onBack }: Props) {
           courses={semester.courses}
           current={current}
           inPlan={position.inPlan}
-          progress={progress}
           usedIn={usedIn}
           year={year}
           onOpenCourse={openCourse}
@@ -169,32 +167,27 @@ interface SemesterProps {
   courses: ProgramCourse[]
   current: number | null
   inPlan: Map<string, string>
-  progress: Map<string, Progress>
   usedIn: Map<string, { name: string; semester: number }[]>
   year: string
   onOpenCourse: (name: string) => void
 }
 
-function SemesterPanel({ number, courses, current, inPlan, progress, usedIn, year, onOpenCourse }: SemesterProps) {
+function SemesterPanel({ number, courses, current, inPlan, usedIn, year, onOpenCourse }: SemesterProps) {
   const state = current === null ? null : number < current ? 'past' : number === current ? 'now' : 'future'
   const regular = courses.filter((c) => !isElective(c))
   const electives = courses.filter(isElective)
   const ects = semesterEcts(courses)
   const load = semesterLoad(courses)
-  const item = (course: ProgramCourse) => {
-    const planName = inPlan.get(course.name) ?? null
-    return (
-      <CourseItem
-        key={course.name}
-        course={course}
-        planName={planName}
-        progress={planName ? (progress.get(planName) ?? null) : null}
-        usedIn={usedIn.get(course.name) ?? []}
-        year={year}
-        onOpenCourse={onOpenCourse}
-      />
-    )
-  }
+  const item = (course: ProgramCourse) => (
+    <CourseItem
+      key={course.name}
+      course={course}
+      planName={inPlan.get(course.name) ?? null}
+      usedIn={usedIn.get(course.name) ?? []}
+      year={year}
+      onOpenCourse={onOpenCourse}
+    />
+  )
 
   return (
     // Otwarty bieżący semestr; pozostałe po stuknięciu.
@@ -234,19 +227,21 @@ function SemesterPanel({ number, courses, current, inPlan, progress, usedIn, yea
 interface CourseProps {
   course: ProgramCourse
   planName: string | null // nazwa w Twoim planie, jeśli masz ten przedmiot teraz
-  progress: Progress | null
   usedIn: { name: string; semester: number }[]
   year: string
   onOpenCourse: (name: string) => void
 }
 
-function CourseItem({ course, planName, progress, usedIn, year, onOpenCourse }: CourseProps) {
+function CourseItem({ course, planName, usedIn, year, onOpenCourse }: CourseProps) {
+  const meta = [
+    hoursText(course),
+    course.exam && t('egzamin'),
+    course.group === 'Specjalnościowe' && t('specjalność: {name}', { name: course.block }),
+  ].filter(Boolean)
   // Cel i treści z sylabusa to ściana tekstu - pokazujemy zredagowany opis; zasady zaliczenia 1:1.
   const summary = SUMMARIES[course.name]
   const literature = course.literature?.replace(/^literatura:?\s*/i, '').trim()
   const described = Boolean(summary || course.assessment || course.coordinator || literature)
-  const forms = FORMS.filter((f) => course.hours?.[f.key])
-  const specialty = course.group === 'Specjalnościowe' ? course.block : null
 
   return (
     <li>
@@ -257,34 +252,7 @@ function CourseItem({ course, planName, progress, usedIn, year, onOpenCourse }: 
             {planName && <span className="badge program-in-plan">{t('w planie')}</span>}
           </span>
           <span className="program-course-ects">{course.ects} ECTS</span>
-          {(forms.length > 0 || course.exam || specialty) && (
-            <span className="program-course-meta">
-              {forms.map((f) => (
-                <span
-                  key={f.key}
-                  className="program-form"
-                  style={{ '--c': f.color } as CSSProperties}
-                  title={`${tk(f.full)}: ${course.hours![f.key]} h`}
-                >
-                  {tk(f.short)} {course.hours![f.key]}
-                </span>
-              ))}
-              {course.exam && <span className="program-exam">{t('egzamin')}</span>}
-              {specialty && <span className="program-specialty">{t('specjalność: {name}', { name: specialty })}</span>}
-            </span>
-          )}
-          {progress && progress.total > 0 && (
-            <span className="program-progress">
-              <span className="program-progress-bar" aria-hidden="true">
-                <span style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }} />
-              </span>
-              <span className="program-progress-text">
-                {t('{done} z {total} zajęć za Tobą', { done: progress.done, total: progress.total })}
-                {progress.next &&
-                  ` · ${t('następne: {when}', { when: `${formatShortDay(progress.next)} ${formatTime(progress.next)}` })}`}
-              </span>
-            </span>
-          )}
+          {meta.length > 0 && <span className="program-course-meta">{meta.join(' · ')}</span>}
         </summary>
         <div className="program-course-body">
           {!described && <p className="muted">{t('Katalog nie ma opisu tego przedmiotu.')}</p>}

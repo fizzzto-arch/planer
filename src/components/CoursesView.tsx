@@ -10,8 +10,8 @@ import { plural } from '../lib/plural'
 import { typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { NoteField } from './NoteField'
-import { PROGRAM_NAMES } from '../lib/programs/ibNames'
-import { currentCourseNames, matchesProgram } from '../lib/studyProgram'
+import { assessmentLine } from '../lib/assessment'
+import { programAssessments } from '../lib/courseAssessment'
 
 const DAYS_AHEAD = 60
 // Egzaminy bywają w sesji za kilka miesięcy - przy tym filtrze patrzymy na cały semestr.
@@ -33,8 +33,10 @@ interface Props {
 
 export function CoursesView({ meetings, now }: Props) {
   const { extras, openCourse, openOptimizer, openProgram, isAdmin, canOptimize, editDeadline, displayName } = usePlanUi()
-  // Program studiów (na razie tylko Inżynieria Biomedyczna) - gdy przedmioty z planu do niego pasują.
-  const hasProgram = useMemo(() => matchesProgram(PROGRAM_NAMES, currentCourseNames(meetings, now)), [meetings, now])
+  // Program studiów (na razie tylko Inżynieria Biomedyczna) - gdy przedmioty z planu do niego pasują;
+  // z niego też zaliczenie przedmiotów.
+  const assessments = useMemo(() => programAssessments(meetings, now), [meetings, now])
+  const hasProgram = assessments !== null
   const [filter, setFilter] = useState<KindFilter>('all')
   const courses = summarizeCourses(meetings, now)
   const all = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD_EXAMS) : []
@@ -148,6 +150,7 @@ export function CoursesView({ meetings, now }: Props) {
           const extra = extras?.extras.courses.get(courseKey(course.name))
           const count = deadlines.filter((d) => d.courseName === course.name).length
           const notePreview = extra?.note.trim().split('\n')[0]
+          const assessment = assessments?.(course.name) ?? null
           return (
             <li key={course.name} style={{ '--i': i } as CSSProperties}>
               <button
@@ -164,6 +167,11 @@ export function CoursesView({ meetings, now }: Props) {
                   {course.next && (
                     <span className="course-row-meta">
                       {t('Następne:')} {formatShortDay(course.next.start)} {formatTime(course.next.start)}
+                    </span>
+                  )}
+                  {assessment && (
+                    <span className="course-row-meta course-row-assessment">
+                      {t('Zaliczenie:')} {assessmentLine(assessment)}
                     </span>
                   )}
                   {notePreview && <span className="course-row-note">{notePreview}</span>}
