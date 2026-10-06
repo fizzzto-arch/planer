@@ -89,7 +89,9 @@ export const EN: Record<string, string> = {
   'w terminach: {n} z {total}': 'in deadlines: {n} of {total}',
   'w terminach: {n}': 'in deadlines: {n}',
   '+ Dodaj datę': '+ Add date',
-  'Na podstawie: {source}. Dokładne zasady (liczba kolokwiów, punkty, progi) są w regulaminie przedmiotu.': 'Based on: {source}. The exact rules (number of tests, points, thresholds) are in the course regulations.',
+  'Warto wiedzieć': 'Good to know',
+  'Na podstawie regulaminu przedmiotu {year}.': 'Based on the course regulations {year}.',
+  'Na podstawie sylabusa {year} - dokładne zasady (liczba kolokwiów, punkty, progi) są w regulaminie przedmiotu.': 'Based on the {year} syllabus - the exact rules (number of tests, points, thresholds) are in the course regulations.',
   'Regulamin w USOSweb ↗': 'Regulations in USOSweb ↗',
 
   // src/components/AuthForm.tsx

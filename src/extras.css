@@ -3825,3 +3825,19 @@ label.setting-row {
   line-clamp: 2;
   overflow: hidden;
 }
+
+.assessment-notes h4 {
+  margin: 12px 0 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.assessment-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+.assessment-notes li {
+  margin: 3px 0;
+}

@@ -1,9 +1,11 @@
-// Zaliczenie przedmiotów Inżynierii Biomedycznej - rozpiska z "Metod oceny" w sylabusach (Katalog ECTS 2021/22).
-// Do uzupełnienia z regulaminów przedmiotów (liczba kolokwiów, punkty, progi) - wtedy zmienia się source.
+// Zaliczenie przedmiotów Inżynierii Biomedycznej. Z regulaminów przedmiotów (2026/27), gdy je mamy -
+// liczba kolokwiów, punkty, progi; pozostałe z "Metod oceny" w sylabusach (Katalog ECTS 2021/22).
+// Samych regulaminów nie publikujemy (są dla zalogowanych w USOS) - tylko te zasady.
 // Klucz: nazwa przedmiotu w programie (src/lib/programs/ib.ts).
 import type { AssessmentRow, CourseAssessment } from '../assessment'
 
-const SYLLABUS = 'sylabus 2021/22'
+const SYLLABUS = { kind: 'sylabus', year: '2021/22' } as const
+const REGULATIONS = { kind: 'regulamin', year: '2026/27' } as const
 
 const colloquia = (count?: number): AssessmentRow['add'] => ({ kind: 'kolokwium', title: 'Kolokwium', count })
 const tests = (count?: number, title = 'Sprawdzian'): AssessmentRow['add'] => ({ kind: 'kolokwium', title, count })
@@ -13,6 +15,7 @@ const exam: AssessmentRow['add'] = { kind: 'egzamin', title: 'Egzamin', count: 1
 const GRADES_100 = 'Na 100 pkt: 51–60 → 3; 61–70 → 3,5; 71–80 → 4; 81–90 → 4,5; 91–100 → 5'
 
 const a = (rows: AssessmentRow[], grading?: string): CourseAssessment => ({ rows, grading, source: SYLLABUS })
+const r = (assessment: Omit<CourseAssessment, 'source'>): CourseAssessment => ({ ...assessment, source: REGULATIONS })
 
 export const ASSESSMENTS: Record<string, CourseAssessment> = {
   // Semestr 1
@@ -73,34 +76,92 @@ export const ASSESSMENTS: Record<string, CourseAssessment> = {
   ),
 
   // Semestr 3
-  'Grafika komputerowa': a([
-    { form: 'WYK', text: 'kolokwia', add: colloquia() },
-    { form: 'LAB', text: 'praca na zajęciach i sprawozdania' },
-  ]),
+  'Grafika komputerowa': r({
+    rows: [
+      { form: 'WYK', text: 'sprawdzian pisemny (120 min) – 20 pkt, bez pomocy', add: tests(1) },
+      { form: 'LAB', text: '5 ćwiczeń po 6 pkt (razem 30 pkt), mogą być wejściówki' },
+    ],
+    grading: 'Suma do 50 pkt: 25–29 → 3; 30–34 → 3,5; 35–39 → 4; 40–44 → 4,5; od 45 → 5',
+    notes: [
+      'Sprawdzian 2 tygodnie po ostatnim wykładzie, w godzinach wykładu; drugi termin tydzień później – liczy się ostatnie podejście',
+      'Laboratorium bez limitu nieobecności; odrobić można tylko w uzasadnionych przypadkach, ocen nie da się poprawić',
+    ],
+    summary: 'sprawdzian (20 pkt) · 5 ćwiczeń lab. (30 pkt)',
+  }),
   'Laboratorium elektrotechniki': a(
     [{ form: 'LAB', text: '5 ćwiczeń; każde: praca domowa 20%, wejściówka 30%, sprawozdanie 50%' }],
     'Średnia z ćwiczeń: 51–60% → 3; 61–70% → 4; 71–80% → 4,5; 81–90% → 5',
   ),
-  'Podstawy Automatyki': a([
-    { form: 'CWI', text: 'kolokwia', add: colloquia() },
-    { form: 'ALL', text: 'egzamin końcowy', add: exam },
-  ]),
-  'Podstawy elementów i układów elektronicznych': a([
-    { form: 'ALL', text: 'kolokwia', add: colloquia() },
-    { form: 'ALL', text: 'egzamin', add: exam },
-  ]),
-  Radiologia: a([
-    { form: 'WYK', text: 'egzamin', add: exam },
-    { form: 'LAB', text: 'sprawdziany i sprawozdania' },
-  ]),
-  'Wspomagane komputerowo projektowanie inżynierskie': a([
-    { form: 'ALL', text: '2 kolokwia', add: colloquia(2) },
-    { form: 'ALL', text: 'ocena pracy na zajęciach' },
-  ]),
-  'Matematyka - Rachunek prawdopodobieństwa i statystyka': a([
-    { form: 'ALL', text: '3 kolokwia', add: colloquia(3) },
-    { form: 'ALL', text: 'egzamin', add: exam },
-  ]),
+  'Podstawy Automatyki': r({
+    rows: [
+      { form: 'WYK', text: 'egzamin pisemny – 55 pkt, zalicza 27,5 pkt', add: exam },
+      { form: 'WYK', text: 'do 8 pkt za aktywność i testy na LeOnie (do oceny, nie do zaliczenia)' },
+      { form: 'CWI', text: '7 ćwiczeń laboratoryjnych po 5 pkt: sprawdzian wstępny, praca, sprawozdanie' },
+      { form: 'CWI', text: 'każde ćwiczenie min. 2,5 pkt; trzeba zaliczyć 6 i mieć razem min. 17,5 pkt' },
+    ],
+    grading: 'Suma do 90 pkt (+ aktywność): ponad 45 → 3; ponad 54 → 3,5; ponad 63 → 4; ponad 72 → 4,5; ponad 81 → 5',
+    notes: [
+      'Obecność na ćwiczeniach obowiązkowa – najwyżej 1 nieusprawiedliwiona nieobecność (usprawiedliwienie w ciągu tygodnia)',
+      'Sprawozdanie zespołowe w ciągu 10 dni roboczych od ćwiczenia',
+      'Pod koniec semestru można poprawić jedno ćwiczenie (czasem w sobotę)',
+    ],
+    summary: 'egzamin (55 pkt) · 7 ćwiczeń lab. (35 pkt)',
+  }),
+  'Podstawy elementów i układów elektronicznych': r({
+    rows: [
+      { form: 'ALL', text: 'egzamin pisemny – 60 pkt (elementy i układy), zalicza 31 pkt; bez pomocy', add: exam },
+      { form: 'CWI', text: 'obowiązkowe – bez nich nie ma egzaminu; kolokwiów nie ma' },
+    ],
+    grading: 'Z egzaminu: 31–36 → 3; 37–42 → 3,5; 43–48 → 4; 49–54 → 4,5; ponad 54 → 5',
+    notes: [
+      'Najwyżej 2 nieusprawiedliwione nieobecności na ćwiczeniach',
+      'Wynik egzaminu poprawkowego zastępuje poprzedni',
+    ],
+    summary: 'tylko egzamin (60 pkt), bez kolokwiów',
+  }),
+  Radiologia: r({
+    rows: [
+      { form: 'WYK', text: 'egzamin – test, 30 pkt, zalicza 16 pkt; bez pomocy i AI', add: exam },
+      { form: 'LAB', text: 'zajęcia po 8 pkt: wejściówka 2 + sprawozdanie 6; razem 40 pkt, zalicza 21 pkt' },
+    ],
+    grading: 'Średnia egzaminu i laboratorium (po 50%): od 51% → 3; 61% → 3,5; 71% → 4; 81% → 4,5; 91% → 5',
+    notes: [
+      'Laboratorium: obecność na wszystkich zajęciach i wszystkie sprawozdania (oddawane na kolejnych zajęciach) – bez poprawek',
+      'Trzeba zapisać się do zespołu laboratoryjnego w wyznaczonym terminie',
+      'Papierowa instrukcja na zajęciach; w sprawozdaniu oświadczenie o autorstwie; AI tylko do korekty językowej',
+    ],
+    summary: 'egzamin (30 pkt) · laboratorium (40 pkt)',
+  }),
+  'Wspomagane komputerowo projektowanie inżynierskie': r({
+    rows: [
+      { form: 'WYK', text: '2 sprawdziany z teorii – 50% oceny', add: tests(2) },
+      { form: 'LAB', text: 'zadania laboratoryjne – 25% oceny' },
+      { form: 'PRO', text: 'indywidualny projekt według wytycznych z pierwszych zajęć – 25% oceny' },
+    ],
+    grading: 'Każda część osobno: ponad 50% → 3; 60% → 3,5; 70% → 4; 80% → 4,5; 90% → 5 – wszystkie muszą przekroczyć 50%',
+    notes: [
+      'Terminy sprawdzianów podawane w pierwszych 2 tygodniach zajęć (Teams, LeOn)',
+      'Zajęć laboratoryjnych i projektowych nie da się odrobić',
+      'Konsultacje pół godziny przed każdymi zajęciami',
+    ],
+    summary: '2 sprawdziany (50%) · laboratorium (25%) · projekt (25%)',
+  }),
+  'Matematyka - Rachunek prawdopodobieństwa i statystyka': r({
+    rows: [
+      { form: 'CWI', text: '2 kolokwia po 16 pkt (I: zestawy 1–5, II: 6–10), bez poprawy', add: colloquia(2) },
+      { form: 'CWI', text: 'do 8 pkt za zadania przy tablicy – razem z ćwiczeń 40 pkt' },
+      { form: 'ALL', text: 'egzamin pisemny – trzeba mieć ponad 30 pkt', add: exam },
+    ],
+    grading:
+      'Ćwiczenia + egzamin (do 100 pkt): 51–60 → 3; 61–70 → 3,5; 71–80 → 4; 81–90 → 4,5; ponad 90 → 5. ' +
+      'Bez egzaminu: min. 12 pkt z każdego kolokwium i ponad 32 pkt z ćwiczeń → 4,5 (do 36 pkt) albo 5',
+    notes: [
+      'Obecność na ćwiczeniach obowiązkowa – najwyżej 2 nieusprawiedliwione nieobecności',
+      'Na kolokwia i egzamin: prosty kalkulator, własna kartka A4 z wzorami, legitymacja, kartki A4',
+      'Nieobecność na kolokwium usprawiedliwić u prowadzącego najpóźniej tydzień po',
+    ],
+    summary: '2 kolokwia (po 16 pkt) · egzamin; można się zwolnić',
+  }),
 
   // Semestr 4
   'Biomechanika inżynierska': a([

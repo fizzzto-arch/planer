@@ -61,10 +61,22 @@ export function AssessmentSection({ courseName, assessment, unitId }: Props) {
         })}
       </ul>
       {assessment.grading && <p className="assessment-grading">{assessment.grading}</p>}
+      {assessment.notes && assessment.notes.length > 0 && (
+        <div className="assessment-notes">
+          <h4>{t('Warto wiedzieć')}</h4>
+          <ul>
+            {assessment.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p className="assessment-source">
-        {t('Na podstawie: {source}. Dokładne zasady (liczba kolokwiów, punkty, progi) są w regulaminie przedmiotu.', {
-          source: assessment.source,
-        })}
+        {assessment.source.kind === 'regulamin'
+          ? t('Na podstawie regulaminu przedmiotu {year}.', { year: assessment.source.year })
+          : t('Na podstawie sylabusa {year} - dokładne zasady (liczba kolokwiów, punkty, progi) są w regulaminie przedmiotu.', {
+              year: assessment.source.year,
+            })}
         {courseId && (
           <>
             {' '}

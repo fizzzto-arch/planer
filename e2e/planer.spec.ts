@@ -182,7 +182,7 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
 test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium jednym stuknięciem', async ({ page }) => {
   await page.evaluate(() => {
     const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 15).getTime()
-    const names = ['Grafika komputerowa', 'Radiologia', 'Podstawy automatyki', 'Laboratorium elektrotechniki']
+    const names = ['Grafika komputerowa', 'Radiologia', 'Rachunek prawdopodobieństwa i statystyka', 'Laboratorium elektrotechniki']
     const meetings = names.map((courseName, i) => ({
       id: `ib-${i}`, courseName, type: i === 2 ? 'CWI' : 'WYK', start: at(15 + i, 10), end: at(15 + i, 12), room: '1', building: null,
       address: null, groupNumber: 1, unitId: null, usosUrl: null, cancelled: false,
@@ -191,17 +191,21 @@ test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium je
   })
   await page.reload()
   await tab(page, 'Przedmioty').click()
-  const row = page.locator('.course-row', { hasText: 'Podstawy automatyki' })
-  await expect(row.getByText('Zaliczenie: ćwiczenia – kolokwia · egzamin końcowy')).toBeVisible()
+  // Na liście: skrót z regulaminu; przedmiot bez regulaminu - z sylabusa.
+  await expect(page.locator('.course-row', { hasText: 'Laboratorium elektrotechniki' }).getByText(/^Zaliczenie: laboratorium – 5 ćwiczeń/)).toBeVisible()
+  const row = page.locator('.course-row', { hasText: 'Rachunek prawdopodobieństwa' })
+  await expect(row.getByText('Zaliczenie: 2 kolokwia (po 16 pkt) · egzamin; można się zwolnić')).toBeVisible()
   await row.click()
 
   const panel = page.locator('.assessment')
   await expect(panel.getByRole('heading', { name: 'Zaliczenie' })).toBeVisible()
-  await expect(panel.locator('.assessment-form')).toHaveText(['Ćwiczenia', 'Całość'])
-  await expect(panel.getByText(/Na podstawie: sylabus 2021\/22/)).toBeVisible()
+  await expect(panel.locator('.assessment-form')).toHaveText(['Ćwiczenia', 'Ćwiczenia', 'Całość'])
+  await expect(panel.getByText(/Bez egzaminu: min\. 12 pkt/)).toBeVisible()
+  await expect(panel.getByRole('heading', { name: 'Warto wiedzieć' })).toBeVisible()
+  await expect(panel.getByText('Na podstawie regulaminu przedmiotu 2026/27.')).toBeVisible()
 
   // "+ Dodaj datę" przy kolokwiach - edytor z rodzajem i tytułem, zostaje tylko wpisać datę.
-  const colloquia = panel.locator('li', { hasText: 'kolokwia' })
+  const colloquia = panel.locator('li', { hasText: '2 kolokwia po 16 pkt' })
   await colloquia.getByRole('button', { name: '+ Dodaj datę' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByLabel('Tytuł')).toHaveValue('Kolokwium 1')
@@ -210,9 +214,9 @@ test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium je
   await dialog.getByLabel('Godzina').fill('10:15')
   await dialog.getByRole('button', { name: 'Zapisz' }).click()
   await expect(dialog).toBeHidden()
-  await expect(colloquia.getByText('w terminach: 1')).toBeVisible()
+  await expect(colloquia.getByText('w terminach: 1 z 2')).toBeVisible()
   // Egzamin jest jeden - po dodaniu przycisk znika.
-  const exam = panel.locator('li', { hasText: 'egzamin końcowy' })
+  const exam = panel.locator('li', { hasText: 'egzamin pisemny' })
   await exam.getByRole('button', { name: '+ Dodaj datę' }).click()
   await expect(dialog.getByLabel('Tytuł')).toHaveValue('Egzamin')
   await dialog.getByLabel('Data').fill('2027-02-03')

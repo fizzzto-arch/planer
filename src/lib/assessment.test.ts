@@ -5,9 +5,28 @@ import { PROGRAM } from './programs/ib'
 import { ASSESSMENTS } from './programs/ibAssessment'
 
 describe('zaliczenie przedmiotu', () => {
-  it('jedna linijka na liście przedmiotów', () => {
-    expect(assessmentLine(ASSESSMENTS['Podstawy Automatyki'])).toBe('ćwiczenia – kolokwia · egzamin końcowy')
-    expect(assessmentLine(ASSESSMENTS.Radiologia)).toBe('wykład – egzamin · laboratorium – sprawdziany i sprawozdania')
+  it('jedna linijka na liście przedmiotów: skrót z regulaminu albo złożona z wierszy', () => {
+    expect(assessmentLine(ASSESSMENTS['Podstawy Automatyki'])).toBe('egzamin (55 pkt) · 7 ćwiczeń lab. (35 pkt)')
+    expect(assessmentLine(ASSESSMENTS['Mechanika i Wytrzymałość materiałów'])).toBe('ćwiczenia – kolokwia – 50% oceny · egzamin – 50% oceny')
+  })
+
+  it('semestr 3: zasady z regulaminów 2026/27 (poza Laboratorium elektrotechniki - bez regulaminu)', () => {
+    const fromRegulations = Object.entries(ASSESSMENTS)
+      .filter(([, a]) => a.source.kind === 'regulamin')
+      .map(([name]) => name)
+      .sort()
+    expect(fromRegulations).toEqual([
+      'Grafika komputerowa',
+      'Matematyka - Rachunek prawdopodobieństwa i statystyka',
+      'Podstawy Automatyki',
+      'Podstawy elementów i układów elektronicznych',
+      'Radiologia',
+      'Wspomagane komputerowo projektowanie inżynierskie',
+    ])
+    // Regulamin poprawia sylabus: elektronika bez kolokwiów, rachunek - 2 kolokwia, nie 3.
+    expect(ASSESSMENTS['Podstawy elementów i układów elektronicznych'].rows.some((r) => r.add?.kind === 'kolokwium')).toBe(false)
+    expect(ASSESSMENTS['Matematyka - Rachunek prawdopodobieństwa i statystyka'].rows[0].add?.count).toBe(2)
+    expect(ASSESSMENTS['Laboratorium elektrotechniki'].source.kind).toBe('sylabus')
   })
 
   it('kolejne terminy numerowane, pojedynczy bez numeru', () => {
@@ -27,7 +46,7 @@ describe('zaliczenie przedmiotu', () => {
     const now = new Date(2026, 9, 14)
     const plan = (names: string[]) => names.map((courseName) => ({ courseName, start: new Date(2026, 9, 15) }))
     const ib = programAssessments(plan(['Radiologia', 'Grafika komputerowa', 'Podstawy automatyki']), now)
-    expect(ib?.('Podstawy automatyki')?.rows[1].text).toBe('egzamin końcowy')
+    expect(ib?.('Podstawy automatyki')?.rows[0].text).toBe('egzamin pisemny – 55 pkt, zalicza 27,5 pkt')
     expect(ib?.('Wychowanie fizyczne')).toBeNull()
     expect(programAssessments(plan(['Grafika komputerowa', 'Analiza matematyczna', 'Fizyka']), now)).toBeNull()
   })

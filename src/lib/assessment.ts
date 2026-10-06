@@ -1,5 +1,5 @@
 // Rozpiska zaliczenia przedmiotu: co składa się na ocenę z każdej formy zajęć (np. ćwiczenia - 2 kolokwia,
-// całość - egzamin). Dane w src/lib/programs/*Assessment.ts - z sylabusa, uzupełniane z regulaminu przedmiotu.
+// całość - egzamin). Dane w src/lib/programs/*Assessment.ts - z regulaminu przedmiotu, a gdy go nie mamy, z sylabusa.
 import type { DeadlineKind } from './extras'
 import { t } from './i18n'
 import { typeLabel } from './usos'
@@ -8,7 +8,7 @@ export type AssessmentForm = 'WYK' | 'CWI' | 'LAB' | 'PRO' | 'ALL' // ALL - cał
 
 export interface AssessmentRow {
   form: AssessmentForm
-  text: string // np. "2 kolokwia po 20 pkt"
+  text: string // np. "2 kolokwia po 16 pkt"
   // Termin do dodania jednym stuknięciem (np. daty kolokwiów); count - ile ich jest, jeśli wiadomo.
   add?: { kind: DeadlineKind; title: string; count?: number }
 }
@@ -16,7 +16,9 @@ export interface AssessmentRow {
 export interface CourseAssessment {
   rows: AssessmentRow[]
   grading?: string // skala ocen albo sposób liczenia oceny końcowej
-  source: string // skąd dane, np. "sylabus 2021/22"
+  notes?: string[] // "warto wiedzieć": obecność, poprawy, co wolno na kolokwium
+  summary?: string // krótka wersja na listę przedmiotów (bez niej - złożona z wierszy)
+  source: { kind: 'sylabus' | 'regulamin'; year: string }
 }
 
 export function formLabel(form: AssessmentForm): string {
@@ -25,9 +27,12 @@ export function formLabel(form: AssessmentForm): string {
 
 // Jedna linijka na liście przedmiotów: "ćwiczenia - kolokwia · egzamin".
 export function assessmentLine(assessment: CourseAssessment): string {
-  return assessment.rows
-    .map((row) => (row.form === 'ALL' ? row.text : `${formLabel(row.form).toLocaleLowerCase()} – ${row.text}`))
-    .join(' · ')
+  return (
+    assessment.summary ??
+    assessment.rows
+      .map((row) => (row.form === 'ALL' ? row.text : `${formLabel(row.form).toLocaleLowerCase()} – ${row.text}`))
+      .join(' · ')
+  )
 }
 
 // Tytuł kolejnego terminu: "Kolokwium 2", gdy jest ich kilka; "Egzamin", gdy jeden.
