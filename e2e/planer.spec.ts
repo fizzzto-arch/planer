@@ -139,11 +139,18 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
   await page.reload()
   await tab(page, 'Przedmioty').click()
   await page.getByRole('button', { name: /Program studiów/ }).click()
-  await expect(page.getByText('Jesteś na 3. semestrze z 7')).toBeVisible()
+  await expect(page.getByText('Semestr 3 z 7')).toBeVisible()
+  await expect(page.getByText('60 ECTS za Tobą')).toBeVisible()
+  const third = page.locator('#program-semester-3')
+  await expect(third.locator('.program-semester-load')).toHaveText('7 przedmiotów · 4 egzaminy')
 
   // Bieżący semestr otwarty, przedmiot z planu oznaczony; po stuknięciu - sylabus.
   const radiology = page.locator('.program-course', { has: page.locator('.program-course-name', { hasText: /^Radiologia/ }) })
   await expect(radiology.getByText('w planie')).toBeVisible()
+  // Postęp z planu (jedne zajęcia, w piątek) i godziny jako znaczki.
+  await expect(radiology.getByText(/0 z 1 zajęć za Tobą · następne: Pt., 16.10 10:15/)).toBeVisible()
+  await expect(radiology.locator('.program-form')).toHaveText(['W 30', 'L 15'])
+  await expect(radiology.locator('.program-exam')).toHaveText('egzamin')
   await radiology.locator('summary').first().click()
   await expect(radiology.getByText(/wykład - zaliczenie na podstawie egzaminu/)).toBeVisible()
   // Zamiast ściany tekstu z sylabusa - krótki opis i tematy.
@@ -158,10 +165,20 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
   await fourth.locator('summary').first().click()
   await expect(fourth.locator('.program-course-name', { hasText: 'Metody numeryczne' })).toBeVisible()
 
+  // Pasek semestrów przenosi do semestru.
+  await page.getByRole('button', { name: 'Semestr 6', exact: true }).click()
+  await expect(page.locator('#program-semester-6')).toHaveAttribute('open')
+
+  // "Przyda się w" - przedmiot obieralny z 5. semestru rozwija się razem z listą obieralnych.
+  await radiology.getByRole('button', { name: /Kontrola Jakości Radiologicznych Urządzeń Diagnostycznych/ }).click()
+  const quality = page.locator('.program-course', { has: page.locator('.program-course-name', { hasText: /^Kontrola Jakości/ }) })
+  await expect(quality).toHaveAttribute('open')
+  await expect(quality.getByText(/Testy jakości aparatów RTG/)).toBeVisible()
+
   await radiology.getByRole('button', { name: 'Przedmiot w Planerze' }).click()
   await expect(page.getByRole('heading', { name: 'Radiologia' })).toBeVisible()
   await page.goBack()
-  await expect(page.getByText('Jesteś na 3. semestrze z 7')).toBeVisible()
+  await expect(page.getByText('Semestr 3 z 7')).toBeVisible()
 })
 
 test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) => {

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { PROGRAM } from './programs/ib'
 import { PROGRAM_NAMES } from './programs/ibNames'
-import { currentCourseNames, matchesProgram, programCourseKey, programPosition, semesterEcts } from './studyProgram'
+import {
+  currentCourseNames,
+  dependents,
+  ectsBefore,
+  matchesProgram,
+  programCourseKey,
+  programPosition,
+  semesterEcts,
+  semesterLoad,
+} from './studyProgram'
 
 // Przedmioty 3. semestru Inżynierii Biomedycznej tak, jak nazywa je USOS (plan z iCal).
 const SEMESTER_3 = [
@@ -47,7 +56,7 @@ describe('program studiów', () => {
   it('każdy opisany w katalogu przedmiot ma zredagowany opis (i żaden opis nie wisi bez przedmiotu)', async () => {
     const { SUMMARIES } = await import('./programs/ibSummaries')
     const courses = PROGRAM.semesters.flatMap((s) => s.courses)
-    const missing = courses.filter((c) => (c.goal || c.content) && !SUMMARIES[c.name]).map((c) => c.name)
+    const missing = courses.filter((c) => c.described && !SUMMARIES[c.name]).map((c) => c.name)
     expect(missing).toEqual([])
     const names = new Set(courses.map((c) => c.name))
     expect(Object.keys(SUMMARIES).filter((name) => !names.has(name))).toEqual([])
@@ -56,6 +65,30 @@ describe('program studiów', () => {
       expect(s.about.length, name).toBeLessThan(200)
       for (const topic of s.topics ?? []) expect(topic.length, `${name}: ${topic}`).toBeLessThan(65)
     }
+  })
+
+  it('"Przyda się w": wymagane przedmioty istnieją i są wcześniej (albo równolegle)', async () => {
+    const { SUMMARIES } = await import('./programs/ibSummaries')
+    const semesterOf = new Map(PROGRAM.semesters.flatMap((s) => s.courses.map((c) => [c.name, s.number] as const)))
+    for (const [name, s] of Object.entries(SUMMARIES)) {
+      for (const required of s.requires ?? []) {
+        expect(semesterOf.has(required), `${name} -> ${required}`).toBe(true)
+        expect(semesterOf.get(required)!, `${name} -> ${required}`).toBeLessThanOrEqual(semesterOf.get(name)!)
+      }
+    }
+    const usedIn = dependents(PROGRAM, SUMMARIES)
+    expect(usedIn.get('Radiologia')).toEqual([
+      { name: 'Podstawy obrazowania medycznego', semester: 4 },
+      { name: 'Kontrola Jakości Radiologicznych Urządzeń Diagnostycznych', semester: 5 },
+    ])
+  })
+
+  it('obciążenie semestru i punkty za Tobą', () => {
+    const semester = (n: number) => PROGRAM.semesters.find((s) => s.number === n)!.courses
+    expect(semesterLoad(semester(3))).toEqual({ courses: 7, exams: 4 })
+    expect(semesterLoad(semester(5)).courses).toBe(5) // bez listy obieralnych
+    expect(ectsBefore(PROGRAM, 3)).toEqual({ ects: 60, electives: false })
+    expect(ectsBefore(PROGRAM, 6).electives).toBe(true)
   })
 
   it('obecne przedmioty: zajęcia z ostatnich dwóch tygodni, bez historii poprzedniego semestru', () => {

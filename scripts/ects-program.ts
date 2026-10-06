@@ -127,9 +127,9 @@ for (const row of program.rows) {
     ...(field('Kod przedmiotu') && { code: field('Kod przedmiotu') }),
     ...(field('Koordynator przedmiotu') && { coordinator: field('Koordynator przedmiotu') }),
     ...(exam && { exam: /^tak/i.test(exam) }),
-    ...(field('Wymagania wstępne') && { prerequisites: field('Wymagania wstępne') }),
-    ...(field('Cel przedmiotu') && { goal: field('Cel przedmiotu') }),
-    ...(field('Treści kształcenia') && { content: field('Treści kształcenia') }),
+    // Cel i treści to długie bloki tekstu - Planer pokazuje zredagowany opis (programs/*Summaries.ts),
+    // a pełny sylabus pod linkiem. Zostaje tylko informacja, że opis jest.
+    ...((field('Cel przedmiotu') || field('Treści kształcenia')) && { described: true }),
     ...(field('Metody oceny') && { assessment: field('Metody oceny') }),
     ...(field('Literatura') && { literature: field('Literatura') }),
   }

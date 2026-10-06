@@ -11,9 +11,7 @@ export interface ProgramCourse {
   code?: string
   coordinator?: string
   exam?: boolean
-  prerequisites?: string
-  goal?: string
-  content?: string
+  described?: boolean // sylabus ma opis (cel, treści) - pokazujemy zredagowany (CourseSummary), pełny pod linkiem
   assessment?: string
   literature?: string
 }
@@ -23,6 +21,7 @@ export interface CourseSummary {
   about: string // jedno-dwa zdania: o czym jest przedmiot
   topics?: string[] // główne tematy, po kilka słów
   needs?: string // co trzeba umieć wcześniej
+  requires?: string[] // przedmioty z programu, na których się opiera (według wymagań z sylabusa)
 }
 
 export interface StudyProgram {
@@ -111,4 +110,35 @@ export const isElective = (c: ProgramCourse) => c.group === 'Obieralne' && !isEl
 // Punkty semestru bez przedmiotów do wyboru (te liczą się dopiero po wyborze).
 export function semesterEcts(courses: ProgramCourse[]): number {
   return courses.filter((c) => !isElective(c)).reduce((sum, c) => sum + c.ects, 0)
+}
+
+// Punkty z semestrów przed obecnym; electives = któryś miał przedmioty do wyboru (ich punktów nie znamy).
+export function ectsBefore(program: StudyProgram, semester: number): { ects: number; electives: boolean } {
+  const past = program.semesters.filter((s) => s.number < semester)
+  return {
+    ects: past.reduce((sum, s) => sum + semesterEcts(s.courses), 0),
+    electives: past.some((s) => s.courses.some(isElective)),
+  }
+}
+
+// Przedmioty w semestrze (bez puli obieralnych) i ile z nich kończy się egzaminem.
+export function semesterLoad(courses: ProgramCourse[]): { courses: number; exams: number } {
+  const counted = courses.filter((c) => !isElective(c) && !isElectivePool(c))
+  return { courses: counted.length, exams: counted.filter((c) => c.exam).length }
+}
+
+// "Przyda się w": przedmiot -> późniejsze przedmioty, które go wymagają (odwrotność CourseSummary.requires).
+export function dependents(
+  program: StudyProgram,
+  summaries: Record<string, CourseSummary>,
+): Map<string, { name: string; semester: number }[]> {
+  const result = new Map<string, { name: string; semester: number }[]>()
+  for (const s of program.semesters) {
+    for (const c of s.courses) {
+      for (const required of summaries[c.name]?.requires ?? []) {
+        result.set(required, [...(result.get(required) ?? []), { name: c.name, semester: s.number }])
+      }
+    }
+  }
+  return result
 }

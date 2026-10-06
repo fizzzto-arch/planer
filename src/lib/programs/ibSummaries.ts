@@ -60,6 +60,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Holografia, mikroskop elektronowy',
     ],
     needs: 'algebra liniowa i analiza',
+    requires: ['Matematyka - Algebra liniowa', 'Matematyka - Analiza I'],
   },
   'Matematyka - Algebra liniowa': {
     about: 'Liczby zespolone, macierze i układy równań. Katalog podaje tu przez pomyłkę ten sam opis co przy Analizie I.',
@@ -139,6 +140,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Statystyki kwantowe, laser',
     ],
     needs: 'Fizyka 1, Analiza I',
+    requires: ['Fizyka 1', 'Matematyka - Algebra liniowa', 'Matematyka - Analiza I'],
   },
   'Matematyka - Analiza 2': {
     about: "Szeregi, całki wielokrotne, funkcje zespolone oraz przekształcenia Fouriera i Laplace'a.",
@@ -152,6 +154,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       "Transformata Laplace'a",
     ],
     needs: 'Analiza I, algebra liniowa',
+    requires: ['Matematyka - Algebra liniowa', 'Matematyka - Analiza I'],
   },
   'Mechanika i Wytrzymałość materiałów': {
     about: 'Statyka i wytrzymałość materiałów: jak liczyć siły i naprężenia w elementach konstrukcji.',
@@ -166,6 +169,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Pełzanie i relaksacja',
     ],
     needs: 'matematyka i fizyka z 1. roku',
+    requires: ['Matematyka - Analiza I', 'Fizyka 1'],
   },
   'Wstęp do elektrotechniki': {
     about: 'Analiza obwodów elektrycznych prądu stałego i zmiennego oraz podstawy maszyn elektrycznych.',
@@ -179,6 +183,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Prąd trójfazowy, silniki',
     ],
     needs: 'algebra liniowa i analiza',
+    requires: ['Matematyka - Algebra liniowa', 'Matematyka - Analiza I'],
   },
 
   // Semestr 3
@@ -206,6 +211,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Filtry, stany nieustalone',
     ],
     needs: 'Wstęp do elektrotechniki',
+    requires: ['Wstęp do elektrotechniki'],
   },
   'Podstawy Automatyki': {
     about: 'Regulacja procesów ciągłych (regulatory PID, stabilność) i projektowanie układów logicznych.',
@@ -219,6 +225,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Układy kombinacyjne i sekwencyjne',
     ],
     needs: "równania różniczkowe, przekształcenie Laplace'a, algebra Boole'a",
+    requires: ['Matematyka - Analiza 2'],
   },
   'Podstawy elementów i układów elektronicznych': {
     about: 'Jak działają diody i tranzystory oraz jak projektuje się układy analogowe - od wzmacniaczy po zasilacze.',
@@ -257,6 +264,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Projekt: program dla maszyny CNC, projekt płytki PCB',
     ],
     needs: 'mechanika, podstawy programowania',
+    requires: ['Mechanika i Wytrzymałość materiałów', 'Podstawy programowania'],
   },
   'Matematyka - Rachunek prawdopodobieństwa i statystyka': {
     about: 'Prawdopodobieństwo i statystyka z myślą o danych biologicznych i medycznych.',
@@ -270,6 +278,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Łańcuchy Markowa',
     ],
     needs: 'rachunek różniczkowy i całkowy, macierze',
+    requires: ['Matematyka - Algebra liniowa', 'Matematyka - Analiza I', 'Matematyka - Analiza 2'],
   },
 
   // Semestr 4
@@ -284,6 +293,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Analiza chodu',
     ],
     needs: 'mechanika, wytrzymałość materiałów, anatomia',
+    requires: ['Mechanika i Wytrzymałość materiałów', 'Metrologia', 'Podstawy elementów i układów elektronicznych', 'Anatomia i fizjologia'],
   },
   'Metody numeryczne': {
     about: 'Algorytmy numeryczne w MATLAB-ie i ocena ich dokładności. W semestrze trzy indywidualne projekty.',
@@ -297,6 +307,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Równania różniczkowe (Euler, Adams, Gear)',
     ],
     needs: 'algebra, analiza, rachunek prawdopodobieństwa',
+    requires: ['Matematyka - Algebra liniowa', 'Matematyka - Analiza I', 'Matematyka - Analiza 2', 'Matematyka - Rachunek prawdopodobieństwa i statystyka'],
   },
   'Podstawy obrazowania medycznego': {
     about: 'Jak powstają obrazy medyczne: RTG, tomografia, scyntygrafia, rezonans magnetyczny i endoskopia.',
@@ -309,6 +320,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Obrazowanie multimodalne',
     ],
     needs: 'Radiologia (zaliczona albo równolegle)',
+    requires: ['Radiologia'],
   },
   'Podstawy Robotyki': {
     about: 'Budowa, sterowanie i programowanie robotów oraz ich zastosowania w medycynie.',
@@ -321,6 +333,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Roboty chirurgiczne',
     ],
     needs: 'automatyka, elektrotechnika, elektronika',
+    requires: ['Podstawy Automatyki', 'Wstęp do elektrotechniki', 'Podstawy elementów i układów elektronicznych'],
   },
   'Sensory i pomiary wielkości nieelektrycznych': {
     about: 'Biosensory, elektrody i metody pomiaru wielkości chemicznych i fizycznych.',
@@ -333,6 +346,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Pomiar pH, gęstości, lepkości, wilgotności',
     ],
     needs: 'elektrotechnika, podstawy elektroniki',
+    requires: ['Wstęp do elektrotechniki', 'Podstawy elementów i układów elektronicznych'],
   },
   'Sygnały i systemy': {
     about: 'Teoria sygnałów i systemów ciągłych i dyskretnych - podstawa przetwarzania sygnałów.',
@@ -346,6 +360,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Sygnały losowe',
     ],
     needs: 'analiza, teoria obwodów, szereg Fouriera',
+    requires: ['Matematyka - Analiza I', 'Matematyka - Analiza 2', 'Wstęp do elektrotechniki'],
   },
   'Wstęp do systemów elektroniki wbudowanej': {
     about: 'Od bramek logicznych do mikrokontrolera. Na laboratorium programowanie w asemblerze.',
@@ -359,6 +374,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Laboratorium: asembler, wyświetlacz LED',
     ],
     needs: 'Metrologia, elektrotechnika, elektronika',
+    requires: ['Metrologia', 'Wstęp do elektrotechniki', 'Podstawy elementów i układów elektronicznych'],
   },
 
   // Semestr 5
@@ -373,6 +389,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Laboratorium: miernik częstotliwości w Quartus II',
     ],
     needs: 'Podstawy automatyki, elektronika',
+    requires: ['Podstawy Automatyki', 'Podstawy elementów i układów elektronicznych'],
   },
   'Technika mikroprocesorowa': {
     about: 'Programowanie 32-bitowych mikrokontrolerów ARM (STM32) w C/C++.',
@@ -398,6 +415,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Projekt: np. odbiornik EKG, miernik bioimpedancji',
     ],
     needs: 'elektronika, sygnały i systemy',
+    requires: ['Podstawy elementów i układów elektronicznych', 'Sygnały i systemy'],
   },
   'Kontrola Jakości Radiologicznych Urządzeń Diagnostycznych': {
     about: 'Testy jakości aparatów RTG, tomografów, mammografów i urządzeń medycyny nuklearnej - przygotowanie do pracy w serwisie i kontroli.',
@@ -410,6 +428,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Medycyna nuklearna: SPECT, PET',
     ],
     needs: 'Radiologia',
+    requires: ['Radiologia', 'Podstawy obrazowania medycznego'],
   },
   'Metoda elementów skończonych – zastosowanie w bioinżynierii': {
     about: 'Metoda elementów skończonych w praktyce: modele mechaniczne, cieplne i dynamiczne w programie ANSYS.',
@@ -422,6 +441,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Laboratorium: ANSYS',
     ],
     needs: 'mechanika, wytrzymałość materiałów',
+    requires: ['Mechanika i Wytrzymałość materiałów'],
   },
   'Systemy długotrwałego monitorowania': {
     about: 'Holtery i inne systemy, które monitorują pacjenta podczas codziennej aktywności.',
@@ -434,6 +454,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Bezdech senny, urządzenia wszczepialne',
     ],
     needs: 'elektronika, pomiary',
+    requires: ['Podstawy elementów i układów elektronicznych', 'Wstęp do elektrotechniki', 'Sensory i pomiary wielkości nieelektrycznych', 'Fizykomedyczne podstawy inżynierii biomedycznej'],
   },
   'Technika ultradźwiękowa w diagnostyce medycznej': {
     about: 'Jak działa USG: fale akustyczne w tkankach, głowice, obrazowanie i dopplerowski pomiar przepływu krwi.',
@@ -446,6 +467,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Bezpieczeństwo, elastografia',
     ],
     needs: 'sygnały i systemy, elektronika; przyda się MATLAB',
+    requires: ['Sygnały i systemy', 'Podstawy elementów i układów elektronicznych'],
   },
   'Techniki laserowe w biomedycynie – biofotonika': {
     about: 'Lasery w terapii i optyczne metody obrazowania, przede wszystkim tomografia OCT.',
@@ -457,6 +479,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Optyczna tomografia koherencyjna (OCT)',
     ],
     needs: 'fizyka',
+    requires: ['Fizyka 1', 'Fizyka 2'],
   },
   'Wprowadzenie do programowania w MATLABie': {
     about: 'MATLAB od podstaw: skrypty, funkcje, macierze i aplikacje z interfejsem graficznym (App Designer).',
@@ -470,6 +493,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Wykresy i interfejs graficzny',
     ],
     needs: 'obsługa komputera, rachunek macierzowy',
+    requires: ['Matematyka - Algebra liniowa', 'Podstawy programowania'],
   },
   'Elektroniczna aparatura medyczna I': {
     about: 'Przegląd aparatury medycznej: od elektrokardiografu i pulsoksymetru po respiratory i monitoring na oddziale intensywnej terapii.',
@@ -483,6 +507,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Monitoring pacjenta, normy bezpieczeństwa',
     ],
     needs: 'elektronika, pomiary, anatomia',
+    requires: ['Podstawy elementów i układów elektronicznych', 'Wstęp do elektrotechniki', 'Sensory i pomiary wielkości nieelektrycznych', 'Anatomia i fizjologia'],
   },
   'Laboratorium Automatyki i Robotyki': {
     about: 'Automatyka i robotyka w praktyce: regulacja, układy logiczne i pneumatyczne, programowanie robota.',
@@ -494,6 +519,7 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'Programowanie robota przemysłowego',
     ],
     needs: 'Podstawy automatyki, Podstawy robotyki',
+    requires: ['Podstawy Automatyki', 'Podstawy Robotyki'],
   },
 
   // Semestr 6
@@ -508,10 +534,12 @@ export const SUMMARIES: Record<string, CourseSummary> = {
       'DICOM',
     ],
     needs: 'sygnały i systemy; przyda się MATLAB',
+    requires: ['Sygnały i systemy'],
   },
   'Pracownia problemowa': {
     about: 'Projekt prostego urządzenia elektromedycznego, np. wzmacniacza EEG, kardiotachometru albo wzmacniacza do wspomagania słuchu.',
     needs: 'elektronika, aparatura medyczna',
+    requires: ['Podstawy elementów i układów elektronicznych', 'Elektroniczna aparatura medyczna I'],
   },
   'Praktyka przeddyplomowa': {
     about: 'Praktyka w firmie - zakres zależy od miejsca praktyki.',

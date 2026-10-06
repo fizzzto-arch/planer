@@ -3432,10 +3432,93 @@ label.setting-row {
   --c: var(--accent);
 }
 
+/* Pasek studiów: odcinek na semestr - za Tobą, teraz, przed Tobą. */
+.program-steps {
+  display: grid;
+  grid-template-columns: repeat(var(--count, 7), minmax(0, 1fr));
+  gap: 4px;
+  margin: 4px 0 6px;
+}
+
+.program-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.program-step-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  transition: background-color 160ms ease;
+}
+
+.program-step.is-done .program-step-bar {
+  background: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.program-step.is-now .program-step-bar {
+  background: var(--accent);
+}
+
+.program-step-number {
+  font-size: 0.75rem;
+}
+
+.program-step.is-now .program-step-number {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.program-position {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 2px 0 6px;
+}
+
+.program-position .muted {
+  font-size: 0.85rem;
+}
+
+/* Źródło danych: jedna linijka, wyjaśnienie po stuknięciu. */
 .program-source {
   margin: 0 0 14px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--muted);
+}
+
+.program-source > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.program-source > summary::-webkit-details-marker {
+  display: none;
+}
+
+.program-source-more {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.program-source p {
+  margin: 6px 0 0;
+}
+
+.program-semester,
+.program-course {
+  scroll-margin-top: 90px;
 }
 
 .program-semester {
@@ -3458,15 +3541,16 @@ label.setting-row {
 }
 
 .program-semester > summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 2px;
 }
 
 /* Strzałka: w prawo zwinięty, w dół rozwinięty. */
 .program-semester > summary::before {
   content: '';
-  flex-shrink: 0;
   width: 7px;
   height: 7px;
   margin: 0 4px 0 2px;
@@ -3480,11 +3564,24 @@ label.setting-row {
   transform: rotate(45deg);
 }
 
+.program-semester-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .program-semester-title {
   font-weight: 700;
 }
 
 .program-semester.is-past .program-semester-title {
+  color: var(--muted);
+}
+
+.program-semester-load {
+  grid-column: 2;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -3511,10 +3608,14 @@ label.setting-row {
   border-top: 1px solid var(--border);
 }
 
+.program-course {
+  border-radius: 8px;
+}
+
 .program-course > summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 12px;
+  gap: 4px 12px;
   padding: 10px 0;
 }
 
@@ -3533,9 +3634,60 @@ label.setting-row {
   white-space: nowrap;
 }
 
+/* Godziny w kolorach form zajęć z planu, egzamin na czerwono. */
 .program-course-meta {
   grid-column: 1 / -1;
-  font-size: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.program-form,
+.program-exam {
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  color: color-mix(in srgb, var(--c) 70%, var(--text));
+}
+
+.program-exam {
+  --c: var(--danger);
+}
+
+.program-specialty {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* Postęp przedmiotu z planu: ile zajęć za Tobą. */
+.program-progress {
+  grid-column: 1 / -1;
+  display: block;
+  margin-top: 4px;
+}
+
+.program-progress-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.program-progress-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.program-progress-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
@@ -3543,8 +3695,12 @@ label.setting-row {
   padding: 0 0 14px;
 }
 
+.program-about {
+  margin: 2px 0 0;
+}
+
 .program-field h4 {
-  margin: 10px 0 2px;
+  margin: 12px 0 2px;
   font-size: 0.78rem;
   color: var(--muted);
 }
@@ -3554,26 +3710,6 @@ label.setting-row {
   font-size: 0.9rem;
   white-space: pre-line;
   overflow-wrap: anywhere;
-}
-
-.program-course-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.program-course-links a.button {
-  text-decoration: none;
-}
-
-.program-electives {
-  margin-top: 6px;
-}
-
-/* Zredagowany opis przedmiotu: zdanie, tematy w punktach; literatura zwinięta. */
-.program-about {
-  margin: 2px 0 0;
 }
 
 .program-topics {
@@ -3597,6 +3733,30 @@ label.setting-row {
   }
 }
 
+/* "Przyda się w": przejście do późniejszego przedmiotu. */
+.program-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.program-link {
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 999px;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.program-link span {
+  color: var(--muted);
+}
+
 .program-literature {
   margin-top: 12px;
 }
@@ -3614,4 +3774,41 @@ label.setting-row {
   color: var(--muted);
   white-space: pre-line;
   overflow-wrap: anywhere;
+}
+
+.program-course-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.program-course-links a.button {
+  text-decoration: none;
+}
+
+.program-electives {
+  margin-top: 6px;
+}
+
+/* Po przejściu do semestru albo przedmiotu - krótkie podświetlenie, żeby było widać, gdzie jesteśmy. */
+.is-flash {
+  animation: program-flash 1.6s ease;
+}
+
+@keyframes program-flash {
+  0%,
+  30% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-flash {
+    animation: none;
+  }
 }
