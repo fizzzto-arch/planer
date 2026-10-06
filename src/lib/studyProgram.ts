@@ -18,6 +18,13 @@ export interface ProgramCourse {
   literature?: string
 }
 
+// Zredagowany, krótki opis przedmiotu (zamiast ściany tekstu z sylabusa).
+export interface CourseSummary {
+  about: string // jedno-dwa zdania: o czym jest przedmiot
+  topics?: string[] // główne tematy, po kilka słów
+  needs?: string // co trzeba umieć wcześniej
+}
+
 export interface StudyProgram {
   id: number
   name: string

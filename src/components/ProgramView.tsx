@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import type { PlanMeeting } from '../lib/edits'
 import { PROGRAM } from '../lib/programs/ib'
+import { SUMMARIES } from '../lib/programs/ibSummaries'
 import {
   SYLLABUS_URL,
   currentCourseNames,
@@ -142,7 +143,10 @@ function CourseItem({ course, planName, year, onOpenCourse }: CourseProps) {
     course.exam && t('egzamin'),
     course.group === 'Specjalnościowe' && t('specjalność: {name}', { name: course.block }),
   ].filter(Boolean)
-  const described = [course.coordinator, course.assessment, course.prerequisites, course.goal, course.content, course.literature].some(Boolean)
+  // Cel i treści z sylabusa to ściana tekstu - pokazujemy zredagowany opis; zasady zaliczenia 1:1.
+  const summary = SUMMARIES[course.name]
+  const literature = course.literature?.replace(/^literatura:?\s*/i, '').trim()
+  const described = Boolean(summary || course.assessment || course.coordinator || literature)
 
   return (
     <li>
@@ -157,12 +161,26 @@ function CourseItem({ course, planName, year, onOpenCourse }: CourseProps) {
         </summary>
         <div className="program-course-body">
           {!described && <p className="muted">{t('Katalog nie ma opisu tego przedmiotu.')}</p>}
-          <Field label={t('Koordynator ({year})', { year })} value={course.coordinator} />
+          {summary && <p className="program-about">{summary.about}</p>}
+          {summary?.topics && (
+            <div className="program-field">
+              <h4>{t('Tematy')}</h4>
+              <ul className="program-topics">
+                {summary.topics.map((topic) => (
+                  <li key={topic}>{topic}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <Field label={t('Zaliczenie')} value={course.assessment} />
-          <Field label={t('Wymagania wstępne')} value={course.prerequisites} />
-          <Field label={t('Cel')} value={course.goal} />
-          <Field label={t('Treści')} value={course.content} />
-          <Field label={t('Literatura')} value={course.literature} />
+          <Field label={t('Wymagania')} value={summary?.needs} />
+          <Field label={t('Koordynator ({year})', { year })} value={course.coordinator} />
+          {literature && (
+            <details className="program-literature">
+              <summary>{t('Literatura')}</summary>
+              <p>{literature}</p>
+            </details>
+          )}
           <div className="program-course-links">
             {planName && (
               <button type="button" className="button small" onClick={() => onOpenCourse(planName)}>

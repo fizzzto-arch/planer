@@ -144,8 +144,12 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
   // Bieżący semestr otwarty, przedmiot z planu oznaczony; po stuknięciu - sylabus.
   const radiology = page.locator('.program-course', { has: page.locator('.program-course-name', { hasText: /^Radiologia/ }) })
   await expect(radiology.getByText('w planie')).toBeVisible()
-  await radiology.locator('summary').click()
+  await radiology.locator('summary').first().click()
   await expect(radiology.getByText(/wykład - zaliczenie na podstawie egzaminu/)).toBeVisible()
+  // Zamiast ściany tekstu z sylabusa - krótki opis i tematy.
+  await expect(radiology.getByText(/Promieniowanie X i γ w diagnostyce/)).toBeVisible()
+  await expect(radiology.getByText('Dozymetria i ochrona radiologiczna')).toBeVisible()
+  await expect(radiology.getByText(/Zakres wykładu obejmuje/)).toHaveCount(0)
   await expect(radiology.getByRole('link', { name: 'Pełny sylabus' })).toHaveAttribute('href', /idPrzedmiot\/900264$/)
 
   // Inny semestr zwinięty - rozwija się po stuknięciu.

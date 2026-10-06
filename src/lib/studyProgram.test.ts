@@ -44,6 +44,20 @@ describe('program studiów', () => {
     expect(ects(6)).toBe(25) // w tym "Przedmioty obieralne sem. 6" (14 ECTS)
   })
 
+  it('każdy opisany w katalogu przedmiot ma zredagowany opis (i żaden opis nie wisi bez przedmiotu)', async () => {
+    const { SUMMARIES } = await import('./programs/ibSummaries')
+    const courses = PROGRAM.semesters.flatMap((s) => s.courses)
+    const missing = courses.filter((c) => (c.goal || c.content) && !SUMMARIES[c.name]).map((c) => c.name)
+    expect(missing).toEqual([])
+    const names = new Set(courses.map((c) => c.name))
+    expect(Object.keys(SUMMARIES).filter((name) => !names.has(name))).toEqual([])
+    // Krótko: zdanie-dwa i tematy po kilka słów.
+    for (const [name, s] of Object.entries(SUMMARIES)) {
+      expect(s.about.length, name).toBeLessThan(200)
+      for (const topic of s.topics ?? []) expect(topic.length, `${name}: ${topic}`).toBeLessThan(65)
+    }
+  })
+
   it('obecne przedmioty: zajęcia z ostatnich dwóch tygodni, bez historii poprzedniego semestru', () => {
     const now = new Date(2026, 9, 14)
     const at = (courseName: string, month: number, day: number) => ({ courseName, start: new Date(2026, month, day) })

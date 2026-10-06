@@ -3570,3 +3570,48 @@ label.setting-row {
 .program-electives {
   margin-top: 6px;
 }
+
+/* Zredagowany opis przedmiotu: zdanie, tematy w punktach; literatura zwinięta. */
+.program-about {
+  margin: 2px 0 0;
+}
+
+.program-topics {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+}
+
+.program-topics li {
+  margin: 2px 0;
+}
+
+@media (min-width: 760px) {
+  .program-topics {
+    columns: 2;
+    column-gap: 32px;
+  }
+
+  .program-topics li {
+    break-inside: avoid;
+  }
+}
+
+.program-literature {
+  margin-top: 12px;
+}
+
+.program-literature > summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.program-literature p {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
