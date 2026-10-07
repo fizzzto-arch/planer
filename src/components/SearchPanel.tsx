@@ -182,6 +182,24 @@ export function SearchPanel({ meetings, now, onClose, onAction }: Props) {
                 setExpanded([])
               }}
             />
+            {query !== '' && (
+              <button
+                type="button"
+                className="search-clear"
+                aria-label={t('Wyczyść')}
+                onClick={() => {
+                  setQuery('')
+                  setActive(0)
+                  setExpanded([])
+                  input.current?.focus()
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="m8.5 8.5 7 7m0-7-7 7" />
+                </svg>
+              </button>
+            )}
           </label>
           <button type="button" className="link-button search-cancel" onClick={onClose}>
             {t('Anuluj')}

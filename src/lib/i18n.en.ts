@@ -805,6 +805,7 @@ export const EN: Record<string, string> = {
   'Materiały': 'Materials',
   'Ustawienia i funkcje': 'Settings and features',
   'Wyszukiwanie': 'Search',
+  'Wyczyść': 'Clear',
   'Przedmioty, prowadzący, zasady zaliczenia, terminy, sale, notatki, materiały i ustawienia - wpisz kilka liter.': 'Courses, lecturers, assessment rules, deadlines, rooms, notes, materials and settings - type a few letters.',
   'Nic nie znaleziono dla „{query}”.': 'Nothing found for “{query}”.',
 

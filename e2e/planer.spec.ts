@@ -615,6 +615,12 @@ test('wyszukiwanie: lupa (Android, komputer) - przedmiot, sala, ustawienie', asy
   await open()
   await search.fill('xyzqw')
   await expect(page.getByText('Nic nie znaleziono dla „xyzqw”.')).toBeVisible()
+
+  // Wyczyść - puste pole, dalej można pisać.
+  await page.getByRole('button', { name: 'Wyczyść' }).click()
+  await expect(search).toHaveValue('')
+  await expect(search).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Wyczyść' })).toHaveCount(0)
 })
 
 test('wyszukiwanie: Ctrl+K na komputerze', async ({ page }, info) => {
@@ -627,6 +633,12 @@ test('wyszukiwanie: na iPhonie bez lupy', async ({ page }, info) => {
   test.skip(info.project.name !== 'iphone', 'tylko iPhone')
   await expect(page.getByRole('heading', { name: 'Planer' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Szukaj w Planerze' })).toHaveCount(0)
+
+  // Pole bez wbudowanego wyglądu Safari - inaczej obok naszej lupy pojawia się druga.
+  await page.keyboard.press('Control+k')
+  const search = page.getByRole('searchbox', { name: 'Szukaj' })
+  await expect(search).toBeVisible()
+  await expect(search).toHaveCSS('-webkit-appearance', 'none')
 })
 
 test.describe('wyszukiwanie: pociągnięcie w dół (jak na iPhonie)', () => {
