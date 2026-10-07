@@ -60,7 +60,7 @@ function layoutLanes(dayMeetings: PlanMeeting[]): Map<string, { lane: number; la
 }
 
 export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }: Props) {
-  const { openCourse, deadlinesFor, displayName, calendarEvents } = usePlanUi()
+  const { openCourse, deadlinesFor, displayName, calendarEvents, notesOn } = usePlanUi()
   const firstHour = Math.min(
     DEFAULT_FIRST_HOUR,
     ...meetings.map((m) => Math.floor(minuteOfDay(m.start) / 60)),
@@ -126,12 +126,13 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
               if (highlightIds?.has(m.id)) classes.push('is-highlight')
               if (readOnly) classes.push('is-readonly')
               const deadlines = readOnly ? [] : deadlinesFor(m)
+              const note = notesOn ? m.note : '' // notatki - gdy włączone w ustawieniach
               const tooltip = [
                 m.courseName,
                 `${formatTime(m.start)}–${formatTime(m.end)}`,
                 details.join(' · '),
                 ...deadlines.map((d) => `📌 ${d.title || deadlineKindLabel(d.kind)}`),
-                m.note ? t('Notatka: {note}', { note: m.note }) : null,
+                note ? t('Notatka: {note}', { note }) : null,
                 m.edited ? t('Zmienione ręcznie') : null,
               ]
                 .filter(Boolean)
@@ -156,10 +157,10 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
                   <span className="grid-event-meta">
                     {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
                   </span>
-                  {(deadlines.length > 0 || m.note || m.edited) && (
+                  {(deadlines.length > 0 || note || m.edited) && (
                     <span className="grid-event-flags" aria-hidden="true">
                       {deadlines.length > 0 && <span className="flag flag-deadline" />}
-                      {m.note && <span className="flag flag-note" />}
+                      {note && <span className="flag flag-note" />}
                       {m.edited && <span className="flag flag-edited" />}
                     </span>
                   )}

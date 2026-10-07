@@ -3,6 +3,7 @@ import { LANGUAGE_NAMES } from './LanguageSwitch'
 import type { PrefsApi } from '../hooks/usePrefs'
 import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias, type TextSize } from '../lib/prefs'
 import { ChoiceSetting, SwitchSetting } from './SettingControls'
+import { usePlanUi } from '../hooks/planUi'
 
 interface Props {
   prefsApi: PrefsApi
@@ -96,9 +97,19 @@ export function AppearancePanel({ prefsApi, signedIn }: Props) {
 
 export function PlanPrefsPanel({ prefsApi }: Pick<Props, 'prefsApi'>) {
   const { prefs, update } = prefsApi
+  const { extras, notesOn } = usePlanUi()
   return (
     <div className="panel" id="settings-plan">
       <h3 className="panel-title">{t('Plan i terminy')}</h3>
+      {/* Notatki zapisują się na koncie - bez logowania nie ma czego włączać. */}
+      {extras && (
+        <SwitchSetting
+          label={t('Notatki')}
+          hint={t('Do przedmiotów, do zajęć i ogólna w Przedmiotach. Wyłączone tylko się chowają - nic nie znika.')}
+          checked={notesOn}
+          onChange={(notes) => update({ notes })}
+        />
+      )}
       <SwitchSetting
         label={t('Numer tygodnia semestru')}
         hint={t('Np. „tydzień 3 · nieparzysty”. Liczone z planu - tygodnie bez zajęć (np. święta) się nie liczą.')}

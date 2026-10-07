@@ -60,8 +60,8 @@ export function ScoreSection({ courseName, scoring: rules }: Props) {
 
   if (!scoring) {
     return (
-      <div className="panel score">
-        <h3 className="panel-title">{t('Punkty')}</h3>
+      <div className="score">
+        <h4 className="score-title">{t('Twoje punkty')}</h4>
         <p className="muted">
           {t('Ułóż rozpiskę zaliczenia (np. kolokwia i laboratoria z maksymalną liczbą punktów), a Planer policzy, ile brakuje do zaliczenia i do oceny.')}
         </p>
@@ -108,9 +108,9 @@ export function ScoreSection({ courseName, scoring: rules }: Props) {
   }
 
   return (
-    <div className="panel score">
+    <div className="score">
       <div className="section-head">
-        <h3 className="panel-title">{t('Punkty')}</h3>
+        <h4 className="score-title">{t('Twoje punkty')}</h4>
         {!rules && (
           <button type="button" className="link-button" onClick={() => setEditing(true)}>
             {t('Zmień rozpiskę')}

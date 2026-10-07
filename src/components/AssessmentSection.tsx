@@ -20,8 +20,8 @@ export function AssessmentSection({ courseName, assessment, unitId }: Props) {
   const deadlines = extras?.extras.deadlines.filter((d) => d.courseName === courseName) ?? []
 
   return (
-    <div className="panel assessment">
-      <h3 className="panel-title">{t('Zaliczenie')}</h3>
+    // W zwijanym panelu "Zaliczenie" na stronie przedmiotu (tytuł i podsumowanie ma panel).
+    <div className="assessment">
       <ul className="assessment-rows">
         {assessment.rows.map((row, i) => {
           const add = row.add

@@ -68,7 +68,7 @@ test('angielski: mail z prośbą o zmianę grupy zostaje po polsku (idzie do pro
     return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
   })
 
-  await tab(page, 'Courses').click()
+  await tab(page, 'For testers').click()
   await page.getByRole('button', { name: /Find groups/ }).click()
   await page.getByRole('button', { name: 'Request a change' }).first().click()
   const mail = page.locator('.mail-body').first()

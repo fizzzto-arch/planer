@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { isHiddenClass, isHiddenUsosClass, parseHiddenClasses, withHidden, withoutHidden } from './hiddenClasses'
 import { parsePrefs } from './prefs'
+import { notesEnabled } from './extras'
+
+describe('notatki - dodatek do włączenia', () => {
+  const extras = (courseNote: string, meetingNote: string) => ({
+    courses: new Map([['a', { name: 'A', note: courseNote, links: [] }]]),
+    meetingEdits: new Map([['m', { id: 'm', note: meetingNote, override: null }]]),
+  })
+  it('domyślnie wyłączone; kto ma już notatkę - włączone, dopóki sam nie wyłączy', () => {
+    expect(parsePrefs({}).notes).toBeNull()
+    expect(notesEnabled(null, extras('', ''))).toBe(false)
+    expect(notesEnabled(null, extras('kontakt do prowadzącego', ''))).toBe(true)
+    expect(notesEnabled(null, extras('', 'przynieść kalkulator'))).toBe(true)
+    expect(notesEnabled(false, extras('kontakt', ''))).toBe(false)
+    expect(notesEnabled(true, extras('', ''))).toBe(true)
+  })
+})
 
 describe('zajęcia usunięte z planu', () => {
   it('cały przedmiot albo jeden rodzaj zajęć', () => {

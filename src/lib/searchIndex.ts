@@ -223,7 +223,7 @@ const SETTINGS: Entry[] = [
   { title: msg('Oceny i średnia'), keywords: 'oceny ocena średnia ważona ects stypendium wpisz ocenę grades average gpa', action: { type: 'program' }, when: (f) => f.hasProgram && f.signedIn },
   { title: msg('Powiadomienia'), keywords: 'powiadomienia skrzynka wiadomości notifications inbox', action: { type: 'view', view: 'notifications' } },
   { title: msg('Pomoc i prywatność'), keywords: 'pomoc prywatność jak to działa instrukcja help privacy faq', action: { type: 'help' } },
-  { title: msg('Zgłoś problem'), keywords: 'zgłoś problem błąd uwaga pomysł feedback bug report', action: { type: 'feedback' }, when: (f) => f.signedIn },
+  { title: msg('Zgłoś problem'), keywords: 'zgłoś problem błąd uwaga pomysł opinia dla testerów testerzy zadania feedback bug report testers', action: { type: 'feedback' }, when: (f) => f.signedIn },
 ]
 
 function settingsItems(src: SearchSources): Item[] {

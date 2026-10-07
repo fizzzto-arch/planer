@@ -130,6 +130,17 @@ export const EMPTY_EXTRAS: Extras = {
   grades: new Map(),
 }
 
+// Czy jest jakakolwiek notatka (przedmiotu, ogólna albo do zajęć) - wtedy notatki są włączone,
+// dopóki ktoś sam ich nie wyłączy (prefs.notes), żeby nie zniknęły mu sprzed tej opcji.
+export function hasNotes(extras: Pick<Extras, 'courses' | 'meetingEdits'>): boolean {
+  for (const course of extras.courses.values()) if (course.note.trim()) return true
+  for (const edit of extras.meetingEdits.values()) if (edit.note.trim()) return true
+  return false
+}
+
+export const notesEnabled = (setting: boolean | null, extras: Pick<Extras, 'courses' | 'meetingEdits'>) =>
+  setting ?? hasNotes(extras)
+
 // Id dokumentu Firestore nie może zawierać "/", więc kodujemy nazwę.
 // Notatka ogólna (niezwiązana z przedmiotem) - zapisana jak notatka "przedmiotu" o tej nazwie,
 // więc synchronizacja, kopia zapasowa i usuwanie konta obejmują ją bez zmian w bazie.

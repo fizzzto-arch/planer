@@ -2,7 +2,7 @@
 // z regulaminu. Liczy, ile masz, ile brakuje do zaliczenia i do kolejnej oceny i jaka ocena wychodzi.
 // Zasady przedmiotów: src/lib/programs/*Assessment.ts (pole scoring); własna rozpiska: customScoring.
 import type { AssessmentForm } from './assessment'
-import { locale } from './i18n'
+import { locale, t } from './i18n'
 
 export type Grade = 2 | 3 | 3.5 | 4 | 4.5 | 5
 export const GRADES: Grade[] = [2, 3, 3.5, 4, 4.5, 5]
@@ -197,6 +197,27 @@ export function scoreResult(scoring: Scoring, points: Points): ScoreResult {
     next,
     exemption,
   }
+}
+
+// ---------- Podsumowanie w jednej linijce ----------
+
+// Do zwiniętego panelu "Zaliczenie": "masz 18,5 z 70 pkt · prognoza 4". null - nic jeszcze nie wpisane.
+export function scoreSummary(saved: CourseScores | null, rules: Scoring | null): string | null {
+  const scoring = rules ?? (saved?.custom ? customScoring(saved.custom) : null)
+  if (!scoring || !saved) return null
+  const r = scoreResult(scoring, saved.points)
+  if (r.filled === 0) return null
+  const have =
+    r.unit === '%'
+      ? t('masz {value}%', { value: formatNumber(r.value) })
+      : t('masz {value} z {max} pkt', { value: formatNumber(r.value), max: formatNumber(r.max) })
+  const grade =
+    r.filled === r.total
+      ? t('ocena {grade}', { grade: formatGrade(r.grade) })
+      : r.forecast !== null
+        ? t('prognoza {grade}', { grade: formatGrade(r.forecast) })
+        : null
+  return grade ? `${have} · ${grade}` : have
 }
 
 // ---------- Własna rozpiska (przedmiot bez zasad w Planerze) ----------

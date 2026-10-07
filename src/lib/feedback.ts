@@ -6,10 +6,11 @@ import { CHUNK_BYTES, chunkId } from './materials.ts'
 export type FeedbackKind = 'bug' | 'idea' | 'opinion'
 export type FeedbackStatus = 'new' | 'seen' | 'done'
 
-// Do wyboru w formularzu: błąd albo opinia (pomysły to pole "Czego brakuje?" w opinii).
+// Do wyboru w formularzu: opinia albo błąd (pomysły to pole "Czego brakuje?" w opinii).
+// Opinie są częstsze - pierwsze (po lewej) i zaznaczone na start.
 export const FEEDBACK_KINDS: { id: FeedbackKind; label: string }[] = [
-  { id: 'bug', label: msg('Błąd') },
   { id: 'opinion', label: msg('Opinia lub pomysł') },
+  { id: 'bug', label: msg('Błąd') },
 ]
 
 // Nazwy rodzajów do wyświetlania - także "Pomysł" ze starszych zgłoszeń.

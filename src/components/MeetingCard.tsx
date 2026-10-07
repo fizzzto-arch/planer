@@ -34,7 +34,9 @@ function NoteIcon() {
 }
 
 export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = true }: Props) {
-  const { extras, openCourse, editDeadline, editMeeting, deadlinesFor, displayName } = usePlanUi()
+  const { extras, openCourse, editDeadline, editMeeting, deadlinesFor, displayName, notesOn } = usePlanUi()
+  // Notatki - dodatek do włączenia w ustawieniach (wyłączone tylko się chowają).
+  const note = notesOn ? m.note : ''
 
   // Powrót do wersji z USOS prosto z karty: zmiana tych zajęć albo (po potwierdzeniu) całej grupy.
   const restoreFromUsos = (meeting: PlanMeeting) => {
@@ -95,7 +97,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
             {m.room && <span>{t('s. {room}', { room: m.room })}</span>}
             {building && <span>{building}</span>}
           </div>
-          {(deadlines.length > 0 || m.note || m.edited || m.custom) && (
+          {(deadlines.length > 0 || note || m.edited || m.custom) && (
             <div className="card-badges">
               {deadlines.map((d) => (
                 <span key={d.id} className={`badge badge-deadline kind-${d.kind}`}>
@@ -104,7 +106,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
               ))}
               {m.edited && <span className="badge">{t('zmienione')}</span>}
               {m.custom && <span className="badge">{t('własne')}</span>}
-              {m.note && (
+              {note && (
                 <span className="badge badge-note" title={t('Ma notatkę')}>
                   <NoteIcon />
                   {t('notatka')}
@@ -146,13 +148,13 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
 
         {/* Notatka tylko, gdy coś w niej jest albo użytkownik chce ją dodać. Po wejściu w pole
             zostaje widoczna, nawet gdy ktoś wszystko skasuje (inaczej zniknęłaby w trakcie pisania). */}
-        {extras && (m.note || noteOpen) && (
+        {extras && notesOn && (note || noteOpen) && (
           <div onFocusCapture={() => setNoteOpen(true)}>
             <NoteField
               id={`meeting-note-${m.id}`}
               value={m.note}
               rows={2}
-              autoFocus={noteOpen && !m.note}
+              autoFocus={noteOpen && !note}
               placeholder={t('np. przynieść kalkulator')}
               onSave={(text) => extras.saveMeetingEdit(m.id, { note: text })}
             />
@@ -160,7 +162,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
         )}
 
         <div className="card-actions">
-          {extras && !m.note && !noteOpen && (
+          {extras && notesOn && !note && !noteOpen && (
             <button type="button" className="button small secondary" onClick={() => setNoteOpen(true)}>
               {t('+ Notatka')}
             </button>

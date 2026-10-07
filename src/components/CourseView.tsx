@@ -14,6 +14,8 @@ import { StaffSection } from './StaffSection'
 import { CourseInfoSection } from './CourseInfoSection'
 import { AssessmentSection } from './AssessmentSection'
 import { ScoreSection } from './ScoreSection'
+import { scoreSummary } from '../lib/scoring'
+import { assessmentLine } from '../lib/assessment'
 import { programAssessments } from '../lib/courseAssessment'
 import { useMemo, useState } from 'react'
 import { HideCourseDialog } from './HideCourseDialog'
@@ -45,7 +47,7 @@ function MeetingsByDay({ meetings, now }: { meetings: PlanMeeting[]; now: Date }
 }
 
 export function CourseView({ courseName, meetings, now, onBack }: Props) {
-  const { extras, editDeadline, addCustomMeeting, displayName } = usePlanUi()
+  const { extras, editDeadline, addCustomMeeting, displayName, notesOn } = usePlanUi()
   const courseMeetings = meetings.filter((m) => m.courseName === courseName)
   const summary = summarizeCourses(courseMeetings, now)[0]
   const upcoming = courseMeetings.filter((m) => m.end > now)
@@ -59,6 +61,7 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
   const activeDeadlines = deadlines.filter((d) => !d.done && isOpen(d.date))
   const closedDeadlines = deadlines.filter((d) => d.done || !isOpen(d.date))
   const note = extras?.extras.courses.get(courseKey(courseName))?.note ?? ''
+  const saved = extras?.extras.scores.get(courseKey(courseName)) ?? null
   // Zaliczenie z programu studiów (na razie Inżynieria Biomedyczna) - gdy plan do niego pasuje.
   const assessment = useMemo(() => programAssessments(meetings, now)?.(courseName) ?? null, [meetings, now, courseName])
   const types = [...new Set(courseMeetings.map((m) => m.type))].sort((a, b) => typeLabel(a).localeCompare(typeLabel(b), locale()))
@@ -89,7 +92,7 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
       <div className="course-columns">
         <div className="course-main">
           {!extras && (
-            <p className="empty-state">{t('Zaloguj się (Ustawienia), żeby dodawać notatki i terminy do przedmiotu.')}</p>
+            <p className="empty-state">{t('Zaloguj się (Ustawienia), żeby dodawać terminy i liczyć punkty.')}</p>
           )}
 
           {extras && (
@@ -114,15 +117,32 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
             </div>
           )}
 
-          {assessment && (
-            <AssessmentSection
-              courseName={courseName}
-              assessment={assessment}
-              unitId={courseMeetings.find((m) => m.unitId)?.unitId ?? null}
-            />
+          {/* Zaliczenie i punkty: zwinięte, z krótkim podsumowaniem - szczegóły po stuknięciu. */}
+          {(assessment || extras) && (
+            <details className="panel assessment-panel">
+              <summary>
+                <span className="assessment-panel-head">
+                  <h3 className="panel-title">{t('Zaliczenie')}</h3>
+                  <span className="assessment-panel-summary">
+                    {[assessment && assessmentLine(assessment), scoreSummary(saved, assessment?.scoring ?? null)]
+                      .filter(Boolean)
+                      .join(' · ') || t('Wpisuj punkty, a Planer policzy ocenę')}
+                  </span>
+                </span>
+                <svg className="assessment-panel-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </summary>
+              {assessment && (
+                <AssessmentSection
+                  courseName={courseName}
+                  assessment={assessment}
+                  unitId={courseMeetings.find((m) => m.unitId)?.unitId ?? null}
+                />
+              )}
+              <ScoreSection key={courseName} courseName={courseName} scoring={assessment?.scoring ?? null} />
+            </details>
           )}
-
-          <ScoreSection key={courseName} courseName={courseName} scoring={assessment?.scoring ?? null} />
 
           {/* Prowadzący bieżących zajęć - przedmiot o tej samej nazwie z poprzedniego semestru ma inne grupy. */}
           <StaffSection meetings={upcoming.some((m) => m.unitId) ? upcoming : courseMeetings} />
@@ -130,36 +150,6 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
           <MaterialsSection courseName={courseName} />
 
           <CourseInfoSection meetings={courseMeetings} now={now} />
-
-          {extras && (
-            <div className="panel">
-              <h3 className="panel-title">{t('Notatka do przedmiotu')}</h3>
-              <NoteField
-                id={`course-note-${courseKey(courseName)}`}
-                value={note}
-                rows={5}
-                placeholder={t('np. zasady zaliczenia, kontakt do prowadzącego, próg na ocenę')}
-                onSave={(text) => extras.saveCourseNote(courseName, text)}
-              />
-            </div>
-          )}
-
-          {/* USOS czasem pokazuje zajęcia, których nie ma - można je usunąć (i przywrócić w zakładce Przedmioty). */}
-          {types.length > 0 && (
-            <button type="button" className="link-button course-remove" onClick={() => setHiding(true)}>
-              {t('Usuń z planu…')}
-            </button>
-          )}
-          {hiding && (
-            <HideCourseDialog
-              courseName={courseName}
-              types={types}
-              onClose={() => setHiding(false)}
-              onHidden={(whole) => {
-                if (whole) onBack()
-              }}
-            />
-          )}
         </div>
 
         <div className="course-side">
@@ -190,6 +180,37 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
           )}
         </div>
       </div>
+
+      {/* Na samym dole (także na telefonie - pod zajęciami): notatka, gdy notatki włączone w ustawieniach. */}
+      {extras && notesOn && (
+        <div className="panel course-note">
+          <h3 className="panel-title">{t('Notatka do przedmiotu')}</h3>
+          <NoteField
+            id={`course-note-${courseKey(courseName)}`}
+            value={note}
+            rows={5}
+            placeholder={t('np. kontakt do prowadzącego, co przynieść na zajęcia')}
+            onSave={(text) => extras.saveCourseNote(courseName, text)}
+          />
+        </div>
+      )}
+
+      {/* USOS czasem pokazuje zajęcia, których nie ma - można je usunąć (i przywrócić w zakładce Przedmioty). */}
+      {types.length > 0 && (
+        <button type="button" className="link-button course-remove" onClick={() => setHiding(true)}>
+          {t('Usuń z planu…')}
+        </button>
+      )}
+      {hiding && (
+        <HideCourseDialog
+          courseName={courseName}
+          types={types}
+          onClose={() => setHiding(false)}
+          onHidden={(whole) => {
+            if (whole) onBack()
+          }}
+        />
+      )}
     </section>
   )
 }

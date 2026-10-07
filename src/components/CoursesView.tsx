@@ -2,17 +2,18 @@ import { locale, t } from '../lib/i18n'
 import { useMemo, useState, type CSSProperties } from 'react'
 import { withoutHidden } from '../lib/hiddenClasses'
 import { usePlanUi } from '../hooks/planUi'
-import { formatTypes, summarizeCourses } from '../lib/courses'
+import { formatTypes, summarizeCourses, type CourseSummary } from '../lib/courses'
 import { daysBetween, formatShortDay, formatTime, parseDateKey } from '../lib/dates'
 import { upcomingDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
-import { GENERAL_NOTE, courseKey, type DeadlineKind } from '../lib/extras'
+import { GENERAL_NOTE, courseKey, type Deadline, type DeadlineKind } from '../lib/extras'
 import { plural } from '../lib/plural'
+import { semesterAt, semesters } from '../lib/semesterWeek'
 import { typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { NoteField } from './NoteField'
 import { assessmentLine } from '../lib/assessment'
-import { programAssessments } from '../lib/courseAssessment'
+import { programAssessments, type AssessmentLookup } from '../lib/courseAssessment'
 
 const DAYS_AHEAD = 60
 // Egzaminy bywają w sesji za kilka miesięcy - przy tym filtrze patrzymy na cały semestr.
@@ -32,15 +33,22 @@ interface Props {
   now: Date
 }
 
+// Przedmioty z poprzedniego semestru (plan trzyma jeszcze ich historię): wszystkie zajęcia przed
+// początkiem obecnego semestru. Bez rozpoznanego semestru - wszystkie są obecne.
+function pastCourses(meetings: PlanMeeting[], now: Date): Set<string> {
+  const list = semesters(meetings.filter((m) => !m.custom))
+  const current = semesterAt(now, list) ?? [...list].reverse().find((s) => s.firstWeek <= now) ?? null
+  if (!current) return new Set()
+  const lastEnd = new Map<string, number>()
+  for (const m of meetings) lastEnd.set(m.courseName, Math.max(lastEnd.get(m.courseName) ?? 0, m.end.getTime()))
+  return new Set([...lastEnd].filter(([, end]) => end < current.firstWeek.getTime()).map(([name]) => name))
+}
+
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, openCourse, openOptimizer, openProgram, isAdmin, canOptimize, editDeadline, displayName, prefs, setHiddenClasses } =
-    usePlanUi()
-  // Program studiów (na razie tylko Inżynieria Biomedyczna) - gdy przedmioty z planu do niego pasują;
-  // z niego też zaliczenie przedmiotów.
+  const { extras, editDeadline, prefs, notesOn, setHiddenClasses, displayName } = usePlanUi()
+  // Zaliczenie z programu studiów (na razie tylko Inżynieria Biomedyczna) - gdy plan do niego pasuje.
   const assessments = useMemo(() => programAssessments(meetings, now), [meetings, now])
-  const hasProgram = assessments !== null
   const [filter, setFilter] = useState<KindFilter>('all')
-  const courses = summarizeCourses(meetings, now)
   const all = extras ? upcomingDeadlines(extras.extras.deadlines, now, DAYS_AHEAD_EXAMS) : []
   const inHorizon = (days: number) => all.filter((d) => daysBetween(now, parseDateKey(d.date)!) <= days)
   const deadlines =
@@ -50,52 +58,22 @@ export function CoursesView({ meetings, now }: Props) {
   // Filtr pokazujemy dopiero, gdy jest co filtrować (terminy różnych rodzajów).
   const showFilter = new Set(all.map((d) => d.kind)).size > 1
 
+  const past = useMemo(() => pastCourses(meetings, now), [meetings, now])
+  const courses = summarizeCourses(meetings, now)
+  const current = courses.filter((c) => !past.has(c.name))
+  const previous = courses.filter((c) => past.has(c.name))
+  const rows = (list: CourseSummary[]) => (
+    <CourseRows list={list} deadlines={deadlines} assessments={assessments} />
+  )
+
   return (
     <section>
-      {/* Optymalizator: wersja testowa - administrator i osoby, którym go przyznał. */}
-      {canOptimize && (
-        <button type="button" className="optimizer-entry" onClick={openOptimizer}>
-          <span className="optimizer-entry-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6" />
-            </svg>
-          </span>
-          <span className="optimizer-entry-text">
-            <strong>
-              {t('Dobierz grupy')} <span className="alpha-badge">alpha</span>
-            </strong>
-            <span>
-              {t('Znajdź układ grup z mniejszą liczbą okienek i dni na uczelni')}
-              {isAdmin ? t(' (widoczne dla Ciebie i osób, którym dasz dostęp)') : t(' - wersja testowa, daj znać, co działa')}
-            </span>
-          </span>
-          <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m9 6 6 6-6 6" />
-          </svg>
-        </button>
-      )}
-
-      {hasProgram && (
-        <button type="button" className="optimizer-entry program-entry" onClick={() => openProgram()}>
-          <span className="optimizer-entry-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" />
-            </svg>
-          </span>
-          <span className="optimizer-entry-text">
-            <strong>
-              {t('Program studiów')} <span className="alpha-badge">alpha</span>
-            </strong>
-            <span>{t('Wszystkie semestry i przedmioty Twojego kierunku, z sylabusami')}</span>
-          </span>
-          <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m9 6 6 6-6 6" />
-          </svg>
-        </button>
-      )}
+      {/* Najpierw obecne przedmioty - po to zwykle wchodzi się do tej zakładki. */}
+      <h2 className="day-title">{t('Przedmioty')}</h2>
+      {rows(current)}
 
       <div className="section-head">
-        <h2 className="day-title">{t('Nadchodzące terminy')}</h2>
+        <h2 className="day-title secondary">{t('Nadchodzące terminy')}</h2>
         {extras && (
           <button type="button" className="button small" onClick={() => editDeadline({})}>
             {t('+ Dodaj termin')}
@@ -119,7 +97,7 @@ export function CoursesView({ meetings, now }: Props) {
         </div>
       )}
       {!extras ? (
-        <p className="empty-state">{t('Zaloguj się (Ustawienia), żeby dodawać kolokwia, egzaminy i notatki.')}</p>
+        <p className="empty-state">{t('Zaloguj się (Ustawienia), żeby dodawać kolokwia i egzaminy.')}</p>
       ) : deadlines.length === 0 ? (
         <p className="empty-state">
           {filter === 'all'
@@ -130,8 +108,8 @@ export function CoursesView({ meetings, now }: Props) {
         <DeadlineList deadlines={deadlines} now={now} showCourse />
       )}
 
-      {/* Notatki niezwiązane z przedmiotem, np. "z czego przenieść się do innej grupy". */}
-      {extras && (
+      {/* Notatki niezwiązane z przedmiotem, np. "z czego przenieść się do innej grupy" (gdy włączone w ustawieniach). */}
+      {extras && notesOn && (
         <>
           <h2 className="day-title secondary">{t('Notatki')}</h2>
           <div className="panel general-note">
@@ -146,51 +124,12 @@ export function CoursesView({ meetings, now }: Props) {
         </>
       )}
 
-      <h2 className="day-title secondary">{t('Przedmioty')}</h2>
-      <ul className="course-list">
-        {courses.map((course, i) => {
-          const extra = extras?.extras.courses.get(courseKey(course.name))
-          const count = deadlines.filter((d) => d.courseName === course.name).length
-          const notePreview = extra?.note.trim().split('\n')[0]
-          const assessment = assessments?.(course.name) ?? null
-          return (
-            <li key={course.name} style={{ '--i': i } as CSSProperties}>
-              <button
-                type="button"
-                className={`course-row type-${typeSlug(course.mainType)}`}
-                onClick={() => openCourse(course.name)}
-              >
-                <span className="course-row-main">
-                  <span className="course-row-name">{displayName(course.name)}</span>
-                  {displayName(course.name) !== course.name && (
-                    <span className="course-row-meta">{course.name}</span>
-                  )}
-                  <span className="course-row-meta">{formatTypes(course.types)}</span>
-                  {course.next && (
-                    <span className="course-row-meta">
-                      {t('Następne:')} {formatShortDay(course.next.start)} {formatTime(course.next.start)}
-                    </span>
-                  )}
-                  {assessment && (
-                    <span className="course-row-meta course-row-assessment">
-                      {t('Zaliczenie:')} {assessmentLine(assessment)}
-                    </span>
-                  )}
-                  {notePreview && <span className="course-row-note">{notePreview}</span>}
-                </span>
-                {count > 0 && (
-                  <span className="course-row-badge">
-                    {count} {plural(count, 'termin', 'terminy', 'terminów')}
-                  </span>
-                )}
-                <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m9 6 6 6-6 6" />
-                </svg>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      {previous.length > 0 && (
+        <details className="collapsible previous-courses">
+          <summary>{t('Z poprzedniego semestru ({n})', { n: previous.length })}</summary>
+          {rows(previous)}
+        </details>
+      )}
 
       {/* Usunięte z planu - do przywrócenia (np. gdy jednak się odbywają). */}
       {prefs.hiddenClasses.length > 0 && (
@@ -212,5 +151,59 @@ export function CoursesView({ meetings, now }: Props) {
         </details>
       )}
     </section>
+  )
+}
+
+interface RowsProps {
+  list: CourseSummary[]
+  deadlines: Deadline[]
+  assessments: AssessmentLookup | null
+}
+
+function CourseRows({ list, deadlines, assessments }: RowsProps) {
+  const { extras, openCourse, displayName, notesOn } = usePlanUi()
+  return (
+    <ul className="course-list">
+      {list.map((course, i) => {
+        const extra = extras?.extras.courses.get(courseKey(course.name))
+        const count = deadlines.filter((d) => d.courseName === course.name).length
+        const notePreview = notesOn ? extra?.note.trim().split('\n')[0] : undefined
+        const assessment = assessments?.(course.name) ?? null
+        return (
+          <li key={course.name} style={{ '--i': i } as CSSProperties}>
+            <button
+              type="button"
+              className={`course-row type-${typeSlug(course.mainType)}`}
+              onClick={() => openCourse(course.name)}
+            >
+              <span className="course-row-main">
+                <span className="course-row-name">{displayName(course.name)}</span>
+                {displayName(course.name) !== course.name && <span className="course-row-meta">{course.name}</span>}
+                <span className="course-row-meta">{formatTypes(course.types)}</span>
+                {course.next && (
+                  <span className="course-row-meta">
+                    {t('Następne:')} {formatShortDay(course.next.start)} {formatTime(course.next.start)}
+                  </span>
+                )}
+                {assessment && (
+                  <span className="course-row-meta course-row-assessment">
+                    {t('Zaliczenie:')} {assessmentLine(assessment)}
+                  </span>
+                )}
+                {notePreview && <span className="course-row-note">{notePreview}</span>}
+              </span>
+              {count > 0 && (
+                <span className="course-row-badge">
+                  {count} {plural(count, 'termin', 'terminy', 'terminów')}
+                </span>
+              )}
+              <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

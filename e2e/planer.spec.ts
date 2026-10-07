@@ -114,7 +114,7 @@ test('lektorat, który już jest w planie, nie da się wybrać drugi raz', async
     return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
   })
 
-  await tab(page, 'Przedmioty').click()
+  await tab(page, 'Dla testerów').click()
   await page.getByRole('button', { name: /Dobierz grupy/ }).click()
   await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
   await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
@@ -137,7 +137,7 @@ test('program studiów: kierunek i semestr z planu, sylabus przedmiotu', async (
     localStorage.setItem('planer.plan.v1', JSON.stringify({ source: { kind: 'file', name: 'ib.ics' }, updatedAt: Date.now(), meetings }))
   })
   await page.reload()
-  await tab(page, 'Przedmioty').click()
+  await tab(page, 'Dla testerów').click()
   await page.getByRole('button', { name: /Program studiów/ }).click()
   await expect(page.getByText('Semestr 3 z 7')).toBeVisible()
   // Postęp w godzinach: semestry 1-2 (780 h) z całego programu (1740 h); zajęcia z planu jeszcze przed nami.
@@ -199,8 +199,13 @@ test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium je
   await expect(row.getByText('Zaliczenie: 2 kolokwia · egzamin / zwolnienie')).toBeVisible()
   await row.click()
 
-  const panel = page.locator('.assessment')
-  await expect(panel.getByRole('heading', { name: 'Zaliczenie' })).toBeVisible()
+  // Zwinięty panel: tytuł i krótko zasady; szczegóły po stuknięciu.
+  const box = page.locator('.assessment-panel')
+  await expect(box.getByRole('heading', { name: 'Zaliczenie' })).toBeVisible()
+  await expect(box.locator('.assessment-panel-summary')).toHaveText('2 kolokwia · egzamin / zwolnienie')
+  await expect(box.locator('.assessment')).toBeHidden()
+  await box.locator('summary').click()
+  const panel = box.locator('.assessment')
   await expect(panel.locator('.assessment-form')).toHaveText(['Ćwiczenia', 'Ćwiczenia', 'Całość'])
   await expect(panel.getByText(/Bez egzaminu: min\. 12 pkt/)).toBeVisible()
   await expect(panel.getByRole('heading', { name: 'Warto wiedzieć' })).toBeVisible()
@@ -246,8 +251,9 @@ test('punkty: kalkulator według regulaminu - ile brakuje i jaka ocena', async (
   await seedIbPlan(page)
   await tab(page, 'Przedmioty').click()
   await page.locator('.course-row', { hasText: 'Radiologia' }).click()
+  await page.locator('.assessment-panel > summary').click()
   const panel = page.locator('.score')
-  await expect(panel.getByRole('heading', { name: 'Punkty' })).toBeVisible()
+  await expect(panel.getByRole('heading', { name: 'Twoje punkty' })).toBeVisible()
   await expect(panel.getByText('zalicza od 16 pkt')).toBeVisible()
 
   // Trzy laboratoria: prognoza z dotychczasowego wyniku, do zaliczenia laboratorium brakuje.
@@ -273,6 +279,9 @@ test('punkty: kalkulator według regulaminu - ile brakuje i jaka ocena', async (
   await panel.getByRole('textbox', { name: 'Egzamin' }).blur()
   await page.goBack()
   await page.locator('.course-row', { hasText: 'Radiologia' }).click()
+  // Zwinięty panel pokazuje wynik w skrócie.
+  await expect(page.locator('.assessment-panel-summary')).toContainText('masz 80% · ocena 4')
+  await page.locator('.assessment-panel > summary').click()
   await expect(page.locator('.score').getByRole('textbox', { name: 'Egzamin' })).toHaveValue('24')
   await expect(page.locator('.score').getByRole('textbox', { name: 'Laboratorium 2' })).toHaveValue('6,5')
 })
@@ -281,6 +290,7 @@ test('punkty: zwolnienie z egzaminu (RPiS)', async ({ page }) => {
   await seedIbPlan(page)
   await tab(page, 'Przedmioty').click()
   await page.locator('.course-row', { hasText: 'Rachunek prawdopodobieństwa' }).click()
+  await page.locator('.assessment-panel > summary').click()
   const panel = page.locator('.score')
   await panel.getByRole('textbox', { name: 'Kolokwium 1' }).fill('13')
   await expect(panel.getByText('Do zwolnienia z egzaminu brakuje 19,5 pkt')).toBeVisible()
@@ -293,6 +303,8 @@ test('punkty: zwolnienie z egzaminu (RPiS)', async ({ page }) => {
 test('punkty: własna rozpiska dla przedmiotu bez zasad', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  await expect(page.locator('.assessment-panel-summary')).toHaveText('Wpisuj punkty, a Planer policzy ocenę')
+  await page.locator('.assessment-panel > summary').click()
   const panel = page.locator('.score')
   await panel.getByRole('button', { name: 'Ułóż rozpiskę' }).click()
   const dialog = page.getByRole('dialog', { name: 'Rozpiska zaliczenia' })
@@ -320,7 +332,7 @@ test('punkty: własna rozpiska dla przedmiotu bez zasad', async ({ page }) => {
 
 test('oceny: średnia w programie studiów', async ({ page }) => {
   await seedIbPlan(page)
-  await tab(page, 'Przedmioty').click()
+  await tab(page, 'Dla testerów').click()
   await page.getByRole('button', { name: /Program studiów/ }).click()
   await expect(page.getByText(/Wpisz oceny przy przedmiotach/)).toBeVisible()
 
@@ -410,6 +422,9 @@ test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) 
   await expect(page.getByText('Nadchodzące terminy')).toBeVisible()
   await expect(page.getByRole('button', { name: /Program studiów/ })).toHaveCount(0)
   await expect(page.getByText(/^Zaliczenie:/)).toHaveCount(0)
+  await tab(page, 'Dla testerów').click()
+  await expect(page.getByRole('heading', { name: 'Dla testerów' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Program studiów/ })).toHaveCount(0)
 })
 
 test('plany grup pobierają się raz - potem tylko po "Odśwież"', async ({ page }) => {
@@ -432,7 +447,7 @@ test('plany grup pobierają się raz - potem tylko po "Odśwież"', async ({ pag
     return json([])
   })
   const open = async () => {
-    await tab(page, 'Przedmioty').click()
+    await tab(page, 'Dla testerów').click()
     await page.getByRole('button', { name: /Dobierz grupy/ }).click()
     await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
     await expect(page.getByText(/Plany grup z USOS:/)).toBeVisible()
@@ -477,7 +492,14 @@ test('stała zmiana grupy: ćwiczenia ze środy na czwartek co tydzień', async 
   await expect(page.getByText('Środa, 21 października', { exact: true })).toHaveCount(0)
 })
 
-test('notatka ogólna w zakładce Przedmioty zapisuje się i zostaje', async ({ page }) => {
+test('notatki: domyślnie wyłączone, po włączeniu notatka ogólna zapisuje się i zostaje', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await expect(page.locator('#general-note')).toHaveCount(0)
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  await expect(page.getByRole('heading', { name: 'Notatka do przedmiotu' })).toHaveCount(0)
+
+  await tab(page, 'Ustawienia').click()
+  await page.getByRole('switch', { name: /^Notatki/ }).check()
   await tab(page, 'Przedmioty').click()
   const note = page.locator('#general-note')
   await note.fill('Przenieść się z ćwiczeń z analizy do gr. 102')
@@ -527,6 +549,9 @@ test('zgłoszenie ze zdjęciem trafia do skrzynki administratora', async ({ page
   await page.getByText('Zgłoszenia od testerów').click()
   await expect(page.getByRole('heading', { name: 'Zgłoszenia' })).toBeVisible()
 
+  await page.locator('#feedback-form').getByRole('button', { name: 'Napisz' }).click()
+  // Opinia jest pierwsza i zaznaczona.
+  await expect(page.locator('#feedback-form').getByRole('radio')).toHaveText(['Opinia lub pomysł', 'Błąd'])
   await page.getByLabel('Co działa źle albo przeszkadza (−)').fill('Za mały tekst w siatce')
   // Obrazek 1×1 PNG - wystarczy, żeby przejść przez zmniejszanie i wysyłanie.
   const png = Buffer.from(
@@ -587,7 +612,7 @@ test('lektorat: wklejony link z USOSweb znajduje przedmiot', async ({ page }) =>
     return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
   })
 
-  await tab(page, 'Przedmioty').click()
+  await tab(page, 'Dla testerów').click()
   await page.getByRole('button', { name: /Dobierz grupy/ }).click()
   await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
   await page
@@ -634,7 +659,7 @@ test('lektorat w propozycjach: grupa kolidująca z planem mieści się po zmiani
     return json(url.pathname.endsWith('/courses/search') ? { items: [], next_page: false } : [])
   })
 
-  await tab(page, 'Przedmioty').click()
+  await tab(page, 'Dla testerów').click()
   await page.getByRole('button', { name: /Dobierz grupy/ }).click()
   await expect(page.getByRole('heading', { name: 'Twój obecny plan' })).toBeVisible()
   await page.getByRole('radio', { name: 'Języki (SJO)' }).click()
@@ -696,10 +721,15 @@ test('koperta: historia powiadomień z pełną listą zmian, potem "przeczytane"
   await expect(page.getByRole('button', { name: 'Powiadomienia', exact: true })).toBeVisible()
 })
 
-test('trójkąt na pasku otwiera zgłoszenia', async ({ page }) => {
-  await page.getByRole('button', { name: /^(Zgłoś problem|Zgłoszenia)/ }).click()
+test('zakładka Dla testerów: wersje testowe, zadania i zgłoszenie po kliknięciu', async ({ page }) => {
+  await tab(page, 'Dla testerów').click()
+  await expect(page.getByRole('heading', { name: 'Dla testerów' })).toBeVisible()
   await expect(page.getByText('Zadania do przetestowania')).toBeVisible()
-  await expect(page.locator('#feedback-form')).toBeVisible()
+  // Formularz dopiero po "Napisz".
+  const form = page.locator('#feedback-form')
+  await expect(form.getByRole('radio')).toHaveCount(0)
+  await form.getByRole('button', { name: 'Napisz' }).click()
+  await expect(form.getByRole('radio', { name: 'Opinia lub pomysł' })).toHaveAttribute('aria-checked', 'true')
 })
 
 test('strona przedmiotu: prowadzący z tytułem i postęp spotkań', async ({ page }) => {

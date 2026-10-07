@@ -55,7 +55,7 @@ import { usePullToSearch } from './hooks/usePullToSearch'
 import { SearchBar, SearchIcon } from './components/SearchBar'
 import type { SearchKeys } from './components/SearchPanel'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
-import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
+import { EMPTY_EXTRAS, notesEnabled, type Deadline } from './lib/extras'
 import { withLanguageClasses } from './lib/usos'
 import { locale, setLanguage, t } from './lib/i18n'
 
@@ -67,6 +67,7 @@ const ExportView = lazy(() => import('./components/ExportView').then((m) => ({ d
 const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })))
 const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
 const FeedbackView = lazy(() => import('./components/FeedbackView').then((m) => ({ default: m.FeedbackView })))
+const TestersView = lazy(() => import('./components/TestersView').then((m) => ({ default: m.TestersView })))
 const ProgramView = lazy(() => import('./components/ProgramView').then((m) => ({ default: m.ProgramView })))
 const loadSearchPanel = () => import('./components/SearchPanel')
 const SearchPanel = lazy(() => loadSearchPanel().then((m) => ({ default: m.SearchPanel })))
@@ -137,15 +138,15 @@ function BellIcon({ unread }: { unread: number }) {
   )
 }
 
-// Zgłoszenia: dymek z wykrzyknikiem (uwaga, pomysł, problem) - pełna ikona w kolorze zakładki, jak dzwonek
-// i zębatka; wykrzyknik wycięty, więc na aktywnej zakładce ma kolor jej tła. Kropka - nowe zgłoszenia (administrator).
-function ReportIcon({ alert = false }: { alert?: boolean }) {
+// Dla testerów: kolba (wersje testowe, zgłoszenia) - pełna ikona w kolorze zakładki, jak dzwonek i zębatka;
+// poziom płynu wycięty, więc na aktywnej zakładce ma kolor jej tła. Kropka - nowe zgłoszenia (administrator).
+function TestersIcon({ alert = false }: { alert?: boolean }) {
   return (
     <span className="tab-icon-wrap">
       <svg className="tab-icon tab-icon-filled" viewBox="0 0 24 24" aria-hidden="true">
         <path
           fillRule="evenodd"
-          d="M5 3h14a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-8.6l-4.8 3.7c-.53.4-1.3.03-1.3-.64V18H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm7 2.9c-.7 0-1.25.56-1.25 1.25v4.2a1.25 1.25 0 0 0 2.5 0v-4.2c0-.69-.56-1.25-1.25-1.25zm0 7.6a1.35 1.35 0 1 0 0 2.7 1.35 1.35 0 0 0 0-2.7z"
+          d="M8.5 2h7a1 1 0 0 1 0 2H15v4.6l5.5 9.5A2 2 0 0 1 18.8 21H5.2a2 2 0 0 1-1.7-2.9L9 8.6V4h-.5a1 1 0 0 1 0-2zm-1.2 12.6-.8 1.4h11l-.8-1.4z"
         />
       </svg>
       {alert && <span className="tab-alert" />}
@@ -169,8 +170,8 @@ function tabs(
     },
     {
       id: 'report',
-      label: newReports > 0 ? t('Zgłoszenia (nowe: {n})', { n: newReports }) : t('Zgłoś problem'),
-      icon: <ReportIcon alert={newReports > 0} />,
+      label: newReports > 0 ? t('Dla testerów (nowe zgłoszenia: {n})', { n: newReports }) : t('Dla testerów'),
+      icon: <TestersIcon alert={newReports > 0} />,
     },
     {
       id: 'settings',
@@ -310,6 +311,8 @@ function App() {
   }, [])
 
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
+  // Notatki - dodatek do włączenia w ustawieniach; kto już jakieś ma, ma je włączone.
+  const notesOn = notesEnabled(prefs.notes, extras)
   // Zajęcia usunięte z planu (USOS pokazuje coś, czego nie ma) - znikają wszędzie, także z optymalizatora.
   const hidden = prefs.hiddenClasses
   const planMeetings = useMemo(
@@ -681,6 +684,7 @@ function App() {
         return sameDay.filter((d) => !d.time || (toMin(d.time) >= start && toMin(d.time) < end))
       },
       prefs,
+      notesOn,
       displayName: (name: string) => displayName(name, prefs),
       setHiddenClasses: (hiddenClasses: HiddenClass[]) => prefsApi.update({ hiddenClasses }, true),
       openSearch: () => openSearch(true),
@@ -710,6 +714,7 @@ function App() {
       prefsApi,
       openSearch,
       markFirstStep,
+      notesOn,
     ],
   )
 
@@ -818,12 +823,9 @@ function App() {
       )}
       {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
       {view === 'notifications' && <NotificationsView notifications={notifications} now={now} />}
-      {view === 'report' &&
-        (cloud.uid ? (
-          <FeedbackView feedback={feedback} admin={adminView} />
-        ) : (
-          <p className="empty-state">{t('Zaloguj się, żeby zgłosić problem albo pomysł.')}</p>
-        ))}
+      {view === 'report' && (
+        <TestersView meetings={meetings} now={now} feedback={cloud.uid ? feedback : null} admin={adminView} />
+      )}
       {view === 'settings' && (
         <SettingsView
           plan={plan}

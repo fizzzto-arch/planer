@@ -44,6 +44,7 @@ export interface PlanUi {
   addCustomMeeting: (draft: CustomMeetingDraft) => void
   deadlinesFor: (meeting: PlanMeeting) => Deadline[] // terminy przypadające na te zajęcia
   prefs: Prefs
+  notesOn: boolean // notatki włączone (ustawienie albo - bez wyboru - są już jakieś notatki)
   displayName: (courseName: string) => string // skrót nazwy przedmiotu, jeśli ustawiony
   setHiddenClasses: (hidden: HiddenClass[]) => void // zajęcia usunięte z planu (prefs.hiddenClasses)
   openSearch: () => void // pasek wyszukiwania (od razu do pisania)

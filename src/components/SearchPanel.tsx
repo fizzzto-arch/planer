@@ -39,7 +39,7 @@ type ProgramData = SearchSources['program']
 // z telefonu (poza dociągnięciem prowadzących z publicznego USOS). Działa od otwarcia paska, żeby
 // prowadzący i program studiów zdążyli się wczytać, zanim padnie pierwsza litera.
 export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
-  const { extras, materials, displayName, canOptimize } = usePlanUi()
+  const { extras, materials, displayName, canOptimize, notesOn } = usePlanUi()
   // Wybór i rozwinięte grupy - od nowa przy każdej zmianie zapytania.
   const [view, setView] = useState({ query, active: 0, expanded: [] as SearchGroup[] })
   if (view.query !== query) setView({ query, active: 0, expanded: [] })
@@ -111,22 +111,25 @@ export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
   }, [current]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const index = useMemo(() => {
-    const courseExtras = extras ? [...extras.extras.courses.values()].filter((c) => c.name !== GENERAL_NOTE) : []
+    // Wyłączone notatki (ustawienia) - nie szukamy w nich, jak nie ma ich też na ekranie.
+    const courseExtras = extras
+      ? [...extras.extras.courses.values()].filter((c) => c.name !== GENERAL_NOTE).map((c) => (notesOn ? c : { ...c, note: '' }))
+      : []
     const courseNames = [...new Set(meetings.map((m) => m.courseName))]
     return buildSearchIndex({
       now,
-      meetings,
+      meetings: notesOn ? meetings : meetings.map((m) => (m.note ? { ...m, note: '' } : m)),
       displayName,
       deadlines: extras?.extras.deadlines ?? [],
       courseExtras,
-      generalNote: extras?.extras.courses.get(courseKey(GENERAL_NOTE))?.note ?? '',
+      generalNote: notesOn ? (extras?.extras.courses.get(courseKey(GENERAL_NOTE))?.note ?? '') : '',
       materials: materials ? courseNames.flatMap((name) => materials.forCourse(courseKey(name)).map((m) => ({ courseName: name, name: m.name }))) : [],
       staff,
       assessment,
       program,
       features: { signedIn: extras !== null, canOptimize, hasProgram: assessment !== null },
     })
-  }, [now, meetings, displayName, extras, materials, staff, assessment, program, canOptimize])
+  }, [now, meetings, displayName, extras, materials, staff, assessment, program, canOptimize, notesOn])
 
   const groups = useMemo(() => searchItems(index, query), [index, query])
   const visible = groups.map((g) => ({

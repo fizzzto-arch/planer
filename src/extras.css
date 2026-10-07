@@ -2625,6 +2625,27 @@ label.setting-row {
   grid-template-columns: repeat(2, 1fr);
 }
 
+.testers-lead {
+  margin: -4px 0 14px;
+}
+
+/* Zanim ktoś kliknie "Napisz" - sam przycisk, bez formularza. */
+.feedback-start {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.feedback-start p {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+}
+
+.feedback-start .button {
+  flex-shrink: 0;
+}
+
 .feedback-thumbs {
   display: flex;
   flex-wrap: wrap;
@@ -3781,6 +3802,72 @@ label.setting-row {
   margin: 3px 0;
 }
 
+/* ---------- Zaliczenie i punkty: jeden zwijany panel na stronie przedmiotu ---------- */
+
+.assessment-panel > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.assessment-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.assessment-panel-head {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.assessment-panel-head .panel-title {
+  margin: 0;
+}
+
+.assessment-panel-summary {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.assessment-panel-chevron {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 180ms ease;
+}
+
+.assessment-panel[open] .assessment-panel-chevron {
+  transform: rotate(180deg);
+}
+
+.assessment-panel[open] > summary {
+  margin-bottom: 10px;
+}
+
+.assessment-panel .score {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.score-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Notatka na samym dole strony przedmiotu, pod zajęciami. */
+.course-note {
+  margin-top: 16px;
+}
+
 /* ---------- Punkty z zaliczenia ---------- */
 
 .score .section-head {
@@ -3788,7 +3875,7 @@ label.setting-row {
 }
 
 .score > .muted {
-  margin: 0 0 10px;
+  margin: 8px 0 10px;
   font-size: 0.9rem;
 }
 
@@ -4004,7 +4091,7 @@ label.setting-row {
 
 .course-remove {
   display: block;
-  margin: 4px 0 8px;
+  margin: 14px 0 8px;
   color: var(--danger);
   font-size: 0.9rem;
 }

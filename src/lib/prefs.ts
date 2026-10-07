@@ -30,6 +30,9 @@ export interface Prefs {
   shareName: string // jak widzą mnie znajomi (puste = początek e-maila)
   hiddenClasses: HiddenClass[] // zajęcia usunięte z planu (czyta je też skrypt wysyłający)
   firstSteps: FirstStepsState // karta "Pierwsze kroki" na ekranie Dziś
+  // Notatki (do przedmiotów, do zajęć, ogólna) - dodatek, domyślnie wyłączony. null - nie wybrano:
+  // włączone, jeśli ktoś ma już jakąś notatkę (żeby nie zniknęły mu sprzed tej opcji).
+  notes: boolean | null
 }
 
 export interface FirstStepsState {
@@ -59,6 +62,7 @@ export const DEFAULT_PREFS: Prefs = {
   shareName: '',
   hiddenClasses: [],
   firstSteps: { done: [], hidden: false },
+  notes: null,
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -112,6 +116,7 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     shareName: typeof raw.shareName === 'string' ? raw.shareName.slice(0, 40) : DEFAULT_PREFS.shareName,
     hiddenClasses: parseHiddenClasses(raw.hiddenClasses),
     firstSteps: parseFirstSteps(raw.firstSteps),
+    notes: typeof raw.notes === 'boolean' ? raw.notes : null,
   }
 }
 

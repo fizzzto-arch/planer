@@ -24,7 +24,7 @@ import { TesterTasks } from './TesterTasks'
 interface Props {
   feedback: FeedbackApi
   admin: boolean // skrzynka ze wszystkimi zgłoszeniami
-  onBack?: () => void // brak = otwarte z zakładki (trójkąt na pasku), nie z podstrony
+  onBack?: () => void // brak = w zakładce "Dla testerów" (nagłówek ma zakładka), nie na podstronie
 }
 
 const kindLabel = (k: FeedbackKind) => (FEEDBACK_KIND_LABELS[k] ? tk(FEEDBACK_KIND_LABELS[k]) : k)
@@ -45,23 +45,25 @@ export function FeedbackView({ feedback, admin, onBack }: Props) {
 
   return (
     <section className="help feedback">
+      {/* Podstrona (np. z pomocy) - z powrotem i własnym nagłówkiem; w zakładce "Dla testerów" nagłówek ma zakładka. */}
       {onBack && (
-        <button type="button" className="back-button" onClick={onBack}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m15 6-6 6 6 6" />
-          </svg>
-          {t('Wróć')}
-        </button>
+        <>
+          <button type="button" className="back-button" onClick={onBack}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m15 6-6 6 6 6" />
+            </svg>
+            {t('Wróć')}
+          </button>
+          <header className="course-header">
+            <h2>{admin ? t('Zgłoszenia') : t('Uwagi i pomysły')}</h2>
+            <p className="muted">
+              {admin
+                ? t('Wszystko, co przysłali testerzy. Odpowiedź zobaczą przy swoim zgłoszeniu.')
+                : t('Napisz, co Ci się podoba, co przeszkadza i czego brakuje. Możesz dołączyć zrzut ekranu albo krótkie nagranie - odpowiedź pojawi się niżej.')}
+            </p>
+          </header>
+        </>
       )}
-
-      <header className="course-header">
-        <h2>{admin ? t('Zgłoszenia') : t('Uwagi i pomysły')}</h2>
-        <p className="muted">
-          {admin
-            ? t('Wszystko, co przysłali testerzy. Odpowiedź zobaczą przy swoim zgłoszeniu.')
-            : t('Napisz, co Ci się podoba, co przeszkadza i czego brakuje. Możesz dołączyć zrzut ekranu albo krótkie nagranie - odpowiedź pojawi się niżej.')}
-        </p>
-      </header>
 
       {feedback.error && (
         <p className="error" role="alert">
@@ -71,7 +73,8 @@ export function FeedbackView({ feedback, admin, onBack }: Props) {
 
       {admin && <Inbox feedback={feedback} />}
       <TesterTasks onReport={report} />
-      <FeedbackForm key={prefill?.nonce ?? 0} feedback={feedback} initialText={prefill?.text ?? null} />
+      {/* Podstrona "Zgłoś uwagę" (z ustawień) - ktoś już chce pisać, formularz od razu otwarty. */}
+      <FeedbackForm key={prefill?.nonce ?? 0} feedback={feedback} initialText={prefill?.text ?? null} startOpen={!!onBack && !admin} />
       {feedback.own.length > 0 && (
         <div className="panel">
           <h3 className="panel-title">{t('Twoje zgłoszenia')}</h3>
@@ -92,7 +95,9 @@ interface Picked {
 }
 
 // initialText: zgłoszenie problemu z zadaniem testera - od razu rodzaj "Błąd" z nazwą zadania.
-function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initialText: string | null }) {
+// Najpierw sam przycisk - formularz (z wyborem opinia / błąd) rozwija się po kliknięciu.
+function FeedbackForm({ feedback, initialText, startOpen = false }: { feedback: FeedbackApi; initialText: string | null; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen || initialText !== null)
   const [kind, setKind] = useState<FeedbackKind>(initialText ? 'bug' : 'opinion')
   const [good, setGood] = useState('')
   const [bad, setBad] = useState('')
@@ -196,6 +201,20 @@ function FeedbackForm({ feedback, initialText }: { feedback: FeedbackApi; initia
       />
     </label>
   )
+
+  if (!open) {
+    return (
+      <div id="feedback-form" className="panel feedback-start">
+        <div>
+          <h3 className="panel-title">{t('Zgłoś uwagę')}</h3>
+          <p className="muted">{t('Opinia, pomysł albo błąd - możesz dołączyć zrzut ekranu lub nagranie.')}</p>
+        </div>
+        <button type="button" className="button" onClick={() => setOpen(true)}>
+          {t('Napisz')}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <form id="feedback-form" className="panel form-grid" onSubmit={(e) => void handleSubmit(e)}>

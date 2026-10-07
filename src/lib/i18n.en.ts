@@ -10,7 +10,6 @@ export const EN: Record<string, string> = {
   'Przedmioty': 'Courses',
   'Powiadomienia (nowe: {n})': 'Notifications (new: {n})',
   'Powiadomienia': 'Notifications',
-  'Zgłoszenia (nowe: {n})': 'Reports (new: {n})',
   'Zgłoś problem': 'Report a problem',
   'Ustawienia (nowe konta czekają na zatwierdzenie)': 'Settings (new accounts waiting for approval)',
   'Ustawienia': 'Settings',
@@ -161,6 +160,8 @@ export const EN: Record<string, string> = {
   'Przedmiot w USOSweb ↗': 'Course in USOSweb ↗',
 
   // src/components/CoursesView.tsx
+  'Zaloguj się (Ustawienia), żeby dodawać kolokwia i egzaminy.': 'Sign in (Settings) to add tests and exams.',
+  'Z poprzedniego semestru ({n})': 'From last semester ({n})',
   'Usunięte z planu ({n})': 'Removed from timetable ({n})',
   'cały przedmiot': 'whole course',
   'Przywróć': 'Restore',
@@ -177,7 +178,6 @@ export const EN: Record<string, string> = {
   'Nadchodzące terminy': 'Upcoming deadlines',
   '+ Dodaj termin': '+ Add deadline',
   'Rodzaj terminów': 'Deadline type',
-  'Zaloguj się (Ustawienia), żeby dodawać kolokwia, egzaminy i notatki.': 'Sign in (Settings) to add tests, exams and notes.',
   'Brak terminów w najbliższych tygodniach. Dodaj kolokwium albo egzamin.': 'No deadlines in the coming weeks. Add a test or an exam.',
   'Brak takich terminów.': 'No such deadlines.',
   'Notatki': 'Notes',
@@ -187,17 +187,18 @@ export const EN: Record<string, string> = {
   'termin|terminy|terminów': 'deadline|deadlines',
 
   // src/components/CourseView.tsx
+  'Zaloguj się (Ustawienia), żeby dodawać terminy i liczyć punkty.': 'Sign in (Settings) to add deadlines and count points.',
+  'Wpisuj punkty, a Planer policzy ocenę': 'Enter your points and Planer works out the grade',
+  'np. kontakt do prowadzącego, co przynieść na zajęcia': 'e.g. how to contact the lecturer, what to bring to class',
   'Usuń z planu…': 'Remove from timetable…',
   'Wróć': 'Back',
   'Następne zajęcia:': 'Next class:',
   's. {room}': 'room {room}',
-  'Zaloguj się (Ustawienia), żeby dodawać notatki i terminy do przedmiotu.': 'Sign in (Settings) to add notes and deadlines to the course.',
   'Terminy': 'Deadlines',
   '+ Dodaj': '+ Add',
   'Brak nadchodzących kolokwiów i terminów.': 'No upcoming tests or deadlines.',
   'Minione i zrobione ({n})': 'Past and done ({n})',
   'Notatka do przedmiotu': 'Course note',
-  'np. zasady zaliczenia, kontakt do prowadzącego, próg na ocenę': 'e.g. passing rules, lecturer contact, grade thresholds',
   'Zajęcia': 'Classes',
   '+ Dodaj zajęcia': '+ Add class',
   'Brak nadchodzących zajęć.': 'No upcoming classes.',
@@ -488,6 +489,17 @@ export const EN: Record<string, string> = {
   'Skopiowano ✓': 'Copied ✓',
   'Kopiuj temat': 'Copy subject',
   'Kopiuj treść': 'Copy text',
+
+  // src/components/TestersView.tsx
+  'Dla testerów': 'For testers',
+  'Dla testerów (nowe zgłoszenia: {n})': 'For testers (new reports: {n})',
+  'Nowe funkcje w wersji testowej i miejsce na uwagi - napisz, co działa, a co nie.': 'New features in testing and a place for feedback - tell us what works and what does not.',
+  'Wersje testowe': 'Test versions',
+  'Wszystkie semestry i przedmioty Twojego kierunku, z sylabusami, ocenami i średnią': 'All semesters and courses of your programme, with syllabuses, grades and your average',
+  'Zgłoś uwagę': 'Send feedback',
+  'Opinia, pomysł albo błąd - możesz dołączyć zrzut ekranu lub nagranie.': 'An opinion, an idea or a bug - you can attach a screenshot or a recording.',
+  'Napisz': 'Write',
+  'Do przedmiotów, do zajęć i ogólna w Przedmiotach. Wyłączone tylko się chowają - nic nie znika.': 'For courses, for classes and the general one in Courses. When off they are only hidden - nothing is deleted.',
 
   // src/components/HideCourseDialog.tsx
   'Usuń z planu': 'Remove from timetable',
@@ -795,6 +807,10 @@ export const EN: Record<string, string> = {
   'Stuknij jeszcze raz, żeby usunąć': 'Tap again to remove',
 
   // src/components/ScoreSection.tsx
+  'Twoje punkty': 'Your points',
+  'masz {value}%': 'you have {value}%',
+  'masz {value} z {max} pkt': 'you have {value} of {max} pts',
+  'prognoza {grade}': 'forecast {grade}',
   'Punkty': 'Points',
   'Ułóż rozpiskę zaliczenia (np. kolokwia i laboratoria z maksymalną liczbą punktów), a Planer policzy, ile brakuje do zaliczenia i do oceny.': 'Set out how the course is graded (e.g. tests and labs with their maximum points) and Planer will work out how much you still need to pass and for each grade.',
   'Ułóż rozpiskę': 'Set up grading',
@@ -1211,7 +1227,7 @@ export const EN: Record<string, string> = {
   'Przejrzyj kilka tygodni': 'Browse a few weeks',
   'Zakładka Tydzień, przełącz parę tygodni do przodu. Czy godziny, sale i parzystość tygodnia się zgadzają?': 'Week tab, move a few weeks ahead. Do the times, rooms and odd/even weeks match?',
   'Dodaj notatkę do przedmiotu': 'Add a course note',
-  'Przedmioty → wybierz przedmiot → Notatka do przedmiotu.': 'Courses → pick a course → Course note.',
+  'Najpierw włącz je: Ustawienia → Plan i terminy → Notatki. Potem Przedmioty → wybierz przedmiot → notatka na dole strony.': 'First turn them on: Settings → Timetable and deadlines → Notes. Then Courses → pick a course → the note at the bottom of the page.',
   'Dodaj kolokwium albo inny termin': 'Add a test or another deadline',
   'Przedmioty → + Dodaj termin. Spróbuj też listy „Do przygotowania”.': 'Courses → + Add deadline. Try the “To prepare” list too.',
   'Zmień jedne zajęcia': 'Change one class',
@@ -1223,7 +1239,7 @@ export const EN: Record<string, string> = {
   'Wyeksportuj plan': 'Export your timetable',
   'Tydzień → Eksportuj plan. Zdjęcie, PDF albo Excel - czy plik wygląda dobrze tam, gdzie go otwierasz?': 'Week → Export timetable. Image, PDF or Excel - does the file look right where you open it?',
   'Sprawdź drugie urządzenie': 'Check a second device',
-  'Zaloguj się na telefonie i na komputerze. Czy notatka i termin są na obu?': 'Sign in on your phone and computer. Are the note and deadline on both?',
+  'Zaloguj się na telefonie i na komputerze. Czy termin i wpisane punkty są na obu?': 'Sign in on your phone and computer. Are the deadline and the points you entered on both?',
   'Przedmioty → Dobierz grupy. Czy propozycje mają sens i zgadzają się z terminami w USOS?': 'Courses → Find groups. Do the suggestions make sense and match the times in USOS?',
 
   // src/lib/timetable.ts

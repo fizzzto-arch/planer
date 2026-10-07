@@ -24,7 +24,7 @@ export const TESTER_TASKS: TesterTask[] = [
   {
     id: 'note',
     title: msg('Dodaj notatkę do przedmiotu'),
-    how: msg('Przedmioty → wybierz przedmiot → Notatka do przedmiotu.'),
+    how: msg('Najpierw włącz je: Ustawienia → Plan i terminy → Notatki. Potem Przedmioty → wybierz przedmiot → notatka na dole strony.'),
   },
   {
     id: 'deadline',
@@ -54,7 +54,7 @@ export const TESTER_TASKS: TesterTask[] = [
   {
     id: 'sync',
     title: msg('Sprawdź drugie urządzenie'),
-    how: msg('Zaloguj się na telefonie i na komputerze. Czy notatka i termin są na obu?'),
+    how: msg('Zaloguj się na telefonie i na komputerze. Czy termin i wpisane punkty są na obu?'),
   },
   {
     id: 'optimizer',
