@@ -41,6 +41,7 @@ import { isIOS } from './lib/platform'
 import { revealWhenReady } from './lib/reveal'
 import type { SearchAction } from './lib/searchIndex'
 import { PULL_THRESHOLD, usePullToSearch } from './hooks/usePullToSearch'
+import { SearchBarPreview, SearchIcon } from './components/SearchBar'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 import { withLanguageClasses } from './lib/usos'
@@ -55,7 +56,8 @@ const SettingsView = lazy(() => import('./components/SettingsView').then((m) => 
 const OptimizerView = lazy(() => import('./components/OptimizerView').then((m) => ({ default: m.OptimizerView })))
 const FeedbackView = lazy(() => import('./components/FeedbackView').then((m) => ({ default: m.FeedbackView })))
 const ProgramView = lazy(() => import('./components/ProgramView').then((m) => ({ default: m.ProgramView })))
-const SearchPanel = lazy(() => import('./components/SearchPanel').then((m) => ({ default: m.SearchPanel })))
+const loadSearchPanel = () => import('./components/SearchPanel')
+const SearchPanel = lazy(() => loadSearchPanel().then((m) => ({ default: m.SearchPanel })))
 
 // Funkcja, nie stała - tekst w bieżącym języku.
 const loading = () => (
@@ -406,26 +408,42 @@ function App() {
     }
   }, [])
 
-  // Wyszukiwanie: lupa (Android, komputer), Ctrl+K albo "/" (komputer), pociągnięcie w dół (iPhone).
-  const [searchOpen, setSearchOpen] = useState(false)
+  // Wyszukiwanie: pasek na górze strony - lupa (Android, komputer), Ctrl+K albo "/" (komputer),
+  // pociągnięcie w dół (iPhone). Pod paskiem zwykły plan; po wpisaniu - wyniki zamiast niego.
+  const [search, setSearch] = useState<{ focus: boolean } | null>(null) // focus - od razu pisanie
+  const [searching, setSearching] = useState(false)
+  const openSearch = useCallback((focus: boolean) => {
+    setSearch((s) => s ?? { focus })
+    window.scrollTo({ top: 0 })
+  }, [])
+  const closeSearch = useCallback(() => {
+    setSearch(null)
+    setSearching(false)
+  }, [])
   const ios = useMemo(() => isIOS(), [])
-  const pull = usePullToSearch(ios && !searchOpen, () => setSearchOpen(true))
+  // Pociągnięcie odsłania pasek, ale nie wysuwa klawiatury (jak w Ustawieniach iOS) - pisanie po stuknięciu.
+  const pull = usePullToSearch(ios && !search, () => openSearch(false))
+  useEffect(() => {
+    if (pull > 0) void loadSearchPanel() // wyszukiwarka gotowa, zanim palec puści
+  }, [pull])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable="true"]')
       if ((e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey)) {
         if (document.querySelector('dialog[open]')) return
         e.preventDefault()
-        setSearchOpen(true)
+        if (search) document.querySelector<HTMLInputElement>('.search input')?.focus()
+        else openSearch(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [search, openSearch])
 
   // Zmiana zakładki: nowy widok wjeżdża z tej strony, w którą "idziemy".
   const changeView = useCallback(
     (next: View) => {
+      closeSearch() // inna zakładka - pasek wyszukiwania się chowa
       if (next === view && !page) return
       if (page) closePage()
       const step = VIEW_ORDER.indexOf(next) - VIEW_ORDER.indexOf(view)
@@ -433,7 +451,7 @@ function App() {
       if (next !== view) setSelectedWeek(null)
       setView(next)
     },
-    [view, page, closePage],
+    [view, page, closePage, closeSearch],
   )
 
   // Wybrany wynik wyszukiwania.
@@ -780,61 +798,86 @@ function App() {
             </button>
           </div>
         )}
-        <header className="topbar">
-          <div className="brand-row">
-            <h1 className="brand">Planer</h1>
-            <div className="brand-actions">
-              {/* Na iPhonie wyszukiwanie otwiera pociągnięcie w dół (jak w Ustawieniach iOS), gdzie indziej - lupa. */}
-              {!ios && <SearchButton onClick={() => setSearchOpen(true)} />}
-              <ShareAppButton />
-              <LanguageToggle value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
-            </div>
-          </div>
-          <Tabs
-            tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount)}
-            value={view}
-            onChange={changeView}
-            controlRef={tabsControl}
-          />
-        </header>
-        <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
-
-        {/* Stały element (bez key) - na nim nasłuchujemy gestów i to on jedzie za palcem. */}
-        <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
-          {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
+        {/* Pasek wyszukiwania: w trakcie pociągnięcia wysuwa się z góry, potem zostaje nad planem. */}
+        {(search || pull > 0) && (
           <div
-            // Język w kluczu: zmiana języka rysuje widok od nowa (także teksty zapamiętane w useMemo),
-            // a element z gestami (wyżej) zostaje ten sam - inaczej przesuwanie palcem by się odpięło.
-            key={`${prefs.language}:${page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}`}
-            className={ENTER_CLASS[enter]}
+            className={`search-reveal${search ? ' is-open' : ''}${search?.focus ? ' is-dropping' : ''}`}
+            style={search ? undefined : { height: pull, opacity: Math.min(1, pull / PULL_THRESHOLD) }}
           >
-            <ErrorBoundary>
-              <Suspense fallback={loading()}>
-                {/* Optymalizator tylko dla administratora i osób, którym go przyznał - inni nie wejdą nawet z historii. */}
-                {page?.kind === 'optimizer' && canOptimize ? (
-                  <OptimizerView planMeetings={planMeetings} meetings={meetings} now={now} onBack={closePage} />
-                ) : page?.kind === 'program' ? (
-                  <ProgramView meetings={meetings} now={now} focusCourse={page.course} onBack={closePage} />
-                ) : page?.kind === 'help' ? (
-                  <HelpView onBack={closePage} onFeedback={cloud.uid ? openFeedback : undefined} />
-                ) : page?.kind === 'feedback' && cloud.uid ? (
-                  <FeedbackView feedback={feedback} admin={adminView} onBack={closePage} />
-                ) : page?.kind === 'export' ? (
-                  <ExportView
-                    meetings={exportSource?.meetings ?? meetings}
-                    source={exportSource?.title ?? null}
-                    now={now}
-                    initialWeek={new Date(page.weekStart)}
-                    colors={typeColors.colors}
-                    onBack={closePage}
-                  />
-                ) : course ? (
-                  <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
-                ) : (
-                  mainView
-                )}
+            {search ? (
+              <Suspense fallback={<SearchBarPreview />}>
+                <SearchPanel
+                  meetings={meetings}
+                  now={now}
+                  autoFocus={search.focus}
+                  onClose={closeSearch}
+                  onAction={runSearchAction}
+                  onSearchingChange={setSearching}
+                />
               </Suspense>
-            </ErrorBoundary>
+            ) : (
+              <SearchBarPreview />
+            )}
+          </div>
+        )}
+        {/* Z wpisanym zapytaniem - same wyniki; plan zostaje (ukryty), żeby po wyczyszczeniu wrócić tam, gdzie był. */}
+        <div hidden={search !== null && searching}>
+          <header className="topbar">
+            <div className="brand-row">
+              <h1 className="brand">Planer</h1>
+              <div className="brand-actions">
+                {/* Na iPhonie wyszukiwanie otwiera pociągnięcie w dół (jak w Ustawieniach iOS), gdzie indziej - lupa. */}
+                {!ios && <SearchButton onClick={() => openSearch(true)} />}
+                <ShareAppButton />
+                <LanguageToggle value={prefs.language} onChange={(language) => prefsApi.update({ language })} />
+              </div>
+            </div>
+            <Tabs
+              tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount)}
+              value={view}
+              onChange={changeView}
+              controlRef={tabsControl}
+            />
+          </header>
+          <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
+
+          {/* Stały element (bez key) - na nim nasłuchujemy gestów i to on jedzie za palcem. */}
+          <div ref={pageRef} className={page ? 'swipe-page' : undefined}>
+            {/* key = nowy widok montuje się od nowa i odpala animację wejścia */}
+            <div
+              // Język w kluczu: zmiana języka rysuje widok od nowa (także teksty zapamiętane w useMemo),
+              // a element z gestami (wyżej) zostaje ten sam - inaczej przesuwanie palcem by się odpięło.
+              key={`${prefs.language}:${page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}`}
+              className={ENTER_CLASS[enter]}
+            >
+              <ErrorBoundary>
+                <Suspense fallback={loading()}>
+                  {/* Optymalizator tylko dla administratora i osób, którym go przyznał - inni nie wejdą nawet z historii. */}
+                  {page?.kind === 'optimizer' && canOptimize ? (
+                    <OptimizerView planMeetings={planMeetings} meetings={meetings} now={now} onBack={closePage} />
+                  ) : page?.kind === 'program' ? (
+                    <ProgramView meetings={meetings} now={now} focusCourse={page.course} onBack={closePage} />
+                  ) : page?.kind === 'help' ? (
+                    <HelpView onBack={closePage} onFeedback={cloud.uid ? openFeedback : undefined} />
+                  ) : page?.kind === 'feedback' && cloud.uid ? (
+                    <FeedbackView feedback={feedback} admin={adminView} onBack={closePage} />
+                  ) : page?.kind === 'export' ? (
+                    <ExportView
+                      meetings={exportSource?.meetings ?? meetings}
+                      source={exportSource?.title ?? null}
+                      now={now}
+                      initialWeek={new Date(page.weekStart)}
+                      colors={typeColors.colors}
+                      onBack={closePage}
+                    />
+                  ) : course ? (
+                    <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
+                  ) : (
+                    mainView
+                  )}
+                </Suspense>
+              </ErrorBoundary>
+            </div>
           </div>
         </div>
 
@@ -872,24 +915,6 @@ function App() {
             onClose={() => setCustomDraft(null)}
           />
         )}
-        {pull > 0 && (
-          <div
-            className={`pull-search${pull >= PULL_THRESHOLD ? ' is-ready' : ''}`}
-            style={{ transform: `translate(-50%, ${pull - 46}px)`, opacity: Math.min(1, pull / PULL_THRESHOLD) }}
-            aria-hidden="true"
-          >
-            <svg viewBox="0 0 24 24">
-              <circle cx="10.5" cy="10.5" r="6.5" />
-              <path d="m15.5 15.5 5 5" />
-            </svg>
-            {pull >= PULL_THRESHOLD ? t('Puść, żeby szukać') : t('Szukaj')}
-          </div>
-        )}
-        {searchOpen && (
-          <Suspense fallback={null}>
-            <SearchPanel meetings={meetings} now={now} onClose={() => setSearchOpen(false)} onAction={runSearchAction} />
-          </Suspense>
-        )}
       </main>
     </PlanUiContext.Provider>
   )
@@ -899,10 +924,7 @@ function App() {
 function SearchButton({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" className="share-app search-app" aria-label={t('Szukaj w Planerze')} title={t('Szukaj (Ctrl+K)')} onClick={onClick}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="10.5" cy="10.5" r="6.5" />
-        <path d="m15.5 15.5 5 5" />
-      </svg>
+      <SearchIcon />
     </button>
   )
 }

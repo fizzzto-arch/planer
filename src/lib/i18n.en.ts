@@ -33,7 +33,6 @@ export const EN: Record<string, string> = {
   'Zaloguj się, żeby zgłosić problem albo pomysł.': 'Sign in to report a problem or share an idea.',
   'Widok zwykłego użytkownika': 'Regular user view',
   'Wróć do administratora': 'Back to administrator',
-  'Puść, żeby szukać': 'Release to search',
   'Szukaj': 'Search',
   'Szukaj w Planerze': 'Search Planer',
   'Szukaj (Ctrl+K)': 'Search (Ctrl+K)',
@@ -881,7 +880,6 @@ export const EN: Record<string, string> = {
   'Ustawienia i funkcje': 'Settings and features',
   'Wyszukiwanie': 'Search',
   'Wyczyść': 'Clear',
-  'Przedmioty, prowadzący, zasady zaliczenia, terminy, sale, notatki, materiały i ustawienia - wpisz kilka liter.': 'Courses, lecturers, assessment rules, deadlines, rooms, notes, materials and settings - type a few letters.',
   'Nic nie znaleziono dla „{query}”.': 'Nothing found for “{query}”.',
 
   // src/components/SettingsView.tsx

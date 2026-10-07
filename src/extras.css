@@ -4125,56 +4125,29 @@ label.setting-row {
 
 /* ---------- Wyszukiwanie ---------- */
 
-/* Telefon: cały ekran; komputer: okno u góry na przyciemnionym tle. */
-.search-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.search-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgb(0 0 0 / 0.35);
-  animation: search-fade 160ms ease;
-}
-
-.search-sheet {
-  position: relative;
+/* Pasek na górze strony, nad planem (jak w Ustawieniach iOS). W trakcie pociągnięcia wysuwa się z góry -
+   wysokość rośnie z palcem, pasek przyklejony do dołu. */
+.search-reveal {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: 640px;
-  height: 100%;
-  background: var(--bg);
-  animation: search-drop 200ms ease;
+  justify-content: flex-end;
+  overflow: hidden;
 }
 
-@media (min-width: 700px) {
-  .search-sheet {
-    height: auto;
-    margin-top: 8vh;
-    max-height: 80vh;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 18px 50px rgb(0 0 0 / 0.25);
-    overflow: hidden;
-  }
+.search-reveal.is-open {
+  display: block;
+  overflow: visible;
 }
 
-@keyframes search-fade {
-  from {
-    opacity: 0;
-  }
+/* Otwarty lupą - wjeżdża; po pociągnięciu już jest na miejscu. */
+.search-reveal.is-dropping .search-bar {
+  animation: search-drop 180ms ease;
 }
 
 @keyframes search-drop {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(-8px);
   }
 }
 
@@ -4182,8 +4155,14 @@ label.setting-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: max(12px, env(safe-area-inset-top)) 16px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 2px 0 10px;
+}
+
+.search-placeholder {
+  flex: 1;
+  line-height: 40px;
+  font-size: 1rem;
+  color: var(--muted);
 }
 
 .search-field {
@@ -4263,13 +4242,11 @@ label.setting-row {
 
 .search-cancel {
   font-size: 1rem;
+  text-decoration: none;
 }
 
 .search-results {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 4px 16px max(16px, env(safe-area-inset-bottom));
+  padding: 0 0 16px;
 }
 
 .search-hint {
@@ -4342,41 +4319,8 @@ label.setting-row {
   font-size: 0.85rem;
 }
 
-/* Pasek "Szukaj" wysuwany pociągnięciem w dół (iPhone). */
-.pull-search {
-  position: fixed;
-  top: max(8px, env(safe-area-inset-top));
-  left: 50%;
-  z-index: 55;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.9rem;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
-  pointer-events: none;
-}
-
-.pull-search svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-}
-
-.pull-search.is-ready {
-  color: var(--accent);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .search-backdrop,
-  .search-sheet {
+  .search-reveal.is-dropping .search-bar {
     animation: none;
   }
 }

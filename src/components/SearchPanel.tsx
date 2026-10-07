@@ -9,12 +9,15 @@ import { highlight, searchItems, type SearchGroup, type SearchHit } from '../lib
 import { buildSearchIndex, type SearchAction, type SearchSources } from '../lib/searchIndex'
 import { fetchCourseStaff, loadCachedStaff, saveCachedStaff, staffCacheKey, type CourseStaff } from '../lib/staff'
 import type { CourseSummary as ProgramSummary, StudyProgram } from '../lib/studyProgram'
+import { SearchIcon } from './SearchBar'
 
 interface Props {
   meetings: PlanMeeting[]
   now: Date
+  autoFocus: boolean // lupa i Ctrl+K - od razu pisanie; pociągnięcie (iPhone) - tylko pasek, jak w Ustawieniach iOS
   onClose: () => void
   onAction: (action: SearchAction) => void
+  onSearchingChange: (searching: boolean) => void // jest zapytanie - wyniki zamiast planu
 }
 
 const GROUP_LABELS: Record<SearchGroup, string> = {
@@ -32,9 +35,9 @@ const RECENT_MS = 14 * 24 * 60 * 60 * 1000
 
 type ProgramData = SearchSources['program']
 
-// Wyszukiwanie: pole na górze, wyniki na bieżąco, pogrupowane. Wszystko lokalnie - nic nie wychodzi z telefonu
-// (poza dociągnięciem prowadzących z publicznego USOS, jak na stronie przedmiotu).
-export function SearchPanel({ meetings, now, onClose, onAction }: Props) {
+// Wyszukiwanie: pasek na górze strony, pod nim zwykły plan; po wpisaniu - wyniki na bieżąco, pogrupowane.
+// Wszystko lokalnie - nic nie wychodzi z telefonu (poza dociągnięciem prowadzących z publicznego USOS).
+export function SearchPanel({ meetings, now, autoFocus, onClose, onAction, onSearchingChange }: Props) {
   const { extras, materials, displayName, canOptimize } = usePlanUi()
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<SearchGroup[]>([])
@@ -128,15 +131,13 @@ export function SearchPanel({ meetings, now, onClose, onAction }: Props) {
   }))
   const flat = visible.flatMap((g) => g.shown)
 
-  // Bez przewijania strony pod spodem.
-  useEffect(() => {
-    const root = document.documentElement
-    const previous = root.style.overflow
-    root.style.overflow = 'hidden'
-    return () => {
-      root.style.overflow = previous
-    }
-  }, [])
+  const searching = query.trim() !== ''
+  const change = (text: string) => {
+    setQuery(text)
+    setActive(0)
+    setExpanded([])
+    onSearchingChange(text.trim() !== '')
+  }
 
   const choose = (hit: SearchHit<SearchAction>) => {
     onClose()
@@ -159,59 +160,46 @@ export function SearchPanel({ meetings, now, onClose, onAction }: Props) {
 
   let position = -1
   return (
-    <div className="search-overlay" role="dialog" aria-modal="true" aria-label={t('Wyszukiwanie')} onKeyDown={onKeyDown}>
-      <div className="search-backdrop" onClick={onClose} />
-      <div className="search-sheet">
-        <div className="search-bar">
-          <label className="search-field">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="10.5" cy="10.5" r="6.5" />
-              <path d="m15.5 15.5 5 5" />
-            </svg>
-            <input
-              ref={input}
-              type="search"
-              enterKeyHint="search"
-              autoFocus
-              aria-label={t('Szukaj')}
-              placeholder={t('Szukaj')}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                setActive(0)
-                setExpanded([])
+    <div className="search" role="search" aria-label={t('Wyszukiwanie')} onKeyDown={onKeyDown}>
+      <div className="search-bar">
+        <label className="search-field">
+          <SearchIcon />
+          <input
+            ref={input}
+            type="search"
+            enterKeyHint="search"
+            autoFocus={autoFocus}
+            aria-label={t('Szukaj')}
+            placeholder={t('Szukaj')}
+            value={query}
+            onChange={(e) => change(e.target.value)}
+          />
+          {query !== '' && (
+            <button
+              type="button"
+              className="search-clear"
+              aria-label={t('Wyczyść')}
+              onClick={() => {
+                change('')
+                input.current?.focus()
               }}
-            />
-            {query !== '' && (
-              <button
-                type="button"
-                className="search-clear"
-                aria-label={t('Wyczyść')}
-                onClick={() => {
-                  setQuery('')
-                  setActive(0)
-                  setExpanded([])
-                  input.current?.focus()
-                }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="m8.5 8.5 7 7m0-7-7 7" />
-                </svg>
-              </button>
-            )}
-          </label>
-          <button type="button" className="link-button search-cancel" onClick={onClose}>
-            {t('Anuluj')}
-          </button>
-        </div>
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <path d="m8.5 8.5 7 7m0-7-7 7" />
+              </svg>
+            </button>
+          )}
+        </label>
+        <button type="button" className="link-button search-cancel" onClick={onClose}>
+          {t('Anuluj')}
+        </button>
+      </div>
 
+      {/* Bez zapytania pod paskiem jest zwykły plan; z zapytaniem - wyniki zamiast niego. */}
+      {searching && (
         <div className="search-results">
-          {query.trim() === '' ? (
-            <p className="search-hint">
-              {t('Przedmioty, prowadzący, zasady zaliczenia, terminy, sale, notatki, materiały i ustawienia - wpisz kilka liter.')}
-            </p>
-          ) : groups.length === 0 ? (
+          {groups.length === 0 ? (
             <p className="search-hint">{t('Nic nie znaleziono dla „{query}”.', { query: query.trim() })}</p>
           ) : (
             visible.map((g) => (
@@ -255,7 +243,7 @@ export function SearchPanel({ meetings, now, onClose, onAction }: Props) {
             ))
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

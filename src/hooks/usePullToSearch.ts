@@ -7,10 +7,10 @@ const DAMPING = 0.55 // pasek jedzie wolniej niż palec, jak w iOS
 const MAX_PULL = 96
 
 // Gdzie pociągnięcie nie otwiera wyszukiwania: pola tekstowe, okna, wyszukiwarka.
-const IGNORED = 'input, textarea, select, dialog, [contenteditable="true"], .search-overlay'
+const IGNORED = 'input, textarea, select, dialog, [contenteditable="true"], .search'
 
-// Pociągnięcie palcem w dół na samej górze strony: zwraca, ile pociągnięto (do paska "Szukaj"),
-// a po puszczeniu za progiem woła onOpen. Ruch w bok zostaje dla przesuwania zakładek.
+// Pociągnięcie palcem w dół na samej górze strony: zwraca, ile pociągnięto (o tyle wysuwa się pasek
+// wyszukiwania), a po puszczeniu za progiem woła onOpen. Ruch w bok zostaje dla przesuwania zakładek.
 export function usePullToSearch(enabled: boolean, onOpen: () => void): number {
   const [pull, setPull] = useState(0)
   const open = useRef(onOpen)

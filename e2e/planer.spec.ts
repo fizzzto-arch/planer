@@ -737,26 +737,34 @@ test('kalendarz akademicki: święto przy dniu w tygodniu', async ({ page }) => 
 
 test('wyszukiwanie: lupa (Android, komputer) - przedmiot, sala, ustawienie', async ({ page }, info) => {
   test.skip(info.project.name === 'iphone', 'na iPhonie wyszukiwanie otwiera pociągnięcie w dół')
+  const bar = page.getByRole('search', { name: 'Wyszukiwanie' })
   const open = async () => {
     await page.getByRole('button', { name: 'Szukaj w Planerze' }).click()
-    await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toBeVisible()
+    await expect(bar).toBeVisible()
   }
   const search = page.getByRole('searchbox', { name: 'Szukaj' })
 
-  // Przedmiot - bez polskich znaków i od środka nazwy; Enter otwiera pierwszy wynik.
+  // Pasek na górze, pod nim zwykły plan (bez osobnego okna); po wpisaniu - wyniki zamiast planu.
   await open()
+  await expect(search).toBeFocused()
+  await expect(tab(page, 'Dziś')).toBeVisible()
+  await expect(page.locator('.search-results')).toHaveCount(0)
+
+  // Przedmiot - bez polskich znaków i od środka nazwy; Enter otwiera pierwszy wynik.
   await search.fill('analiza mat')
   await expect(page.locator('.search-hit').first()).toContainText('Analiza matematyczna')
+  await expect(tab(page, 'Dziś')).toBeHidden()
   await search.press('Enter')
   await expect(page.getByRole('heading', { name: 'Analiza matematyczna' })).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toHaveCount(0)
+  await expect(bar).toHaveCount(0)
 
-  // Sala: kiedy najbliższe zajęcia.
+  // Sala: kiedy najbliższe zajęcia. Escape chowa pasek, plan wraca.
   await open()
   await search.fill('418')
   await expect(page.locator('.search-group', { hasText: 'Sale' }).getByText(/Sala 418/)).toBeVisible()
   await search.press('Escape')
-  await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toHaveCount(0)
+  await expect(bar).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Analiza matematyczna' })).toBeVisible()
 
   // Ustawienie: przejście prosto do sekcji.
   await open()
@@ -817,8 +825,14 @@ test.describe('wyszukiwanie: pociągnięcie w dół (jak na iPhonie)', () => {
         fire('touchend', ${to})
       })()`)
     await pullDown(210) // za mało
-    await expect(page.getByRole('dialog', { name: 'Wyszukiwanie' })).toHaveCount(0)
+    await expect(page.getByRole('search', { name: 'Wyszukiwanie' })).toHaveCount(0)
     await pullDown(390)
-    await expect(page.getByRole('searchbox', { name: 'Szukaj' })).toBeVisible()
+    // Pasek nad planem, bez klawiatury (jak w Ustawieniach iOS) - plan dalej widać.
+    const search = page.getByRole('searchbox', { name: 'Szukaj' })
+    await expect(search).toBeVisible()
+    await expect(search).not.toBeFocused()
+    await expect(tab(page, 'Dziś')).toBeVisible()
+    await page.getByRole('button', { name: 'Anuluj' }).click()
+    await expect(search).toHaveCount(0)
   })
 })
