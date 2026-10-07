@@ -161,7 +161,7 @@ export function RemindersPanel({ extras, prefsApi }: Props) {
             onChange={(beforeFirstClass) => update({ beforeFirstClass })}
           />
           <p className="hint">
-            {t('Działa z planem dodanym linkiem z USOSweb (nie z pliku). Uwzględnia plan z USOS, bez Twoich ręcznych zmian.')}
+            {t('Działa z planem dodanym linkiem z USOSweb (nie z pliku). Pomija zajęcia usunięte z planu i terminy spoza wybranych dni grupy; innych ręcznych zmian (np. sali) nie uwzględnia.')}
           </p>
 
           <h4 className="material-heading">{t('Kiedy przypominać o terminach')}</h4>

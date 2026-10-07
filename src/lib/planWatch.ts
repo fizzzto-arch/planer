@@ -1,6 +1,7 @@
 // Obserwowanie planu z USOS po stronie serwera: zapamiętane najbliższe tygodnie, porównanie
 // z nową wersją (zmiany w planie) oraz plan dnia i przypomnienie przed pierwszymi zajęciami.
 // Bez importów wykonywalnych - używa go skrypt w Node (scripts/send-reminders.ts).
+import { matchesClassDates, parseClassDates, weekNumbers, type ClassDates } from './classDates.ts'
 import { msg, pluralIn, translate, type Language } from './i18n.ts'
 import type { Meeting } from './usos.ts'
 
@@ -13,12 +14,19 @@ export interface WatchedMeeting {
   end: number
   room: string | null
   cancelled: boolean
+  // Grupa i tydzień semestru - do wyboru dat w zmianie grupy (np. laboratorium tylko w tyg. 10-14).
+  // Starsze zapamiętane plany ich nie mają - wtedy zajęcia liczą się jak zwykle.
+  unitId?: string | null
+  groupNumber?: number | null
+  week?: number | null
 }
 
 export const WATCH_DAYS = 21
 
 export function snapshotPlan(meetings: Meeting[], now: Date, days = WATCH_DAYS): WatchedMeeting[] {
   const until = now.getTime() + days * 24 * 60 * 60 * 1000
+  // Numer tygodnia liczony z całego planu (zapamiętujemy tylko najbliższe tygodnie - z nich by się nie dało).
+  const weekOf = weekNumbers(meetings)
   return meetings
     .filter((m) => m.end.getTime() > now.getTime() && m.start.getTime() < until)
     .map((m) => ({
@@ -29,7 +37,47 @@ export function snapshotPlan(meetings: Meeting[], now: Date, days = WATCH_DAYS):
       end: m.end.getTime(),
       room: m.room,
       cancelled: m.cancelled,
+      unitId: m.unitId,
+      groupNumber: m.groupNumber,
+      week: weekOf(m.start),
     }))
+}
+
+// Wybór dat ze zmian grupy (users/{uid}/seriesEdits): które terminy grupy naprawdę są.
+export interface SeriesDates {
+  fromWeekday: number | null // zmiana dotyczy zajęć grupy z tego dnia tygodnia (null - wszystkich)
+  dates: ClassDates
+}
+
+export function seriesDatesFrom(docs: { id: string; data: Record<string, unknown> }[]): Map<string, SeriesDates> {
+  const map = new Map<string, SeriesDates>()
+  for (const d of docs) {
+    const dates = parseClassDates(d.data.dates)
+    if (!dates) continue
+    const day = d.data.fromWeekday
+    map.set(d.id, { fromWeekday: typeof day === 'number' && day >= 1 && day <= 7 ? day : null, dates })
+  }
+  return map
+}
+
+// Plan zapamiętany przed dodaniem grupy i tygodnia: uzupełniamy je z nowej wersji (te same id zajęć) -
+// inaczej terminy spoza wybranych dat raz wyglądałyby na odwołane.
+export function withGroups(prev: WatchedMeeting[], next: WatchedMeeting[]): WatchedMeeting[] {
+  const byId = new Map(next.map((m) => [m.id, m]))
+  return prev.map((m) => {
+    const fresh = byId.get(m.id)
+    return m.unitId === undefined && fresh ? { ...m, unitId: fresh.unitId, groupNumber: fresh.groupNumber, week: fresh.week } : m
+  })
+}
+
+// Czy zajęcia są według wyboru dat (bez wyboru albo bez danych grupy - tak).
+export function heldPerSeriesDates(m: WatchedMeeting, series: Map<string, SeriesDates>): boolean {
+  if (!m.unitId || m.groupNumber === null || m.groupNumber === undefined) return true
+  const s = series.get(`${m.unitId}-${m.groupNumber}`)
+  if (!s) return true
+  const day = new Date(m.start)
+  if (s.fromWeekday && ((day.getDay() + 6) % 7) + 1 !== s.fromWeekday) return true
+  return matchesClassDates(s.dates, day, () => m.week ?? null)
 }
 
 export type PlanChange =

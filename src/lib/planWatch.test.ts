@@ -103,3 +103,55 @@ describe('pełna lista zmian do historii powiadomień', () => {
     expect(text.details).toHaveLength(5)
   })
 })
+
+describe('powiadomienia a wybór dat grupy (np. laboratorium tylko w wybrane tygodnie)', () => {
+  it('zapamiętany plan ma grupę i tydzień semestru', async () => {
+    const { snapshotPlan } = await import('./planWatch')
+    // Laboratorium w piątki od 9.10.2026 (tydz. 1); "teraz" 14.10 - zapamiętujemy 16.10 (tydz. 2) i 23.10 (tydz. 3).
+    const lab = (day: number) => ({
+      id: `l${day}`,
+      courseName: 'Radiologia',
+      type: 'LAB',
+      start: new Date(2026, 9, day, 14, 15),
+      end: new Date(2026, 9, day, 17, 0),
+      room: '014',
+      building: null,
+      address: null,
+      groupNumber: 102,
+      unitId: '777',
+      usosUrl: null,
+      cancelled: false,
+    })
+    const plan = snapshotPlan([lab(9), lab(16), lab(23)], new Date(2026, 9, 14, 12, 0), 14)
+    expect(plan.map((m) => [m.id, m.unitId, m.groupNumber, m.week])).toEqual([
+      ['l16', '777', 102, 2],
+      ['l23', '777', 102, 3],
+    ])
+  })
+
+  it('terminy spoza wybranych dat nie są liczone; stary zapamiętany plan uzupełniany z nowego', async () => {
+    const { heldPerSeriesDates, seriesDatesFrom, withGroups } = await import('./planWatch')
+    const series = seriesDatesFrom([
+      { id: '777-102', data: { fromWeekday: 2, dates: { kind: 'range', from: '2026-11-01', to: '2026-11-30', weeks: 'odd' } } },
+      { id: 'inna-1', data: { room: '200' } }, // zmiana bez wyboru dat - pomijana
+    ])
+    expect([...series.keys()]).toEqual(['777-102'])
+    // 10.11 i 17.11 to wtorki; tydzień 7 nieparzysty, 8 parzysty.
+    const odd = lesson('x', 10, 12, { unitId: '777', groupNumber: 102, week: 7 })
+    const even = lesson('y', 17, 12, { unitId: '777', groupNumber: 102, week: 8 })
+    expect(heldPerSeriesDates(odd, series)).toBe(true)
+    expect(heldPerSeriesDates(even, series)).toBe(false)
+    expect(heldPerSeriesDates(lesson('z', 17, 12), series)).toBe(true) // bez danych grupy - jak zwykle
+
+    // Stary plan (bez grupy) przed porównaniem dostaje grupę z nowego - bez fałszywego "odwołane".
+    const old = [lesson('y', 17, 12)]
+    const fresh = [even]
+    const changes = diffPlans(
+      withGroups(old, fresh).filter((m) => heldPerSeriesDates(m, series)),
+      fresh.filter((m) => heldPerSeriesDates(m, series)),
+      new Date(2026, 10, 9, 12, 0),
+      at(30, 0),
+    )
+    expect(changes).toEqual([])
+  })
+})

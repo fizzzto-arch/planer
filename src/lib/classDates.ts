@@ -1,10 +1,11 @@
 // Kiedy zajęcia faktycznie się odbywają - np. laboratorium tylko w tygodniach 10-14 albo w wybrane dni,
 // choć w USOS grupa ma je co tydzień. Dla grupy z USOS (zmiana całej grupy) i dla własnych zajęć.
 // Tygodnie parzyste/nieparzyste liczone jak w Planerze ("tydz. 2 · parzysty") - z planu semestru.
-import { parseDateKey, toDateKey } from './dates'
-import { t } from './i18n'
-import { semesterAt, semesters, weekIndex } from './semesterWeek'
-import type { Meeting } from './usos'
+// Używa go też serwer powiadomień (Node) - importy tylko z .ts.
+import { parseDateKey, toDateKey } from './dates.ts'
+import { t } from './i18n.ts'
+import { semesterAt, semesters, weekIndex } from './semesterWeek.ts'
+import type { Meeting } from './usos.ts'
 
 export type WeekParity = 'all' | 'odd' | 'even'
 

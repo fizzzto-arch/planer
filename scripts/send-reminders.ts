@@ -18,8 +18,11 @@ import {
   daySummaryText,
   diffPlans,
   firstClassText,
+  heldPerSeriesDates,
   looksBroken,
+  seriesDatesFrom,
   snapshotPlan,
+  withGroups,
   type WatchedMeeting,
 } from '../src/lib/planWatch.ts'
 import { isAutoReport } from '../src/lib/feedback.ts'
@@ -280,10 +283,15 @@ async function planNotices(
   const wantFirst = prefs.beforeFirstClass === true
   if (!wantChanges && !wantMorning && !wantFirst) return []
 
-  // Zajęcia usunięte przez użytkownika z planu - bez powiadomień o nich (zapamiętany plan zostaje pełny,
-  // żeby po przywróceniu nie wyglądały na nowe).
+  // Zajęcia usunięte przez użytkownika z planu - całe przedmioty albo terminy spoza wybranych dat grupy
+  // (np. laboratorium tylko w tyg. 10-14) - bez powiadomień o nich. Zapamiętany plan zostaje pełny,
+  // żeby po przywróceniu nie wyglądały na nowe.
   const hidden = parseHiddenClasses(prefs.hiddenClasses)
-  const visible = (list: WatchedMeeting[]) => list.filter((m) => !isHiddenUsosClass(hidden, m.course, m.type))
+  const series = seriesDatesFrom(
+    (await db.collection(`users/${uid}/seriesEdits`).get()).docs.map((d) => ({ id: d.id, data: d.data() })),
+  )
+  const visible = (list: WatchedMeeting[]) =>
+    list.filter((m) => !isHiddenUsosClass(hidden, m.course, m.type) && heldPerSeriesDates(m, series))
 
   const ref = db.doc(`planWatch/${uid}`)
   const watch = (await ref.get()).data() as { plan?: WatchedMeeting[]; until?: number; checkedAt?: number } | undefined
@@ -301,7 +309,7 @@ async function planNotices(
         const broken = plan !== null && watch?.until !== undefined && looksBroken(plan, next, now, watch.until)
         if (!broken) {
           if (plan && watch?.until && wantChanges) {
-            const changes = diffPlans(visible(plan), visible(next), now, watch.until)
+            const changes = diffPlans(visible(withGroups(plan, next)), visible(next), now, watch.until)
             if (changes.length > 0) notices.push({ ...changesText(changes, label, lang), tag: `plan-${now.getTime()}`, kind: 'plan' })
           }
           plan = next

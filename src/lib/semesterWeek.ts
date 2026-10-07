@@ -4,8 +4,8 @@
 // Co najmniej 3 tygodnie bez zajęć oznaczają nowy semestr. Na PW między semestrami są dokładnie
 // 3 takie tygodnie (2 tygodnie sesji i tydzień rejestracji), a przerwa świąteczna ma najwyżej 2.
 // Egzaminy w sesji nie są zajęciami semestru - inaczej "skleiłyby" zimowy semestr z letnim.
-import { startOfWeek } from './dates'
-import type { Meeting } from './usos'
+import { startOfWeek } from './dates.ts'
+import type { Meeting } from './usos.ts'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 const NEW_SEMESTER_GAP_WEEKS = 3 // pełnych tygodni bez zajęć
