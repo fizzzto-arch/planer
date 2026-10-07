@@ -668,8 +668,12 @@ input[type="time"].text-input {
 
 /* ---------- Siatka tygodnia: klikalne zajęcia i znaczniki ---------- */
 
+/* Treść zawsze od góry (przycisk domyślnie środkuje ją w pionie - napis wypadał w każdym okienku na innej wysokości). */
 button.grid-event {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   text-align: left;
   font: inherit;
   font-size: 0.78rem;
@@ -3266,16 +3270,43 @@ label.setting-row {
   border-radius: 6px;
 }
 
+/* Symetrycznie jak nagłówki dni: treść na środku, równa ramka ze wszystkich stron. */
 .week-grid.is-compact .grid-event {
-  padding: 2px 3px;
-  border-left-width: 2px;
-  border-radius: 4px;
+  align-items: center;
+  padding: 3px 2px;
+  border: 1px solid color-mix(in srgb, var(--c) 70%, var(--surface));
+  border-radius: 5px;
   font-size: 0.7rem;
   line-height: 1.2;
+  text-align: center;
+}
+
+.week-grid.is-compact .grid-event.is-custom {
+  border-style: dashed;
+  border-color: var(--c);
+}
+
+/* Znaczniki (termin, notatka, zmiana) w rogu na dole - nie zasłaniają wyśrodkowanej nazwy. */
+.week-grid.is-compact .grid-event-flags {
+  top: auto;
+  bottom: 3px;
+  right: 3px;
+}
+
+.week-grid.is-compact .flag {
+  width: 5px;
+  height: 5px;
+}
+
+/* Dziś - delikatne tło zamiast obwódki (obwódka wchodziła w odstępy i kolumna wyglądała na szerszą). */
+.week-grid.is-compact .grid-col.is-today {
+  outline: none;
+  background-color: color-mix(in srgb, var(--accent) 8%, var(--surface));
 }
 
 .week-grid.is-compact .grid-event-title {
   /* Długie jedno słowo (np. "Programowanie") - przeniesienie z dywizem, gdy przeglądarka umie. */
+  -webkit-hyphens: auto;
   hyphens: auto;
   overflow-wrap: anywhere;
   -webkit-line-clamp: 3;
@@ -3285,6 +3316,15 @@ label.setting-row {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Godziny drobnym drukiem - gdy się nie mieszczą, koniec przechodzi do drugiej linii. */
+.grid-event-time {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 }
 
 .week-grid.is-compact .calendar-label {

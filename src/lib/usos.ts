@@ -46,6 +46,25 @@ const OTHER_LABELS: Record<string, string> = {
 // Kody, które dzielą kolor z głównym typem (WF z USOS jako "FIZ" - kolor WF, nie szary "Inne").
 const COLOR_ALIASES: Record<string, string> = { FIZ: 'WF', SED: 'SEM', ZKO: 'LAB' }
 
+// Krótko do wąskiej siatki tygodnia na telefonie: wyk, ćw, lab, wf, lek...
+const TYPE_SHORT: Record<string, string> = {
+  WYK: msg('wyk'),
+  CWI: msg('ćw'),
+  LAB: msg('lab'),
+  PRO: msg('proj'),
+  SEM: msg('sem'),
+  SED: msg('sem'),
+  LEK: msg('lek'),
+  WF: msg('wf'),
+  FIZ: msg('wf'),
+  ZKO: msg('komp'),
+}
+
+export function typeShort(type: string): string {
+  const short = TYPE_SHORT[type]
+  return short ? tk(short) : typeLabel(type).slice(0, 4).toLowerCase()
+}
+
 export function typeLabel(type: string): string {
   const label = TYPE_LABELS[type] ?? OTHER_LABELS[type]
   return label ? tk(label) : type === 'INNE' ? t('Inne') : type

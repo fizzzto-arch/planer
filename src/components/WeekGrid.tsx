@@ -5,7 +5,7 @@ import { dayLabel, eventName, shortDayLabel } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel } from '../lib/extras'
 import { usePlanUi } from '../hooks/planUi'
-import { shortBuilding, typeLabel, typeSlug } from '../lib/usos'
+import { shortBuilding, typeLabel, typeShort, typeSlug } from '../lib/usos'
 
 const PX_PER_MIN = 1.1
 const COMPACT_PX_PER_MIN = 0.85 // telefon: cały dzień bez długiego przewijania
@@ -168,9 +168,20 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                   } as CSSProperties}
                 >
                   <span className="grid-event-title">{shortName(m.courseName, compact)}</span>
-                  <span className="grid-event-meta">
-                    {compact ? m.room : `${formatTime(m.start)}–${formatTime(m.end)} · ${details.join(' · ')}`}
-                  </span>
+                  {compact ? (
+                    // Telefon: rodzaj i godziny drobnym drukiem (sala - po stuknięciu, na stronie przedmiotu).
+                    <>
+                      <span className="grid-event-meta">{typeShort(m.type)}</span>
+                      <span className="grid-event-time">
+                        {formatTime(m.start)}–<wbr />
+                        {formatTime(m.end)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="grid-event-meta">
+                      {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
+                    </span>
+                  )}
                   {(deadlines.length > 0 || note || m.edited) && (
                     <span className="grid-event-flags" aria-hidden="true">
                       {deadlines.length > 0 && <span className="flag flag-deadline" />}

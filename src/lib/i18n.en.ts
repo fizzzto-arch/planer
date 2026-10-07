@@ -1289,6 +1289,14 @@ export const EN: Record<string, string> = {
   'Semestr letni {years}': 'Summer semester {years}',
 
   // src/lib/usos.ts
+  'wyk': 'lec',
+  'ćw': 'tut',
+  'lab': 'lab',
+  'proj': 'proj',
+  'sem': 'sem',
+  'lek': 'lang',
+  'wf': 'PE',
+  'komp': 'comp',
   'Wykład': 'Lecture',
   'Ćwiczenia': 'Tutorial',
   'Laboratorium': 'Lab',
