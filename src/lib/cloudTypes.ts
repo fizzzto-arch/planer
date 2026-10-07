@@ -41,6 +41,8 @@ export const COLLECTION_NAMES = [
   'seriesEdits',
   'customMeetings',
   'settings',
+  'scores', // punkty z zaliczeń przedmiotów (i własne rozpiski)
+  'grades', // oceny końcowe z programu studiów
   'push',
   'notifications', // historia powiadomień - zapisuje ją serwer przypomnień
 ] as const

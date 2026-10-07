@@ -3,7 +3,9 @@ import { useEffect, useMemo, type CSSProperties } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { revealElement, revealWhenReady } from '../lib/reveal'
 import type { PlanMeeting } from '../lib/edits'
+import { canGrade, programAverages, type Average } from '../lib/grades'
 import { plural } from '../lib/plural'
+import { GRADES, formatGrade, type Grade } from '../lib/scoring'
 import { PROGRAM } from '../lib/programs/ib'
 import { SUMMARIES } from '../lib/programs/ibSummaries'
 import {
@@ -52,7 +54,7 @@ const percent = (part: number, whole: number) => (whole > 0 ? Math.round((part /
 
 // Cały program kierunku: semestry z przedmiotami, punktami i sylabusami (z Katalogu ECTS PW).
 export function ProgramView({ meetings, now, focusCourse, onBack }: Props) {
-  const { openCourse } = usePlanUi()
+  const { openCourse, extras } = usePlanUi()
   const program: StudyProgram = PROGRAM
   const position = useMemo(() => programPosition(program, currentCourseNames(meetings, now)), [program, meetings, now])
   const usedIn = useMemo(() => dependents(program, SUMMARIES), [program])
@@ -74,6 +76,11 @@ export function ProgramView({ meetings, now, focusCourse, onBack }: Props) {
       }),
     [program, current, position, meetings, now],
   )
+
+  // Oceny końcowe (na koncie) i średnie.
+  const grades = extras?.extras.grades
+  const averages = useMemo(() => programAverages(program, grades ?? new Map()), [program, grades])
+  const saveGrade = extras?.saveFinalGrade
 
   return (
     <section className="program">
@@ -118,6 +125,24 @@ export function ProgramView({ meetings, now, focusCourse, onBack }: Props) {
           <strong>{t('Semestr {n} z {total}', { n: current, total })}</strong>
         </p>
       )}
+      {extras && (
+        <p className="program-average">
+          {averages.total.count > 0 ? (
+            <>
+              {t('Średnia ze studiów:')} <strong>{formatAverage(averages.total.weighted ?? averages.total.plain)}</strong>{' '}
+              <span className="muted">
+                {t('(ważona ECTS) · zwykła {plain} · {n} {grades}', {
+                  plain: formatAverage(averages.total.plain),
+                  n: averages.total.count,
+                  grades: plural(averages.total.count, 'ocena', 'oceny', 'ocen'),
+                })}
+              </span>
+            </>
+          ) : (
+            <span className="muted">{t('Wpisz oceny przy przedmiotach (stuknij przedmiot) - Planer policzy średnią.')}</span>
+          )}
+        </p>
+      )}
 
       <details className="program-source">
         <summary>
@@ -142,11 +167,16 @@ export function ProgramView({ meetings, now, focusCourse, onBack }: Props) {
           usedIn={usedIn}
           year={year}
           onOpenCourse={openCourse}
+          average={averages.semesters.get(semester.number)}
+          grades={grades}
+          onGrade={saveGrade}
         />
       ))}
     </section>
   )
 }
+
+const formatAverage = (value: number | null) => (value === null ? '–' : formatGrade(Math.round(value * 100) / 100))
 
 interface SemesterProps {
   number: number
@@ -156,14 +186,19 @@ interface SemesterProps {
   usedIn: Map<string, { name: string; semester: number }[]>
   year: string
   onOpenCourse: (name: string) => void
+  average: Average | undefined
+  grades: Map<string, Grade> | undefined // undefined - bez konta
+  onGrade: ((course: string, grade: Grade | null) => void) | undefined
 }
 
-function SemesterPanel({ number, courses, current, inPlan, usedIn, year, onOpenCourse }: SemesterProps) {
+function SemesterPanel({ number, courses, current, inPlan, usedIn, year, onOpenCourse, average, grades, onGrade }: SemesterProps) {
   const state = current === null ? null : number < current ? 'past' : number === current ? 'now' : 'future'
   const regular = courses.filter((c) => !isElective(c))
   const electives = courses.filter(isElective)
   const ects = semesterEcts(courses)
   const load = semesterLoad(courses)
+  // Oceny: semestry za Tobą i obecny (przyszłych jeszcze nie ma czego oceniać).
+  const gradable = onGrade && state !== 'future'
   const item = (course: ProgramCourse) => (
     <CourseItem
       key={course.name}
@@ -172,6 +207,8 @@ function SemesterPanel({ number, courses, current, inPlan, usedIn, year, onOpenC
       usedIn={usedIn.get(course.name) ?? []}
       year={year}
       onOpenCourse={onOpenCourse}
+      grade={grades?.get(course.name)}
+      onGrade={gradable && canGrade(course) ? (grade) => onGrade(course.name, grade) : undefined}
     />
   )
 
@@ -197,6 +234,14 @@ function SemesterPanel({ number, courses, current, inPlan, usedIn, year, onOpenC
           {load.exams > 0
             ? `${load.exams} ${plural(load.exams, 'egzamin', 'egzaminy', 'egzaminów')}`
             : t('bez egzaminów')}
+          {average && average.count > 0 && (
+            <>
+              {' · '}
+              <span className="program-semester-average">
+                {t('średnia {value}', { value: formatAverage(average.weighted ?? average.plain) })}
+              </span>
+            </>
+          )}
         </span>
       </summary>
       <ul className="program-courses">{regular.map(item)}</ul>
@@ -216,9 +261,11 @@ interface CourseProps {
   usedIn: { name: string; semester: number }[]
   year: string
   onOpenCourse: (name: string) => void
+  grade: Grade | undefined
+  onGrade: ((grade: Grade | null) => void) | undefined // brak - bez oceny (bez konta, przyszły semestr, pula obieralnych)
 }
 
-function CourseItem({ course, planName, usedIn, year, onOpenCourse }: CourseProps) {
+function CourseItem({ course, planName, usedIn, year, onOpenCourse, grade, onGrade }: CourseProps) {
   const meta = [
     hoursText(course),
     course.exam && t('egzamin'),
@@ -236,14 +283,35 @@ function CourseItem({ course, planName, usedIn, year, onOpenCourse }: CourseProp
           <span className="program-course-name">{course.name}</span>
           <span className="program-course-ects">{course.ects} ECTS</span>
           {/* "w planie" na początku drugiej linijki - przy długiej nazwie nie spada samotnie do nowego wiersza. */}
-          {(planName || meta.length > 0) && (
+          {(planName || meta.length > 0 || grade !== undefined) && (
             <span className="program-course-meta">
+              {grade !== undefined && <span className="program-grade">{t('ocena {grade}', { grade: formatGrade(grade) })}</span>}
               {planName && <span className="badge program-in-plan">{t('w planie')}</span>}
               {meta.length > 0 && <span className="program-course-hours">{meta.join(' · ')}</span>}
             </span>
           )}
         </summary>
         <div className="program-course-body">
+          {onGrade && (
+            <div className="program-field">
+              <h4>{t('Twoja ocena')}</h4>
+              <div className="grade-picker" role="radiogroup" aria-label={t('Ocena: {name}', { name: course.name })}>
+                {GRADES.map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    role="radio"
+                    aria-checked={grade === g}
+                    className={`grade-option${grade === g ? ' is-active' : ''}`}
+                    title={grade === g ? t('Stuknij jeszcze raz, żeby usunąć') : undefined}
+                    onClick={() => onGrade(grade === g ? null : g)}
+                  >
+                    {formatGrade(g)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {!described && <p className="muted">{t('Katalog nie ma opisu tego przedmiotu.')}</p>}
           {summary && <p className="program-about">{summary.about}</p>}
           {summary?.topics && (

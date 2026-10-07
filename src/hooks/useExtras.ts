@@ -21,12 +21,14 @@ import {
 } from '../lib/extras'
 import type { OptimizerSettings } from '../lib/optimizer'
 import { parseOptimizerSettings } from '../lib/optimizerSettings'
+import { parseFinalGrade } from '../lib/grades'
 import { parsePrefs, type Prefs } from '../lib/prefs'
+import { parseCourseScores, type CourseScores, type Grade } from '../lib/scoring'
 import { parseTesterTasks } from '../lib/testerTasks'
 import { parseTypeColors, type TypeColors } from '../lib/typeColors'
 import { RETRY_AFTER_MS } from './useCloud'
 
-const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings']
+const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings', 'scores', 'grades']
 
 // Dokumenty w kolekcji "settings": kolory typów zajęć i pozostałe ustawienia.
 const COLORS_DOC = 'colors'
@@ -59,6 +61,14 @@ function toExtras(raw: RawCollections): Extras {
     prefs: prefsDoc ? parsePrefs(prefsDoc.data) : null,
     optimizer: optimizerDoc ? parseOptimizerSettings(optimizerDoc.data) : null,
     testerTasks: parseTesterTasks(raw.settings?.find((d) => d.id === TESTER_TASKS_DOC)?.data),
+    scores: new Map((raw.scores ?? []).flatMap((d) => {
+      const scores = parseCourseScores(d.data)
+      return scores ? [[d.id, scores] as const] : []
+    })),
+    grades: new Map((raw.grades ?? []).flatMap((d) => {
+      const grade = parseFinalGrade(d.data)
+      return grade ? [[grade.name, grade.grade] as const] : []
+    })),
   }
 }
 
@@ -198,6 +208,28 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  // Punkty i własna rozpiska przedmiotu - jeden dokument; pusty znika.
+  const saveScores = useCallback(
+    (courseName: string, scores: Omit<CourseScores, 'name'>) => {
+      const key = courseKey(courseName)
+      write((c, u) =>
+        Object.keys(scores.points).length === 0 && !scores.custom
+          ? c.deleteItem(u, 'scores', key)
+          : c.setItem(u, 'scores', key, { name: courseName, points: scores.points, custom: scores.custom }),
+      )
+    },
+    [write],
+  )
+
+  // Ocena końcowa przedmiotu z programu studiów; null - usuń.
+  const saveFinalGrade = useCallback(
+    (programCourse: string, grade: Grade | null) => {
+      const key = courseKey(programCourse)
+      write((c, u) => (grade === null ? c.deleteItem(u, 'grades', key) : c.setItem(u, 'grades', key, { name: programCourse, grade })))
+    },
+    [write],
+  )
+
   const savePrefs = useCallback(
     (prefs: Prefs) => write((c, u) => c.setItem(u, 'settings', PREFS_DOC, { ...prefs })),
     [write],
@@ -278,6 +310,8 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     saveCustomMeeting,
     deleteCustomMeeting,
     saveTypeColors,
+    saveScores,
+    saveFinalGrade,
     savePrefs,
     saveOptimizer,
     saveTesterTasks,

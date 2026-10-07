@@ -3811,6 +3811,272 @@ label.setting-row {
   margin: 3px 0;
 }
 
+/* ---------- Punkty z zaliczenia ---------- */
+
+.score .section-head {
+  margin-bottom: 4px;
+}
+
+.score > .muted {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+
+.score-part {
+  padding: 10px 0;
+}
+
+.score-part + .score-part {
+  border-top: 1px solid var(--border);
+}
+
+.score-part-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.score-part-sum {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-status {
+  font-size: 0.82rem;
+}
+
+.score-status.is-ok {
+  color: var(--ok);
+}
+
+.score-status.is-bad {
+  color: var(--danger);
+}
+
+.score-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.score-item-label {
+  min-width: 0.9em;
+  text-align: right;
+}
+
+.score-items-each {
+  align-self: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.score-input.text-input {
+  width: 3.6em;
+  padding: 6px 8px;
+  font-size: 1rem; /* 16px - iPhone nie powiększa strony przy wpisywaniu */
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.score-summary {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Pasek: pełny - masz; jasny - możliwe jeszcze; kreski - progi ocen z podpisami. */
+.score-bar {
+  margin: 0 6px 6px;
+}
+
+.score-bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+}
+
+.score-bar-potential,
+.score-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  transition: width 250ms ease;
+}
+
+.score-bar-potential {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.score-bar-fill {
+  background: var(--accent);
+}
+
+.score-bar-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--muted);
+}
+
+.score-bar-tick.is-reached {
+  background: var(--text);
+}
+
+.score-bar-labels {
+  position: relative;
+  height: 1.3em;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.score-bar-labels > span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.score-bar-labels > .is-reached {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.score-total {
+  margin: 4px 0 0;
+}
+
+.score-lines {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.score-lines li {
+  margin: 2px 0;
+}
+
+.score-lines .is-ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.score-lines .is-bad {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Własna rozpiska: nazwa | maksimum | usuń. */
+.scoring-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.scoring-rows li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5em auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.scoring-add {
+  align-self: flex-start;
+}
+
+.scoring-scale {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.scoring-scale label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.scoring-scale .text-input {
+  padding: 7px 4px;
+  text-align: center;
+}
+
+.scoring-hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+}
+
+/* ---------- Oceny w programie studiów ---------- */
+
+.program-average {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.program-grade {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.program-semester-average {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.grade-picker {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.grade-option {
+  flex: 1;
+  min-width: 0;
+  max-width: 56px;
+  padding: 7px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.grade-option.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
 /* ---------- Wyszukiwanie ---------- */
 
 /* Telefon: cały ekran; komputer: okno u góry na przyciemnionym tle. */

@@ -228,6 +228,124 @@ test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium je
   await expect(exam.getByRole('button', { name: '+ Dodaj datę' })).toHaveCount(0)
 })
 
+// Plan 3. semestru Inżynierii Biomedycznej (nazwy jak w USOS) - z programem studiów i zasadami zaliczeń.
+async function seedIbPlan(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 15).getTime()
+    const names = ['Grafika komputerowa', 'Radiologia', 'Rachunek prawdopodobieństwa i statystyka', 'Laboratorium elektrotechniki']
+    const meetings = names.map((courseName, i) => ({
+      id: `ib-${i}`, courseName, type: 'WYK', start: at(15 + i, 10), end: at(15 + i, 12), room: '1', building: null,
+      address: null, groupNumber: 1, unitId: null, usosUrl: null, cancelled: false,
+    }))
+    localStorage.setItem('planer.plan.v1', JSON.stringify({ source: { kind: 'file', name: 'ib.ics' }, updatedAt: Date.now(), meetings }))
+  })
+  await page.reload()
+}
+
+test('punkty: kalkulator według regulaminu - ile brakuje i jaka ocena', async ({ page }) => {
+  await seedIbPlan(page)
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Radiologia' }).click()
+  const panel = page.locator('.score')
+  await expect(panel.getByRole('heading', { name: 'Punkty' })).toBeVisible()
+  await expect(panel.getByText('zalicza od 16 pkt')).toBeVisible()
+
+  // Trzy laboratoria: prognoza z dotychczasowego wyniku, do zaliczenia laboratorium brakuje.
+  await panel.getByRole('textbox', { name: 'Laboratorium 1' }).fill('7')
+  await panel.getByRole('textbox', { name: 'Laboratorium 2' }).fill('6,5')
+  await panel.getByRole('textbox', { name: 'Laboratorium 3' }).fill('5')
+  await expect(panel.getByText('do zaliczenia brakuje 2,5 pkt')).toBeVisible()
+  await expect(panel.getByText(/^Prognoza: 4/)).toBeVisible()
+
+  // Za dużo punktów - pole na czerwono, nie liczy się.
+  await panel.getByRole('textbox', { name: 'Laboratorium 4' }).fill('9')
+  await expect(panel.getByRole('textbox', { name: 'Laboratorium 4' })).toHaveAttribute('aria-invalid', 'true')
+
+  // Wszystko wpisane: ocena (średnia ważona egzaminu i laboratorium po 50%).
+  await panel.getByRole('textbox', { name: 'Laboratorium 4' }).fill('6')
+  await panel.getByRole('textbox', { name: 'Laboratorium 5' }).fill('7,5')
+  await panel.getByRole('textbox', { name: 'Egzamin' }).fill('24')
+  await expect(panel.getByText('Masz 80% z 100%')).toBeVisible()
+  await expect(panel.getByText('Ocena: 4', { exact: true })).toBeVisible()
+  await expect(panel.getByText('Do 4,5 zabrakło 1%')).toBeVisible()
+
+  // Punkty zapisują się na koncie - po powrocie na stronę przedmiotu są na miejscu.
+  await panel.getByRole('textbox', { name: 'Egzamin' }).blur()
+  await page.goBack()
+  await page.locator('.course-row', { hasText: 'Radiologia' }).click()
+  await expect(page.locator('.score').getByRole('textbox', { name: 'Egzamin' })).toHaveValue('24')
+  await expect(page.locator('.score').getByRole('textbox', { name: 'Laboratorium 2' })).toHaveValue('6,5')
+})
+
+test('punkty: zwolnienie z egzaminu (RPiS)', async ({ page }) => {
+  await seedIbPlan(page)
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Rachunek prawdopodobieństwa' }).click()
+  const panel = page.locator('.score')
+  await panel.getByRole('textbox', { name: 'Kolokwium 1' }).fill('13')
+  await expect(panel.getByText('Do zwolnienia z egzaminu brakuje 19,5 pkt')).toBeVisible()
+  await panel.getByRole('textbox', { name: 'Kolokwium 2' }).fill('14')
+  await panel.getByRole('textbox', { name: 'Aktywność' }).fill('7')
+  await expect(panel.getByText('Zwolnienie z egzaminu – ocena 4,5')).toBeVisible()
+  await expect(panel.getByText('zwolnienie ✓')).toBeVisible()
+})
+
+test('punkty: własna rozpiska dla przedmiotu bez zasad', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  const panel = page.locator('.score')
+  await panel.getByRole('button', { name: 'Ułóż rozpiskę' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Rozpiska zaliczenia' })
+  await dialog.getByRole('textbox', { name: 'Nazwa pozycji 2' }).fill('Laboratorium')
+  await dialog.getByRole('textbox', { name: 'Maksimum punktów, pozycja 1' }).fill('20')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText('Każda pozycja potrzebuje nazwy i maksymalnej liczby punktów.')
+  await dialog.getByRole('textbox', { name: 'Maksimum punktów, pozycja 2' }).fill('30')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+
+  // Domyślna skala PW: 3 od 51% z 50 pkt = 25,5 pkt.
+  await panel.getByRole('textbox', { name: 'Kolokwium 1' }).fill('12')
+  await panel.getByRole('textbox', { name: 'Laboratorium' }).fill('14')
+  await expect(panel.getByText('Masz 26 z 50 pkt')).toBeVisible()
+  await expect(panel.getByText('Ocena: 3', { exact: true })).toBeVisible()
+  await expect(panel.getByText('Do 3,5 zabrakło 4,5 pkt')).toBeVisible()
+
+  // Rozpiskę można zmienić albo usunąć razem z punktami.
+  await panel.getByRole('button', { name: 'Zmień rozpiskę' }).click()
+  page.once('dialog', (d) => d.accept())
+  await page.getByRole('dialog', { name: 'Zmień rozpiskę' }).getByRole('button', { name: 'Usuń', exact: true }).click()
+  await expect(panel.getByRole('button', { name: 'Ułóż rozpiskę' })).toBeVisible()
+})
+
+test('oceny: średnia w programie studiów', async ({ page }) => {
+  await seedIbPlan(page)
+  await tab(page, 'Przedmioty').click()
+  await page.getByRole('button', { name: /Program studiów/ }).click()
+  await expect(page.getByText(/Wpisz oceny przy przedmiotach/)).toBeVisible()
+
+  const first = page.locator('#program-semester-1')
+  await first.locator('summary').first().click()
+  const course = (name: string) => first.locator('.program-course', { has: page.locator('.program-course-name', { hasText: name }) })
+  await course('Fizyka 1').locator('summary').first().click()
+  await course('Fizyka 1').getByRole('radio', { name: '4,5' }).click()
+  await course('Metrologia').locator('summary').first().click()
+  await course('Metrologia').getByRole('radio', { name: '3', exact: true }).click()
+
+  // Ważona punktami ECTS: (4,5 × 6 + 3 × 5) / 11 = 3,82; zwykła 3,75.
+  await expect(page.locator('.program-average')).toContainText('Średnia ze studiów: 3,82')
+  await expect(page.locator('.program-average')).toContainText('zwykła 3,75 · 2 oceny')
+  await expect(first.locator('.program-semester-load')).toContainText('średnia 3,82')
+  await expect(course('Fizyka 1').locator('.program-grade')).toHaveText('ocena 4,5')
+
+  // Ponowne stuknięcie usuwa ocenę; przyszłe semestry bez ocen.
+  await course('Metrologia').getByRole('radio', { name: '3', exact: true }).click()
+  await expect(page.locator('.program-average')).toContainText('Średnia ze studiów: 4,5')
+  const fourth = page.locator('#program-semester-4')
+  await fourth.locator('summary').first().click()
+  await expect(fourth.getByRole('radiogroup')).toHaveCount(0)
+})
+
 test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await expect(page.getByText('Nadchodzące terminy')).toBeVisible()

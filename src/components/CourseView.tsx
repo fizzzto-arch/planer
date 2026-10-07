@@ -13,6 +13,7 @@ import { NoteField } from './NoteField'
 import { StaffSection } from './StaffSection'
 import { CourseInfoSection } from './CourseInfoSection'
 import { AssessmentSection } from './AssessmentSection'
+import { ScoreSection } from './ScoreSection'
 import { programAssessments } from '../lib/courseAssessment'
 import { useMemo } from 'react'
 
@@ -117,6 +118,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
               unitId={courseMeetings.find((m) => m.unitId)?.unitId ?? null}
             />
           )}
+
+          <ScoreSection key={courseName} courseName={courseName} scoring={assessment?.scoring ?? null} />
 
           {/* Prowadzący bieżących zajęć - przedmiot o tej samej nazwie z poprzedniego semestru ma inne grupy. */}
           <StaffSection meetings={upcoming.some((m) => m.unitId) ? upcoming : courseMeetings} />

@@ -3,6 +3,7 @@
 // Samych regulaminów nie publikujemy (są dla zalogowanych w USOS) - tylko te zasady.
 // Klucz: nazwa przedmiotu w programie (src/lib/programs/ib.ts).
 import type { AssessmentRow, CourseAssessment } from '../assessment'
+import type { GradeStep, ScoreItem } from '../scoring'
 
 const SYLLABUS = { kind: 'sylabus', year: '2021/22' } as const
 const REGULATIONS = { kind: 'regulamin', year: '2026/27' } as const
@@ -12,6 +13,13 @@ const colloquia = (count?: number): AssessmentRow['add'] => ({ kind: 'kolokwium'
 const lectureColloquium: AssessmentRow['add'] = { kind: 'kolokwium', title: 'Kolokwium wykładowe', count: 1 }
 const exam: AssessmentRow['add'] = { kind: 'egzamin', title: 'Egzamin', count: 1 }
 const GRADES_100 = 'Na 100 pkt: 51–60 → 3; 61–70 → 3,5; 71–80 → 4; 81–90 → 4,5; 91–100 → 5'
+
+// Kalkulator punktów: progi na 3; 3,5; 4; 4,5; 5 (above - "ponad") i kolejne ćwiczenia "1", "2"...
+const steps = (from: number[], above = false): GradeStep[] =>
+  from.map((f, i) => ({ grade: ([3, 3.5, 4, 4.5, 5] as const)[i], from: f, above }))
+const numbered = (prefix: string, count: number, max: number): ScoreItem[] =>
+  Array.from({ length: count }, (_, i) => ({ id: `${prefix}${i + 1}`, label: String(i + 1), max }))
+const single = (id: string, label: string, max: number): ScoreItem[] => [{ id, label, max }]
 
 const a = (rows: AssessmentRow[], grading?: string): CourseAssessment => ({ rows, grading, source: SYLLABUS })
 const r = (assessment: Omit<CourseAssessment, 'source'>): CourseAssessment => ({ ...assessment, source: REGULATIONS })
@@ -81,6 +89,13 @@ const BASE: Record<string, CourseAssessment> = {
       { form: 'LAB', text: '5 ćwiczeń po 6 pkt (razem 30 pkt), mogą być wejściówki' },
     ],
     grading: 'Suma do 50 pkt: 25–29 → 3; 30–34 → 3,5; 35–39 → 4; 40–44 → 4,5; od 45 → 5',
+    scoring: {
+      parts: [
+        { id: 'kol', label: 'Kolokwium', form: 'WYK', items: single('kol', 'Kolokwium', 20) },
+        { id: 'lab', label: 'Laboratorium', form: 'LAB', items: numbered('lab', 5, 6) },
+      ],
+      scale: steps([25, 30, 35, 40, 45]),
+    },
     notes: [
       'Kolokwium 2 tygodnie po ostatnim wykładzie, w godzinach wykładu; drugi termin tydzień później – liczy się ostatnie podejście',
       'Laboratorium bez limitu nieobecności; odrobić można tylko w uzasadnionych przypadkach, ocen nie da się poprawić',
@@ -98,6 +113,15 @@ const BASE: Record<string, CourseAssessment> = {
       { form: 'CWI', text: 'każde ćwiczenie min. 2,5 pkt; trzeba zaliczyć 6 i mieć razem min. 17,5 pkt' },
     ],
     grading: 'Suma do 90 pkt (+ aktywność): ponad 45 → 3; ponad 54 → 3,5; ponad 63 → 4; ponad 72 → 4,5; ponad 81 → 5',
+    scoring: {
+      parts: [
+        { id: 'egz', label: 'Egzamin', form: 'WYK', items: single('egz', 'Egzamin', 55), pass: { from: 27.5 } },
+        // Niezaliczone ćwiczenie (poniżej 2,5 pkt) liczy się 0; trzeba zaliczyć 6 z 7.
+        { id: 'cw', label: 'Ćwiczenia', form: 'CWI', items: numbered('cw', 7, 5), pass: { from: 17.5 }, itemPass: { from: 2.5, count: 6 } },
+        { id: 'akt', label: 'Aktywność', form: 'WYK', items: single('akt', 'Aktywność', 8), bonus: true },
+      ],
+      scale: steps([45, 54, 63, 72, 81], true),
+    },
     notes: [
       'Obecność na ćwiczeniach obowiązkowa – najwyżej 1 nieusprawiedliwiona nieobecność (usprawiedliwienie w ciągu tygodnia)',
       'Sprawozdanie zespołowe w ciągu 10 dni roboczych od ćwiczenia',
@@ -110,6 +134,10 @@ const BASE: Record<string, CourseAssessment> = {
       { form: 'CWI', text: 'obowiązkowe – bez nich nie ma egzaminu; kolokwiów nie ma' },
     ],
     grading: 'Z egzaminu: 31–36 → 3; 37–42 → 3,5; 43–48 → 4; 49–54 → 4,5; ponad 54 → 5',
+    scoring: {
+      parts: [{ id: 'egz', label: 'Egzamin', form: 'ALL', items: single('egz', 'Egzamin', 60), pass: { from: 31 } }],
+      scale: [...steps([31, 37, 43, 49]), { grade: 5, from: 54, above: true }],
+    },
     notes: [
       'Najwyżej 2 nieusprawiedliwione nieobecności na ćwiczeniach',
       'Wynik egzaminu poprawkowego zastępuje poprzedni',
@@ -121,6 +149,14 @@ const BASE: Record<string, CourseAssessment> = {
       { form: 'LAB', text: 'zajęcia po 8 pkt: wejściówka 2 + sprawozdanie 6; razem 40 pkt, zalicza 21 pkt' },
     ],
     grading: 'Średnia egzaminu i laboratorium (po 50%): od 51% → 3; 61% → 3,5; 71% → 4; 81% → 4,5; 91% → 5',
+    scoring: {
+      weighted: true,
+      parts: [
+        { id: 'egz', label: 'Egzamin', form: 'WYK', items: single('egz', 'Egzamin', 30), pass: { from: 16 }, weight: 1 },
+        { id: 'lab', label: 'Laboratorium', form: 'LAB', items: numbered('lab', 5, 8), pass: { from: 21 }, weight: 1 },
+      ],
+      scale: steps([51, 61, 71, 81, 91]),
+    },
     notes: [
       'Laboratorium: obecność na wszystkich zajęciach i wszystkie sprawozdania (oddawane na kolejnych zajęciach) – bez poprawek',
       'Trzeba zapisać się do zespołu laboratoryjnego w wyznaczonym terminie',
@@ -134,6 +170,27 @@ const BASE: Record<string, CourseAssessment> = {
       { form: 'PRO', text: 'indywidualny projekt według wytycznych z pierwszych zajęć – 25% oceny' },
     ],
     grading: 'Każda część osobno: ponad 50% → 3; 60% → 3,5; 70% → 4; 80% → 4,5; 90% → 5 – wszystkie muszą przekroczyć 50%',
+    // Wyniki podawane w procentach; ocena ze średniej ważonej 50/25/25.
+    scoring: {
+      weighted: true,
+      parts: [
+        {
+          id: 'kol',
+          label: 'Kolokwia',
+          form: 'WYK',
+          percent: true,
+          items: [
+            { id: 'kol1', label: 'Kolokwium 1', max: 100 },
+            { id: 'kol2', label: 'Kolokwium 2', max: 100 },
+          ],
+          pass: { from: 50, above: true },
+          weight: 50,
+        },
+        { id: 'lab', label: 'Laboratorium', form: 'LAB', percent: true, items: single('lab', 'Laboratorium', 100), pass: { from: 50, above: true }, weight: 25 },
+        { id: 'pro', label: 'Projekt', form: 'PRO', percent: true, items: single('pro', 'Projekt', 100), pass: { from: 50, above: true }, weight: 25 },
+      ],
+      scale: steps([50, 60, 70, 80, 90], true),
+    },
     notes: [
       'Terminy kolokwiów podawane w pierwszych 2 tygodniach zajęć (Teams, LeOn)',
       'Zajęć laboratoryjnych i projektowych nie da się odrobić',
@@ -149,6 +206,32 @@ const BASE: Record<string, CourseAssessment> = {
     grading:
       'Ćwiczenia + egzamin (do 100 pkt): 51–60 → 3; 61–70 → 3,5; 71–80 → 4; 81–90 → 4,5; ponad 90 → 5. ' +
       'Bez egzaminu: min. 12 pkt z każdego kolokwium i ponad 32 pkt z ćwiczeń → 4,5 (do 36 pkt) albo 5',
+    scoring: {
+      parts: [
+        {
+          id: 'cw',
+          label: 'Ćwiczenia',
+          form: 'CWI',
+          items: [
+            { id: 'kol1', label: 'Kolokwium 1', max: 16 },
+            { id: 'kol2', label: 'Kolokwium 2', max: 16 },
+            { id: 'akt', label: 'Aktywność', max: 8 },
+          ],
+        },
+        { id: 'egz', label: 'Egzamin', form: 'ALL', items: single('egz', 'Egzamin', 60), pass: { from: 30, above: true } },
+      ],
+      scale: steps([50, 60, 70, 80, 90], true),
+      exemption: {
+        part: 'cw',
+        items: ['kol1', 'kol2'],
+        itemFrom: 12,
+        partAbove: 32,
+        scale: [
+          { grade: 4.5, from: 32, above: true },
+          { grade: 5, from: 36, above: true },
+        ],
+      },
+    },
     notes: [
       'Obecność na ćwiczeniach obowiązkowa – najwyżej 2 nieusprawiedliwione nieobecności',
       'Na kolokwia i egzamin: prosty kalkulator, własna kartka A4 z wzorami, legitymacja, kartki A4',

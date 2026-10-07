@@ -220,6 +220,7 @@ const SETTINGS: Entry[] = [
   { title: msg('Dodaj zajęcia'), keywords: 'dodaj własne zajęcia korepetycje add class', action: { type: 'addMeeting' }, when: (f) => f.signedIn },
   { title: msg('Dobierz grupy'), keywords: 'optymalizator zmiana grupy grupy okienka optimizer', action: { type: 'optimizer' }, when: (f) => f.canOptimize },
   { title: msg('Program studiów'), keywords: 'program studiów semestry sylabus ects przedmioty programme syllabus', action: { type: 'program' }, when: (f) => f.hasProgram },
+  { title: msg('Oceny i średnia'), keywords: 'oceny ocena średnia ważona ects stypendium wpisz ocenę grades average gpa', action: { type: 'program' }, when: (f) => f.hasProgram && f.signedIn },
   { title: msg('Powiadomienia'), keywords: 'powiadomienia skrzynka wiadomości notifications inbox', action: { type: 'view', view: 'notifications' } },
   { title: msg('Pomoc i prywatność'), keywords: 'pomoc prywatność jak to działa instrukcja help privacy faq', action: { type: 'help' } },
   { title: msg('Zgłoś problem'), keywords: 'zgłoś problem błąd uwaga pomysł feedback bug report', action: { type: 'feedback' }, when: (f) => f.signedIn },

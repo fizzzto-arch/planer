@@ -3,6 +3,7 @@ import { msg, tk } from './i18n'
 import { isTimeKey, parseDateKey } from './dates'
 import type { OptimizerSettings } from './optimizer'
 import type { Prefs } from './prefs'
+import type { CourseScores, Grade } from './scoring'
 import type { TypeColors } from './typeColors'
 import type { Meeting } from './usos'
 
@@ -111,6 +112,8 @@ export interface Extras {
   prefs: Prefs | null // ustawienia zapisane na koncie; null = jeszcze nie zapisane
   optimizer: OptimizerSettings | null // ustawienia "Dobierz grupy"; null = jeszcze nie zapisane
   testerTasks: string[] // zadania dla testerów oznaczone jako zrobione (lib/testerTasks.ts)
+  scores: Map<string, CourseScores> // punkty z zaliczeń; klucz: courseKey
+  grades: Map<string, Grade> // oceny końcowe; klucz: nazwa przedmiotu w programie studiów
 }
 
 export const EMPTY_EXTRAS: Extras = {
@@ -123,6 +126,8 @@ export const EMPTY_EXTRAS: Extras = {
   prefs: null,
   optimizer: null,
   testerTasks: [],
+  scores: new Map(),
+  grades: new Map(),
 }
 
 // Id dokumentu Firestore nie może zawierać "/", więc kodujemy nazwę.

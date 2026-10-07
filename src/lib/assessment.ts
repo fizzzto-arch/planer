@@ -2,6 +2,7 @@
 // całość - egzamin). Dane w src/lib/programs/*Assessment.ts - z regulaminu przedmiotu, a gdy go nie mamy, z sylabusa.
 import type { DeadlineKind } from './extras'
 import { t } from './i18n'
+import type { Scoring } from './scoring'
 import { typeLabel } from './usos'
 
 export type AssessmentForm = 'WYK' | 'CWI' | 'LAB' | 'PRO' | 'ALL' // ALL - cały przedmiot
@@ -18,6 +19,7 @@ export interface CourseAssessment {
   grading?: string // skala ocen albo sposób liczenia oceny końcowej
   notes?: string[] // "warto wiedzieć": obecność, poprawy, co wolno na kolokwium
   summary?: string // krótka wersja na listę przedmiotów (bez niej - złożona z wierszy)
+  scoring?: Scoring // punkty i progi do kalkulatora (tylko z regulaminu - sylabus nie podaje liczb)
   source: { kind: 'sylabus' | 'regulamin'; year: string }
 }
 
