@@ -101,10 +101,18 @@ const BASE: Record<string, CourseAssessment> = {
       'Laboratorium bez limitu nieobecności; odrobić można tylko w uzasadnionych przypadkach, ocen nie da się poprawić',
     ],
   }),
-  'Laboratorium elektrotechniki': a(
-    [{ form: 'LAB', text: '5 ćwiczeń; każde: praca domowa 20%, wejściówka 30%, sprawozdanie 50%' }],
-    'Średnia z ćwiczeń: 51–60% → 3; 61–70% → 4; 71–80% → 4,5; 81–90% → 5',
-  ),
+  'Laboratorium elektrotechniki': {
+    ...a(
+      [{ form: 'LAB', text: '5 ćwiczeń; każde: praca domowa 20%, wejściówka 30%, sprawozdanie 50%' }],
+      'Średnia z ćwiczeń: 51–60% → 3; 61–70% → 4; 71–80% → 4,5; 81–90% → 5',
+    ),
+    // Ze skryptu do laboratorium (M. Nałęcz, M. Rupniewski, wyd. 2021) - bez punktów, te są w regulaminie.
+    notes: [
+      'Ćwiczenia po kolei: 1. prawa Kirchhoffa i opór zastępczy · 2. źródła Thévenina i Nortona · 3. obwody nieliniowe, prostowniki · 4. prąd sinusoidalny, rezonans, wzmacniacz operacyjny · 5. filtry i stany nieustalone',
+      'Przed każdym ćwiczeniem praca domowa ze skryptu (podrozdział „Praca domowa” danego ćwiczenia)',
+      'Pracuje się w parach; sprawozdanie na formatce z końca rozdziału w skrypcie',
+    ],
+  },
   'Podstawy Automatyki': r({
     rows: [
       { form: 'WYK', text: 'egzamin pisemny – 55 pkt, zalicza 27,5 pkt', add: exam },
