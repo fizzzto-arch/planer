@@ -45,7 +45,9 @@ export interface PlanUi {
   deadlinesFor: (meeting: PlanMeeting) => Deadline[] // terminy przypadające na te zajęcia
   prefs: Prefs
   notesOn: boolean // notatki włączone (ustawienie albo - bez wyboru - są już jakieś notatki)
-  displayName: (courseName: string) => string // skrót nazwy przedmiotu, jeśli ustawiony
+  displayName: (courseName: string) => string // nazwa przedmiotu do pokazania - pełna (skróty tylko w siatce)
+  // Skrót do siatki tygodnia i eksportu: wpisany w ustawieniach; compact (telefon) - albo automatyczny.
+  shortName: (courseName: string, compact?: boolean) => string
   setHiddenClasses: (hidden: HiddenClass[]) => void // zajęcia usunięte z planu (prefs.hiddenClasses)
   openSearch: () => void // pasek wyszukiwania (od razu do pisania)
   skipFirstStep: (id: string) => void // "Pierwsze kroki": krok zrobiony albo pominięty

@@ -29,7 +29,8 @@ export type SearchAction =
 export interface SearchSources {
   now: Date
   meetings: PlanMeeting[] // plan z dodatkami
-  displayName: (courseName: string) => string // skrót nazwy, jeśli ustawiony
+  displayName: (courseName: string) => string // nazwa do pokazania
+  shortName?: (courseName: string) => string // skrót z ustawień - też do znalezienia (np. "RPiS")
   deadlines: Deadline[]
   courseExtras: CourseExtra[] // notatki i linki przedmiotów
   generalNote: string
@@ -52,6 +53,8 @@ function courseItems(src: SearchSources): Item[] {
     const staff = src.staff.get(course.name)
     const assessment = src.assessment?.(course.name) ?? null
     const fields: SearchField[] = [{ label: null, value: course.name }]
+    const short = src.shortName?.(course.name)
+    if (short && short !== course.name) fields.push({ label: null, value: short, hidden: true })
     if (staff) {
       const teachers = [...new Set(staff.groups.flatMap((g) => g.lecturers.map((p) => p.name)))]
       if (teachers.length > 0) fields.push({ label: t('Prowadzący'), value: teachers.join(', ') })

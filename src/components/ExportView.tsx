@@ -1,6 +1,6 @@
 import { t } from '../lib/i18n'
 import { tx } from '../lib/i18nReact'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { addDays, formatWeekRange, startOfWeek } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
@@ -42,7 +42,9 @@ const FORMATS = (): { id: Format; label: string; hint: string }[] => ([
 
 // Eksport planu: typowy tydzień albo konkretny tydzień jako zdjęcie, PDF, Excel albo kalendarz.
 export function ExportView({ meetings, now, initialWeek, colors, source, onBack }: Props) {
-  const { displayName } = usePlanUi()
+  // Eksport (siatka na obrazku, PDF) - skróty z ustawień, jak w siatce tygodnia.
+  const { shortName } = usePlanUi()
+  const displayName = useCallback((name: string) => shortName(name), [shortName])
   const [savedOptions, setOptions] = useState<ExportOptions>(loadExportOptions)
   // Propozycja z optymalizatora ma własny tytuł (jej nazwę) - nie nadpisuje zapamiętanego tytułu planu.
   const [sourceTitle, setSourceTitle] = useState(source ?? '')

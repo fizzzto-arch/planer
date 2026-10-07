@@ -2,11 +2,13 @@ import { locale, t } from '../lib/i18n'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { NotificationsApi } from '../hooks/useNotifications'
 import { usePlanUi } from '../hooks/planUi'
-import { NOTIFICATION_KEEP_DAYS, type NotificationKind, type PlanerNotification } from '../lib/notifications'
+import { NOTIFICATION_KEEP_DAYS, splitCleared, type NotificationKind, type PlanerNotification } from '../lib/notifications'
 
 interface Props {
   notifications: NotificationsApi
   now: Date
+  clearedAt: number | null // "Wyczyść" - wcześniejsze są w archiwum (zapis w ustawieniach na koncie)
+  onClear: () => void
 }
 
 const icon = (d: string): ReactNode => (
@@ -40,9 +42,9 @@ function dayLabel(ms: number, now: Date): string {
 const clock = (ms: number) => new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })
 
 // Historia powiadomień: to samo, co przyszło na telefon, także gdy zniknęło z ekranu blokady.
-export function NotificationsView({ notifications, now }: Props) {
+export function NotificationsView({ notifications, now, clearedAt, onClear }: Props) {
   const { openSettings } = usePlanUi()
-  const { list, seenAt, markSeen, signedIn } = notifications
+  const { list, seenAt, markSeen, loadAll, signedIn } = notifications
   // Co było nowe w chwili otwarcia - podświetlenie zostaje do wyjścia z zakładki.
   const [newSince] = useState(seenAt)
   useEffect(() => {
@@ -58,37 +60,66 @@ export function NotificationsView({ notifications, now }: Props) {
     )
   }
 
-  const groups: { label: string; items: PlanerNotification[] }[] = []
-  for (const n of list) {
-    const label = n.createdAt === null ? t('Teraz') : dayLabel(n.createdAt, now)
-    const last = groups[groups.length - 1]
-    if (last?.label === label) last.items.push(n)
-    else groups.push({ label, items: [n] })
+  const { current, archived } = splitCleared(list, clearedAt)
+  const byDay = (items: PlanerNotification[]) => {
+    const groups: { label: string; items: PlanerNotification[] }[] = []
+    for (const n of items) {
+      const label = n.createdAt === null ? t('Teraz') : dayLabel(n.createdAt, now)
+      const last = groups[groups.length - 1]
+      if (last?.label === label) last.items.push(n)
+      else groups.push({ label, items: [n] })
+    }
+    return groups.map((g) => (
+      <div key={g.label} className="notification-group">
+        <h3 className="notification-day">{g.label}</h3>
+        <ul className="notification-list">
+          {g.items.map((n) => (
+            <NotificationItem key={n.id} item={n} isNew={(n.createdAt ?? Infinity) > newSince} />
+          ))}
+        </ul>
+      </div>
+    ))
   }
 
   return (
     <section className="notifications">
-      <h2 className="day-title">{t('Powiadomienia')}</h2>
-      {list.length === 0 ? (
+      <div className="section-head">
+        <h2 className="day-title">{t('Powiadomienia')}</h2>
+        {current.length > 0 && (
+          <button type="button" className="button small secondary" onClick={onClear}>
+            {t('Wyczyść')}
+          </button>
+        )}
+      </div>
+      {current.length > 0 ? (
+        byDay(current)
+      ) : clearedAt !== null ? (
+        <p className="empty-state">{t('Wszystko przeczytane i wyczyszczone. Wcześniejsze są w archiwum niżej.')}</p>
+      ) : (
         <div className="empty-state">
           <p>{t('Tu pojawi się każde powiadomienie od Planera - przypomnienia o terminach, zmiany w planie, plan dnia.')}</p>
           <button type="button" className="link-button" onClick={openSettings}>
             {t('Ustaw przypomnienia')}
           </button>
         </div>
-      ) : (
-        groups.map((g) => (
-          <div key={g.label} className="notification-group">
-            <h3 className="notification-day">{g.label}</h3>
-            <ul className="notification-list">
-              {g.items.map((n) => (
-                <NotificationItem key={n.id} item={n} isNew={(n.createdAt ?? Infinity) > newSince} />
-              ))}
-            </ul>
-          </div>
-        ))
       )}
-      <p className="hint">{t('Ostatnie powiadomienia z {n} dni.', { n: NOTIFICATION_KEEP_DAYS })}</p>
+
+      {/* Archiwum: wyczyszczone (do usunięcia przez serwer po 60 dniach) - cała historia dopiero po otwarciu. */}
+      {clearedAt !== null && (
+        <details
+          className="collapsible notification-archive"
+          onToggle={(e) => {
+            if (e.currentTarget.open) loadAll()
+          }}
+        >
+          <summary>{t('Archiwum')}</summary>
+          {archived.length > 0 ? byDay(archived) : <p className="muted">{t('Pusto.')}</p>}
+          <p className="hint">{t('Wyczyszczone powiadomienia z ostatnich {n} dni - starsze znikają same.', { n: NOTIFICATION_KEEP_DAYS })}</p>
+        </details>
+      )}
+      {clearedAt === null && current.length > 0 && (
+        <p className="hint">{t('Ostatnie powiadomienia z {n} dni.', { n: NOTIFICATION_KEEP_DAYS })}</p>
+      )}
     </section>
   )
 }

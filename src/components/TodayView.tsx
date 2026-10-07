@@ -24,7 +24,7 @@ function TodayTitle({ meetings, now }: Props) {
         {formatDay(now)}
         {week && (
           <span className="week-number">
-            {week.odd ? t('tydz. {n} · nieparzysty', { n: week.number }) : t('tydz. {n} · parzysty', { n: week.number })}
+            {week.odd ? t('tydzień {n} · nieparzysty', { n: week.number }) : t('tydzień {n} · parzysty', { n: week.number })}
           </span>
         )}
       </h2>

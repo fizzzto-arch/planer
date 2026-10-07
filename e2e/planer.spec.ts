@@ -396,7 +396,7 @@ test('usuwanie z planu: jeden rodzaj zajęć albo cały przedmiot, przywracanie'
 test('daty zajęć: grupa z USOS tylko w nieparzyste tygodnie z zakresu, potem przywrócenie', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.locator('.course-row', { hasText: 'Grafika komputerowa' }).click()
-  // Wykład w piątki co tydzień; najbliższy 16.10 (tydz. 2).
+  // Wykład w piątki co tydzień; najbliższy 16.10 (tydzień 2).
   await expect(page.getByText(/Następne zajęcia: Piątek, 16 października/)).toBeVisible()
   await page.locator('.course-meetings .card').first().locator('summary').click()
   await page.getByRole('button', { name: 'Zmień', exact: true }).click()
@@ -408,7 +408,7 @@ test('daty zajęć: grupa z USOS tylko w nieparzyste tygodnie z zakresu, potem p
   await dialog.getByRole('checkbox', { name: 'Tygodnie parzyste' }).uncheck()
   await dialog.getByRole('button', { name: 'Zapisz' }).click()
   await expect(dialog).toBeHidden()
-  // Zostają 23.10 (tydz. 3) i 6.11 (tydz. 5).
+  // Zostają 23.10 (tydzień 3) i 6.11 (tydzień 5).
   await expect(page.getByText(/Następne zajęcia: Piątek, 23 października/)).toBeVisible()
   await expect(page.locator('.course-meetings .card')).toHaveCount(2)
 
@@ -768,6 +768,48 @@ test('koperta: historia powiadomień z pełną listą zmian, potem "przeczytane"
   await page.getByRole('button', { name: 'Powiadomienia (nowe: 1)' }).click()
   await expect(page.getByText('Programowanie (wt. 27.10) 12:15 - dodatkowe zajęcia')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Powiadomienia', exact: true })).toBeVisible()
+})
+
+test('powiadomienia: Wyczyść przenosi do archiwum', async ({ page }) => {
+  await page.evaluate(() => {
+    const store = JSON.parse(localStorage.getItem('planer.mock-cloud') ?? '{}')
+    store.notifications = {
+      n1: { kind: 'deadline', title: 'Kolokwium z Fizyki za tydzień', body: 'Fizyka · wt. 20.10', details: [], createdAt: Date.now() - 3_600_000 },
+    }
+    localStorage.setItem('planer.mock-cloud', JSON.stringify(store))
+  })
+  await page.reload()
+  await page.getByRole('button', { name: /^Powiadomienia/ }).click()
+  await expect(page.getByText('Kolokwium z Fizyki za tydzień')).toBeVisible()
+  await page.getByRole('button', { name: 'Wyczyść' }).click()
+  await expect(page.getByText('Kolokwium z Fizyki za tydzień')).toBeHidden()
+  await expect(page.getByText(/Wszystko przeczytane i wyczyszczone/)).toBeVisible()
+  // Archiwum: wyczyszczone zostają (do 60 dni).
+  await page.locator('.notification-archive summary').click()
+  await expect(page.locator('.notification-archive').getByText('Kolokwium z Fizyki za tydzień')).toBeVisible()
+})
+
+test('skróty nazw: wszędzie pełna nazwa, skrót tylko w siatce tygodnia', async ({ page }, info) => {
+  await tab(page, 'Ustawienia').click()
+  await page.locator('#settings-aliases').getByLabel('Grafika komputerowa').fill('GK')
+  if (info.project.name !== 'komputer') {
+    // Telefon: siatka do włączenia w ustawieniach (domyślnie lista).
+    await page.getByRole('radiogroup', { name: 'Tydzień na telefonie' }).getByRole('radio', { name: 'Siatka' }).click()
+  }
+  await tab(page, 'Przedmioty').click()
+  await expect(page.locator('.course-row-name', { hasText: 'Grafika komputerowa' })).toBeVisible()
+  await expect(page.locator('.course-row-name', { hasText: /^GK$/ })).toHaveCount(0)
+  await tab(page, 'Tydzień').click()
+  const titles = page.locator('.week-grid .grid-event-title')
+  await expect(titles.filter({ hasText: /^GK$/ }).first()).toBeVisible()
+  if (info.project.name === 'komputer') {
+    // Komputer: bez wpisanego skrótu - pełna nazwa.
+    await expect(titles.filter({ hasText: 'Analiza matematyczna' }).first()).toBeVisible()
+  } else {
+    // Telefon: wąskie kolumny - bez wpisanego skrótu automatyczny ("AM"), krótkie nagłówki dni.
+    await expect(page.locator('.week-grid')).toHaveClass(/is-compact/)
+    await expect(titles.filter({ hasText: /^AM$/ }).first()).toBeVisible()
+  }
 })
 
 test('zakładka Dla testerów: wersje testowe, zadania i zgłoszenie po kliknięciu', async ({ page }) => {

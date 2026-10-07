@@ -26,7 +26,7 @@ export function TestersView({ meetings, now, feedback, admin }: Props) {
       <p className="muted testers-lead">{t('Nowe funkcje w wersji testowej i miejsce na uwagi - napisz, co działa, a co nie.')}</p>
 
       {(hasProgram || canOptimize) && (
-        <>
+        <div className="testers-alpha">
           <h3 className="day-title secondary">{t('Wersje testowe')}</h3>
           {hasProgram && (
             <AlphaEntry
@@ -48,7 +48,7 @@ export function TestersView({ meetings, now, feedback, admin }: Props) {
               icon={<path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6" />}
             />
           )}
-        </>
+        </div>
       )}
 
       {feedback ? (

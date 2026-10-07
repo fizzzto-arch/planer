@@ -130,11 +130,11 @@ export const EN: Record<string, string> = {
   'element|elementy|elementów': 'item|items',
 
   // src/components/CandidateCard.tsx
-  'Okienka / tydz.': 'Gaps / week',
-  'Dni na uczelni / tydz.': 'Days at uni / week',
+  'Okienka / tydzień': 'Gaps / week',
+  'Dni na uczelni / tydzień': 'Days at uni / week',
   'Koniec zajęć (średnio)': 'Classes end (average)',
-  'Przed {time} / tydz.': 'Before {time} / week',
-  'Po {time} / tydz.': 'After {time} / week',
+  'Przed {time} / tydzień': 'Before {time} / week',
+  'Po {time} / tydzień': 'After {time} / week',
   'Podgląd tygodnia': 'Week preview',
   'Eksportuj': 'Export',
   'Bez zmian grup w obecnym planie.': 'No group changes in your current timetable.',
@@ -490,7 +490,7 @@ export const EN: Record<string, string> = {
   // src/components/ClassDatesField.tsx (+ lib/classDates.ts)
   'Co tydzień od–do': 'Weekly from–to',
   'Wybrane dni': 'Selected days',
-  'tydz. {n}': 'wk {n}',
+  'tydzień {n}': 'week {n}',
   'Kiedy się odbywają': 'When they take place',
   'Od dnia': 'From',
   'Do dnia (włącznie)': 'Until (inclusive)',
@@ -661,6 +661,10 @@ export const EN: Record<string, string> = {
   'Zapisano ✓': 'Saved ✓',
 
   // src/components/NotificationsView.tsx
+  'Wszystko przeczytane i wyczyszczone. Wcześniejsze są w archiwum niżej.': 'All read and cleared. Earlier ones are in the archive below.',
+  'Archiwum': 'Archive',
+  'Pusto.': 'Empty.',
+  'Wyczyszczone powiadomienia z ostatnich {n} dni - starsze znikają same.': 'Cleared notifications from the last {n} days - older ones disappear by themselves.',
   'Termin': 'Deadline',
   'Zmiana w planie': 'Timetable change',
   'Plan dnia': 'Daily plan',
@@ -741,6 +745,13 @@ export const EN: Record<string, string> = {
   'W tym tygodniu nie ma zajęć.': 'No classes this week.',
 
   // src/components/PreferencesPanels.tsx
+  'Siatka': 'Grid',
+  'Tydzień na telefonie': 'Week on phone',
+  'Siatka - cały tydzień jak w terminarzu, ze skrótami nazw.': 'Grid - the whole week like a planner, with short names.',
+  'Tydzień na komputerze': 'Week on computer',
+  'Skróty są tylko w siatce tygodnia (terminarzu), gdzie jest mało miejsca - wszędzie indziej pełna nazwa. Puste pole: na komputerze pełna nazwa, na telefonie automatyczny skrót (jak w podpowiedzi).': 'Short names are only used in the week grid (planner), where space is tight - everywhere else the full name. Empty field: full name on a computer, an automatic short name on a phone (like the hint).',
+  'Skróty w siatce tygodnia': 'Short names in the week grid',
+  'Wyłączone - także w siatce pełne nazwy. Wpisane skróty zostają zapisane.': 'Off - full names in the grid too. Short names you entered stay saved.',
   'Mały': 'Small',
   'Normalny': 'Normal',
   'Duży': 'Large',
@@ -768,9 +779,6 @@ export const EN: Record<string, string> = {
   'Nadchodzące terminy w „Dziś”': 'Upcoming deadlines in “Today”',
   '{n} dni': '{n} days',
   'Skróty nazw przedmiotów': 'Course name abbreviations',
-  'Skrót zastępuje długą nazwę w planie. Puste pole = pełna nazwa.': 'An abbreviation replaces the long name in the timetable. Empty field = full name.',
-  'Pokazuj skróty': 'Show abbreviations',
-  'Wyłączone = wszędzie pełne nazwy. Wpisane skróty zostają zapisane.': 'Off = full names everywhere. Your abbreviations stay saved.',
   'np. {suggestion}': 'e.g. {suggestion}',
   'skrót': 'abbreviation',
 
@@ -993,8 +1001,6 @@ export const EN: Record<string, string> = {
   'Pokaż zadania': 'Show tasks',
 
   // src/components/TodayView.tsx
-  'tydz. {n} · nieparzysty': 'wk {n} · odd',
-  'tydz. {n} · parzysty': 'wk {n} · even',
   'Dziś nie masz zajęć.': 'No classes today.',
   'Na dziś to już wszystko.': 'That’s all for today.',
   'Jutro': 'Tomorrow',

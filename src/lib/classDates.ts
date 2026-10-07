@@ -1,6 +1,6 @@
 // Kiedy zajęcia faktycznie się odbywają - np. laboratorium tylko w tygodniach 10-14 albo w wybrane dni,
 // choć w USOS grupa ma je co tydzień. Dla grupy z USOS (zmiana całej grupy) i dla własnych zajęć.
-// Tygodnie parzyste/nieparzyste liczone jak w Planerze ("tydz. 2 · parzysty") - z planu semestru.
+// Tygodnie parzyste/nieparzyste liczone jak w Planerze ("tydzień 2 · parzysty") - z planu semestru.
 // Używa go też serwer powiadomień (Node) - importy tylko z .ts.
 import { parseDateKey, toDateKey } from './dates.ts'
 import { t } from './i18n.ts'

@@ -25,7 +25,7 @@ export function ClassDatesField({ draft, onChange, allLabel, choices, weekOf }: 
     const day = parseDateKey(key)
     if (!day) return key
     const week = weekOf(day)
-    return week === null ? formatShortDay(day) : `${formatShortDay(day)} · ${t('tydz. {n}', { n: week })}`
+    return week === null ? formatShortDay(day) : `${formatShortDay(day)} · ${t('tydzień {n}', { n: week })}`
   }
 
   return (

@@ -7,6 +7,7 @@ export type AnimationsMode = 'on' | 'off' | 'system'
 export type ThemeMode = 'system' | 'light' | 'dark'
 export type TextSize = 'small' | 'normal' | 'large'
 export type StartView = 'today' | 'week' | 'courses'
+export type WeekLayout = 'list' | 'grid' // zakładka Tydzień: dni pod sobą albo siatka (terminarz)
 
 export interface Prefs {
   language: Language // język interfejsu (i powiadomień - czyta go skrypt wysyłający)
@@ -33,6 +34,9 @@ export interface Prefs {
   // Notatki (do przedmiotów, do zajęć, ogólna) - dodatek, domyślnie wyłączony. null - nie wybrano:
   // włączone, jeśli ktoś ma już jakąś notatkę (żeby nie zniknęły mu sprzed tej opcji).
   notes: boolean | null
+  weekPhone: WeekLayout // widok tygodnia osobno na telefonie i na komputerze
+  weekDesktop: WeekLayout
+  notificationsClearedAt: number | null // "Wyczyść" w powiadomieniach - starsze są w archiwum
 }
 
 export interface FirstStepsState {
@@ -63,6 +67,9 @@ export const DEFAULT_PREFS: Prefs = {
   hiddenClasses: [],
   firstSteps: { done: [], hidden: false },
   notes: null,
+  weekPhone: 'list',
+  weekDesktop: 'grid',
+  notificationsClearedAt: null,
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -117,6 +124,9 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     hiddenClasses: parseHiddenClasses(raw.hiddenClasses),
     firstSteps: parseFirstSteps(raw.firstSteps),
     notes: typeof raw.notes === 'boolean' ? raw.notes : null,
+    weekPhone: oneOf(raw.weekPhone, ['list', 'grid'], DEFAULT_PREFS.weekPhone),
+    weekDesktop: oneOf(raw.weekDesktop, ['list', 'grid'], DEFAULT_PREFS.weekDesktop),
+    notificationsClearedAt: typeof raw.notificationsClearedAt === 'number' ? raw.notificationsClearedAt : null,
   }
 }
 
@@ -164,9 +174,17 @@ export function applyPrefsToDocument(prefs: Prefs, systemDark: boolean, isPhone:
   root.classList.toggle('compact', prefs.compact)
 }
 
+// Skrót nazwy (z ustawień) - tylko w siatce tygodnia (terminarzu) i w eksporcie, gdzie jest mało miejsca;
+// wszędzie indziej pełna nazwa.
 export function displayName(courseName: string, prefs: Pick<Prefs, 'courseAliases' | 'useAliases'>): string {
   if (!prefs.useAliases) return courseName
   return prefs.courseAliases[courseName]?.trim() || courseName
+}
+
+// Siatka na telefonie (wąskie kolumny): wpisany skrót albo automatyczny z pierwszych liter.
+export function compactName(courseName: string, prefs: Pick<Prefs, 'courseAliases' | 'useAliases'>): string {
+  if (!prefs.useAliases) return courseName
+  return prefs.courseAliases[courseName]?.trim() || suggestAlias(courseName)
 }
 
 // Podpowiedź skrótu: pierwsze litery słów dłuższych niż 2 znaki

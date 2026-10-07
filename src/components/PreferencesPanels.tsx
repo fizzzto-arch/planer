@@ -1,7 +1,7 @@
 import { LANGUAGES, t } from '../lib/i18n'
 import { LANGUAGE_NAMES } from './LanguageSwitch'
 import type { PrefsApi } from '../hooks/usePrefs'
-import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias, type TextSize } from '../lib/prefs'
+import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias, type TextSize, type WeekLayout } from '../lib/prefs'
 import { ChoiceSetting, SwitchSetting } from './SettingControls'
 import { usePlanUi } from '../hooks/planUi'
 
@@ -9,6 +9,11 @@ interface Props {
   prefsApi: PrefsApi
   signedIn: boolean
 }
+
+const WEEK_LAYOUTS = (): { value: WeekLayout; label: string }[] => [
+  { value: 'list', label: t('Lista') },
+  { value: 'grid', label: t('Siatka') },
+]
 
 const TEXT_SIZES = (): { value: TextSize; label: string }[] => ([
   { value: 'small', label: t('Mały') },
@@ -101,6 +106,19 @@ export function PlanPrefsPanel({ prefsApi }: Pick<Props, 'prefsApi'>) {
   return (
     <div className="panel" id="settings-plan">
       <h3 className="panel-title">{t('Plan i terminy')}</h3>
+      <ChoiceSetting
+        label={t('Tydzień na telefonie')}
+        hint={t('Siatka - cały tydzień jak w terminarzu, ze skrótami nazw.')}
+        value={prefs.weekPhone}
+        options={WEEK_LAYOUTS()}
+        onChange={(weekPhone) => update({ weekPhone })}
+      />
+      <ChoiceSetting
+        label={t('Tydzień na komputerze')}
+        value={prefs.weekDesktop}
+        options={WEEK_LAYOUTS()}
+        onChange={(weekDesktop) => update({ weekDesktop })}
+      />
       {/* Notatki zapisują się na koncie - bez logowania nie ma czego włączać. */}
       {extras && (
         <SwitchSetting
@@ -152,10 +170,12 @@ export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> 
   return (
     <div className="panel" id="settings-aliases">
       <h3 className="panel-title">{t('Skróty nazw przedmiotów')}</h3>
-      <p className="hint">{t('Skrót zastępuje długą nazwę w planie. Puste pole = pełna nazwa.')}</p>
+      <p className="hint">
+        {t('Skróty są tylko w siatce tygodnia (terminarzu), gdzie jest mało miejsca - wszędzie indziej pełna nazwa. Puste pole: na komputerze pełna nazwa, na telefonie automatyczny skrót (jak w podpowiedzi).')}
+      </p>
       <SwitchSetting
-        label={t('Pokazuj skróty')}
-        hint={t('Wyłączone = wszędzie pełne nazwy. Wpisane skróty zostają zapisane.')}
+        label={t('Skróty w siatce tygodnia')}
+        hint={t('Wyłączone - także w siatce pełne nazwy. Wpisane skróty zostają zapisane.')}
         checked={prefs.useAliases}
         onChange={(useAliases) => update({ useAliases })}
       />

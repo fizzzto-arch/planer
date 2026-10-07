@@ -71,3 +71,35 @@ describe('rozmiar tekstu i skróty', () => {
     expect(displayName('Grafika komputerowa', { ...prefs, useAliases: true })).toBe('GK')
   })
 })
+
+describe('skróty tylko w siatce tygodnia', () => {
+  it('telefon: wpisany skrót albo automatyczny; wyłączone - pełna nazwa', async () => {
+    const { compactName } = await import('./prefs')
+    const prefs = { ...DEFAULT_PREFS, courseAliases: { 'Grafika komputerowa': 'GK' } }
+    expect(compactName('Grafika komputerowa', prefs)).toBe('GK')
+    expect(compactName('Rachunek prawdopodobieństwa i statystyka', prefs)).toBe('RPS')
+    expect(compactName('Radiologia', prefs)).toBe('Radiologia') // jedno słowo - bez skrótu
+    expect(compactName('Grafika komputerowa', { ...prefs, useAliases: false })).toBe('Grafika komputerowa')
+  })
+})
+
+describe('widok tygodnia i powiadomienia w ustawieniach', () => {
+  it('domyślnie lista na telefonie, siatka na komputerze; błędne wartości - domyślne', () => {
+    expect(parsePrefs({})).toMatchObject({ weekPhone: 'list', weekDesktop: 'grid', notificationsClearedAt: null })
+    expect(parsePrefs({ weekPhone: 'grid', weekDesktop: 'zle', notificationsClearedAt: 5 })).toMatchObject({
+      weekPhone: 'grid',
+      weekDesktop: 'grid',
+      notificationsClearedAt: 5,
+    })
+  })
+
+  it('wyczyszczone powiadomienia trafiają do archiwum', async () => {
+    const { splitCleared } = await import('./notifications')
+    const n = (id: string, createdAt: number | null) => ({ id, kind: 'plan' as const, title: id, body: '', details: [], createdAt })
+    const list = [n('w drodze', null), n('nowe', 300), n('stare', 100)]
+    expect(splitCleared(list, null)).toEqual({ current: list, archived: [] })
+    const { current, archived } = splitCleared(list, 200)
+    expect(current.map((x) => x.id)).toEqual(['w drodze', 'nowe'])
+    expect(archived.map((x) => x.id)).toEqual(['stare'])
+  })
+})

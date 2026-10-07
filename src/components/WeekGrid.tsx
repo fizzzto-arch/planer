@@ -1,4 +1,4 @@
-import { t } from '../lib/i18n'
+import { locale, t } from '../lib/i18n'
 import type { CSSProperties } from 'react'
 import { formatShortDay, formatTime, isSameDay, toDateKey } from '../lib/dates'
 import { dayLabel, eventName, shortDayLabel } from '../lib/academicCalendar'
@@ -8,6 +8,7 @@ import { usePlanUi } from '../hooks/planUi'
 import { shortBuilding, typeLabel, typeSlug } from '../lib/usos'
 
 const PX_PER_MIN = 1.1
+const COMPACT_PX_PER_MIN = 0.85 // telefon: cały dzień bez długiego przewijania
 const DEFAULT_FIRST_HOUR = 8
 const DEFAULT_LAST_HOUR = 16
 // Krótsze zajęcia pokazują nazwę i szczegóły w jednej linii każde.
@@ -19,6 +20,8 @@ interface Props {
   now: Date
   readOnly?: boolean // podgląd (np. propozycja optymalizatora): kliknięcie nic nie otwiera
   highlightIds?: Set<string> // zajęcia do wyróżnienia (np. nowe grupy)
+  // Telefon: wąskie kolumny - skrót nazwy i sala, krótkie nagłówki dni, ciaśniejsza skala godzin.
+  compact?: boolean
 }
 
 function minuteOfDay(d: Date): number {
@@ -59,8 +62,9 @@ function layoutLanes(dayMeetings: PlanMeeting[]): Map<string, { lane: number; la
   return out
 }
 
-export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }: Props) {
-  const { openCourse, deadlinesFor, displayName, calendarEvents, notesOn } = usePlanUi()
+export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, compact = false }: Props) {
+  const { openCourse, deadlinesFor, shortName, calendarEvents, notesOn } = usePlanUi()
+  const px = compact ? COMPACT_PX_PER_MIN : PX_PER_MIN
   const firstHour = Math.min(
     DEFAULT_FIRST_HOUR,
     ...meetings.map((m) => Math.floor(minuteOfDay(m.start) / 60)),
@@ -73,14 +77,24 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
 
   return (
     // minmax(0, 1fr): kolumny zawsze równe - długi tekst w nagłówku nie poszerza swojego dnia.
-    <div className="week-grid" style={{ gridTemplateColumns: `3rem repeat(${days.length}, minmax(0, 1fr))` }}>
+    <div
+      className={`week-grid${compact ? ' is-compact' : ''}`}
+      style={{ gridTemplateColumns: `${compact ? '1.6rem' : '3rem'} repeat(${days.length}, minmax(0, 1fr))` }}
+    >
       <div />
       {days.map((day) => {
         // Święto, przerwa, sesja - krótko ("Święto"), pełna nazwa w podpowiedzi.
         const special = dayLabel(calendarEvents, toDateKey(day))
         return (
           <div key={day.getTime()} className={`grid-day-head${isSameDay(day, now) ? ' is-today' : ''}`}>
-            {formatShortDay(day)}
+            {compact ? (
+              <>
+                <span className="grid-day-name">{day.toLocaleDateString(locale(), { weekday: 'short' })}</span>
+                <span className="grid-day-number">{day.getDate()}</span>
+              </>
+            ) : (
+              formatShortDay(day)
+            )}
             {special && (
               <span className="calendar-label" title={eventName(special)}>
                 {shortDayLabel(special)}
@@ -90,10 +104,10 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
         )
       })}
 
-      <div className="grid-hours" style={{ height: totalMin * PX_PER_MIN }}>
+      <div className="grid-hours" style={{ height: totalMin * px }}>
         {hours.map((h) => (
-          <span key={h} style={{ top: (h * 60 - firstMin) * PX_PER_MIN }}>
-            {h}:00
+          <span key={h} style={{ top: (h * 60 - firstMin) * px }}>
+            {compact ? h : `${h}:00`}
           </span>
         ))}
       </div>
@@ -106,7 +120,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
           <div
             key={day.getTime()}
             className={`grid-col${isToday ? ' is-today' : ''}`}
-            style={{ height: totalMin * PX_PER_MIN, backgroundSize: `100% ${60 * PX_PER_MIN}px` }}
+            style={{ height: totalMin * px, backgroundSize: `100% ${60 * px}px` }}
           >
             {dayMeetings.map((m, i) => {
               const { lane, lanes: laneCount } = lanes.get(m.id) ?? { lane: 0, lanes: 1 }
@@ -147,15 +161,15 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
                   tabIndex={readOnly ? -1 : undefined}
                   style={{
                     '--i': i,
-                    top: (minuteOfDay(m.start) - firstMin) * PX_PER_MIN,
-                    height: Math.max(durationMin, 20) * PX_PER_MIN,
+                    top: (minuteOfDay(m.start) - firstMin) * px,
+                    height: Math.max(durationMin, 20) * px,
                     left: `${(lane / laneCount) * 100}%`,
                     width: `${100 / laneCount}%`,
                   } as CSSProperties}
                 >
-                  <span className="grid-event-title">{displayName(m.courseName)}</span>
+                  <span className="grid-event-title">{shortName(m.courseName, compact)}</span>
                   <span className="grid-event-meta">
-                    {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
+                    {compact ? m.room : `${formatTime(m.start)}–${formatTime(m.end)} · ${details.join(' · ')}`}
                   </span>
                   {(deadlines.length > 0 || note || m.edited) && (
                     <span className="grid-event-flags" aria-hidden="true">
@@ -168,7 +182,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds }
               )
             })}
             {isToday && nowMin >= firstMin && nowMin <= firstMin + totalMin && (
-              <div className="now-line" style={{ top: (nowMin - firstMin) * PX_PER_MIN }} />
+              <div className="now-line" style={{ top: (nowMin - firstMin) * px }} />
             )}
           </div>
         )

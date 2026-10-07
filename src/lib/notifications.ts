@@ -43,3 +43,10 @@ export function sortNotifications(list: PlanerNotification[]): PlanerNotificatio
 export function unreadCount(list: PlanerNotification[], seenAt: number): number {
   return list.filter((n) => (n.createdAt ?? Infinity) > seenAt).length
 }
+
+// "Wyczyść": wszystko do tej chwili trafia do archiwum (zostaje tam do usunięcia przez serwer po 60 dniach).
+export function splitCleared(list: PlanerNotification[], clearedAt: number | null): { current: PlanerNotification[]; archived: PlanerNotification[] } {
+  if (clearedAt === null) return { current: list, archived: [] }
+  const isCurrent = (n: PlanerNotification) => n.createdAt === null || n.createdAt > clearedAt
+  return { current: list.filter(isCurrent), archived: list.filter((n) => !isCurrent(n)) }
+}

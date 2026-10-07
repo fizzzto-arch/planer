@@ -2629,6 +2629,11 @@ label.setting-row {
   margin: -4px 0 14px;
 }
 
+/* Wersje testowe - wyraźny odstęp od skrzynki i zgłoszeń pod nimi. */
+.testers-alpha {
+  margin-bottom: 22px;
+}
+
 /* Zanim ktoś kliknie "Napisz" - sam przycisk, bez formularza. */
 .feedback-start {
   display: flex;
@@ -3225,6 +3230,65 @@ label.setting-row {
 
 .week-day:not(.is-free) .day-calendar-note {
   margin-bottom: 8px;
+}
+
+/* Siatka tygodnia na telefonie: wąskie kolumny - krótkie nagłówki, skrót nazwy i sala, mniejsze odstępy. */
+.week-grid.is-compact {
+  column-gap: 3px;
+  row-gap: 4px;
+}
+
+.week-grid.is-compact .grid-day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 0;
+  line-height: 1.15;
+}
+
+.grid-day-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.grid-day-number {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.week-grid.is-compact .grid-hours span {
+  right: 3px;
+  font-size: 0.68rem;
+}
+
+.week-grid.is-compact .grid-col {
+  border-radius: 6px;
+}
+
+.week-grid.is-compact .grid-event {
+  padding: 2px 3px;
+  border-left-width: 2px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.week-grid.is-compact .grid-event-title {
+  /* Długie jedno słowo (np. "Programowanie") - przeniesienie z dywizem, gdy przeglądarka umie. */
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+}
+
+.week-grid.is-compact .grid-event-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-grid.is-compact .calendar-label {
+  font-size: 0.6rem;
 }
 
 .grid-day-head .calendar-label {

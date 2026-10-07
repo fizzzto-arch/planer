@@ -4,6 +4,7 @@ import { usePlanUi } from '../hooks/planUi'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { addDays, formatDay, formatWeekRange, isSameDay, startOfWeek, toDateKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
+import { PHONE_QUERY } from '../lib/prefs'
 import { semesterWeek } from '../lib/semesterWeek'
 import { dayLabel, eventName } from '../lib/academicCalendar'
 import { DayTimeline } from './DayTimeline'
@@ -23,8 +24,10 @@ export function WeekView({ meetings, now, selectedWeek, onSelectWeek }: Props) {
   const rootRef = useRef<HTMLElement>(null)
   // Z której strony ma wjechać nowy tydzień.
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
-  const wide = useMediaQuery('(min-width: 900px)')
+  // Lista albo siatka (terminarz) - osobny wybór na telefonie i na komputerze (Ustawienia).
+  const phone = useMediaQuery(PHONE_QUERY)
   const { extras, addCustomMeeting, openExport, prefs, calendarEvents } = usePlanUi()
+  const grid = (phone ? prefs.weekPhone : prefs.weekDesktop) === 'grid'
   const [freeOpen, setFreeOpen] = useState(false) // wspólne okienka ze znajomymi
 
   function goTo(target: Date) {
@@ -136,8 +139,8 @@ export function WeekView({ meetings, now, selectedWeek, onSelectWeek }: Props) {
       <div key={weekStart.getTime()} className={direction ? `week-body slide-${direction}` : 'week-body'}>
         {weekMeetings.length === 0 ? (
           <div className="empty-state">{t('W tym tygodniu nie ma zajęć.')}</div>
-        ) : wide ? (
-          <WeekGrid days={days} meetings={weekMeetings} now={now} />
+        ) : grid ? (
+          <WeekGrid days={days} meetings={weekMeetings} now={now} compact={phone} />
         ) : (
           days.map((day) => {
             const dayMeetings = weekMeetings.filter((m) => isSameDay(m.start, day))

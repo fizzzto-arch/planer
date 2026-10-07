@@ -100,7 +100,7 @@ export function applyEdits(
   meetings: Meeting[],
   extras: Pick<Extras, 'meetingEdits' | 'seriesEdits' | 'customMeetings'>,
 ): PlanMeeting[] {
-  // Numery tygodni (parzyste/nieparzyste) z planu z USOS - jak "tydz. 2 · parzysty" w Planerze.
+  // Numery tygodni (parzyste/nieparzyste) z planu z USOS - jak "tydzień 2 · parzysty" w Planerze.
   const weekOf = weekNumbers(meetings)
   const customs = expandCustomMeetings(extras.customMeetings, weekOf)
   const all = [...meetings.filter((m) => heldPerSeries(m, extras.seriesEdits, weekOf)), ...customs]

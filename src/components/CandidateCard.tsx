@@ -62,8 +62,8 @@ export function MetricsGrid({
 }) {
   return (
     <div className="metrics">
-      <Metric label={t('Okienka / tydz.')} value={metrics.gapMinutes} base={base?.gapMinutes ?? null} format={formatMinutes} tolerance={2} />
-      <Metric label={t('Dni na uczelni / tydz.')} value={metrics.days} base={base?.days ?? null} format={formatDays} tolerance={0.05} />
+      <Metric label={t('Okienka / tydzień')} value={metrics.gapMinutes} base={base?.gapMinutes ?? null} format={formatMinutes} tolerance={2} />
+      <Metric label={t('Dni na uczelni / tydzień')} value={metrics.days} base={base?.days ?? null} format={formatDays} tolerance={0.05} />
       {settings.dayStyle === 'early' ? (
         <Metric
           label={t('Koniec zajęć (średnio)')}
@@ -76,14 +76,14 @@ export function MetricsGrid({
       ) : (
         <>
           <Metric
-            label={t('Przed {time} / tydz.', { time: settings.startAfter })}
+            label={t('Przed {time} / tydzień', { time: settings.startAfter })}
             value={metrics.earlyMinutes}
             base={base?.earlyMinutes ?? null}
             format={formatMinutes}
             tolerance={2}
           />
           <Metric
-            label={t('Po {time} / tydz.', { time: settings.endBefore })}
+            label={t('Po {time} / tydzień', { time: settings.endBefore })}
             value={metrics.lateMinutes}
             base={base?.lateMinutes ?? null}
             format={formatMinutes}

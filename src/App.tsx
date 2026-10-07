@@ -44,7 +44,7 @@ import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
 import { isHiddenClass, isHiddenUsosClass, type HiddenClass } from './lib/hiddenClasses'
-import { displayName } from './lib/prefs'
+import { compactName, displayName } from './lib/prefs'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, startOfWeek, toDateKey, toTimeKey } from './lib/dates'
@@ -689,7 +689,9 @@ function App() {
       },
       prefs,
       notesOn,
-      displayName: (name: string) => displayName(name, prefs),
+      // Pełna nazwa wszędzie (np. w Dziś); skróty z ustawień tylko tam, gdzie mało miejsca (siatka tygodnia).
+      displayName: (name: string) => name,
+      shortName: (name: string, compact = false) => (compact ? compactName(name, prefs) : displayName(name, prefs)),
       setHiddenClasses: (hiddenClasses: HiddenClass[]) => prefsApi.update({ hiddenClasses }, true),
       openSearch: () => openSearch(true),
       skipFirstStep: markFirstStep,
@@ -826,7 +828,14 @@ function App() {
         <WeekView meetings={meetings} now={now} selectedWeek={selectedWeek} onSelectWeek={setSelectedWeek} />
       )}
       {view === 'courses' && <CoursesView meetings={meetings} now={now} />}
-      {view === 'notifications' && <NotificationsView notifications={notifications} now={now} />}
+      {view === 'notifications' && (
+        <NotificationsView
+          notifications={notifications}
+          now={now}
+          clearedAt={prefs.notificationsClearedAt}
+          onClear={() => prefsApi.update({ notificationsClearedAt: Date.now() }, true)}
+        />
+      )}
       {view === 'report' && (
         <TestersView meetings={meetings} now={now} feedback={cloud.uid ? feedback : null} admin={adminView} />
       )}

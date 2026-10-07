@@ -39,7 +39,7 @@ type ProgramData = SearchSources['program']
 // z telefonu (poza dociągnięciem prowadzących z publicznego USOS). Działa od otwarcia paska, żeby
 // prowadzący i program studiów zdążyli się wczytać, zanim padnie pierwsza litera.
 export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
-  const { extras, materials, displayName, canOptimize, notesOn } = usePlanUi()
+  const { extras, materials, displayName, shortName, canOptimize, notesOn } = usePlanUi()
   // Wybór i rozwinięte grupy - od nowa przy każdej zmianie zapytania.
   const [view, setView] = useState({ query, active: 0, expanded: [] as SearchGroup[] })
   if (view.query !== query) setView({ query, active: 0, expanded: [] })
@@ -120,6 +120,7 @@ export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
       now,
       meetings: notesOn ? meetings : meetings.map((m) => (m.note ? { ...m, note: '' } : m)),
       displayName,
+      shortName,
       deadlines: extras?.extras.deadlines ?? [],
       courseExtras,
       generalNote: notesOn ? (extras?.extras.courses.get(courseKey(GENERAL_NOTE))?.note ?? '') : '',
@@ -129,7 +130,7 @@ export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
       program,
       features: { signedIn: extras !== null, canOptimize, hasProgram: assessment !== null },
     })
-  }, [now, meetings, displayName, extras, materials, staff, assessment, program, canOptimize, notesOn])
+  }, [now, meetings, displayName, shortName, extras, materials, staff, assessment, program, canOptimize, notesOn])
 
   const groups = useMemo(() => searchItems(index, query), [index, query])
   const visible = groups.map((g) => ({
