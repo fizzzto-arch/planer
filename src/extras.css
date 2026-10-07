@@ -2483,59 +2483,29 @@ label.setting-row {
   font-weight: 600;
 }
 
-.first-steps-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Jeden krok naraz - kolejny wjeżdża po zrobieniu albo pominięciu poprzedniego. */
+.first-step {
   display: grid;
-  gap: 10px;
-}
-
-.first-steps-list li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.first-steps-check {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  transition:
-    background-color 200ms ease,
-    border-color 200ms ease;
-}
-
-.first-steps-list li.is-done .first-steps-check {
-  border-color: var(--ok);
-  background: var(--ok);
-  color: #fff;
-}
-
-.first-steps-check svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.first-steps-text {
-  flex: 1;
-  display: grid;
-  gap: 1px;
+  gap: 4px;
   font-size: 0.92rem;
+  animation: first-step-in 260ms ease;
 }
 
-.first-steps-list li.is-done .first-steps-text strong {
-  color: var(--muted);
-  font-weight: 600;
+.first-step p {
+  margin: 0;
+}
+
+.first-step-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@keyframes first-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
 }
 
 /* Filtr terminów: wszystkie / kolokwia / egzaminy / projekty */

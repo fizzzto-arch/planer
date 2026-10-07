@@ -36,12 +36,14 @@ function TodayTitle({ meetings, now }: Props) {
 export function TodayView({ meetings, now }: Props) {
   const today = meetings.filter((m) => isSameDay(m.start, now))
   const hasRemaining = today.some((m) => m.end > now)
+  // Do kroku "Zajrzyj do przedmiotu" - najbliższe zajęcia.
+  const nextCourse = (meetings.find((m) => m.end > now) ?? meetings[0])?.courseName ?? null
 
   if (hasRemaining) {
     return (
       <section>
         <TodayTitle meetings={meetings} now={now} />
-        <FirstSteps />
+        <FirstSteps courseName={nextCourse} />
         <UpcomingDeadlines now={now} />
         <DayTimeline meetings={today} now={now} />
       </section>
@@ -55,7 +57,7 @@ export function TodayView({ meetings, now }: Props) {
   return (
     <section>
       <TodayTitle meetings={meetings} now={now} />
-      <FirstSteps />
+      <FirstSteps courseName={nextCourse} />
       <UpcomingDeadlines now={now} />
       <div className="empty-state">
         {today.length === 0 ? t('Dziś nie masz zajęć.') : t('Na dziś to już wszystko.')}

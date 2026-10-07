@@ -361,13 +361,25 @@ function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
+  // "Pierwsze kroki": krok zrobiony (np. otwarty przedmiot) albo pominięty - zapis w ustawieniach (na koncie).
+  const prefsNow = useRef(prefsApi)
+  useEffect(() => {
+    prefsNow.current = prefsApi
+  })
+  const markFirstStep = useCallback((id: string) => {
+    const { prefs: current, update } = prefsNow.current
+    if (current.firstSteps.done.includes(id)) return
+    update({ firstSteps: { ...current.firstSteps, done: [...current.firstSteps.done, id] } }, true)
+  }, [])
+
   const openCourse = useCallback((name: string) => {
+    markFirstStep('course')
     pageNow.current = { kind: 'course', name }
     window.history.pushState({ course: name }, '')
     setPage({ kind: 'course', name })
     setEnter('rise')
     window.scrollTo({ top: 0 })
-  }, [])
+  }, [markFirstStep])
 
   const openOptimizer = useCallback(() => {
     pageNow.current = { kind: 'optimizer' }
@@ -431,12 +443,13 @@ function App() {
   const searching = search !== null && !search.closing && query.trim() !== ''
   // Kursor w polu od razu - jeszcze w trakcie kliknięcia albo gestu, inaczej iPhone nie pokaże klawiatury.
   const openSearch = useCallback((drop: boolean) => {
+    markFirstStep('search')
     void loadSearchPanel()
     if (searchReveal.current) searchReveal.current.style.visibility = 'visible'
     searchInput.current?.focus({ preventScroll: true })
     setSearch((s) => (s && !s.closing ? s : { drop, closing: false }))
     if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+  }, [markFirstStep])
   // Otwarty pasek widać już dzięki klasie - bez ręcznego "visible" (inaczej nie dałoby się go schować).
   useLayoutEffect(() => {
     if (search && searchReveal.current) searchReveal.current.style.visibility = ''
@@ -670,6 +683,9 @@ function App() {
       prefs,
       displayName: (name: string) => displayName(name, prefs),
       setHiddenClasses: (hiddenClasses: HiddenClass[]) => prefsApi.update({ hiddenClasses }, true),
+      openSearch: () => openSearch(true),
+      skipFirstStep: markFirstStep,
+      hideFirstSteps: () => prefsApi.update({ firstSteps: { ...prefs.firstSteps, hidden: true } }, true),
     }),
     [
       extrasApi,
@@ -692,6 +708,8 @@ function App() {
       extras.customMeetings,
       prefs,
       prefsApi,
+      openSearch,
+      markFirstStep,
     ],
   )
 

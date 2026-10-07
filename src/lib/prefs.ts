@@ -29,6 +29,12 @@ export interface Prefs {
   shareBusy: boolean // wspólne okienka: udostępniaj znajomym same godziny zajęć (bez nazw i sal)
   shareName: string // jak widzą mnie znajomi (puste = początek e-maila)
   hiddenClasses: HiddenClass[] // zajęcia usunięte z planu (czyta je też skrypt wysyłający)
+  firstSteps: FirstStepsState // karta "Pierwsze kroki" na ekranie Dziś
+}
+
+export interface FirstStepsState {
+  done: string[] // kroki zrobione albo pominięte
+  hidden: boolean // "Ukryj" - cała karta
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -52,6 +58,7 @@ export const DEFAULT_PREFS: Prefs = {
   shareBusy: false,
   shareName: '',
   hiddenClasses: [],
+  firstSteps: { done: [], hidden: false },
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -104,7 +111,15 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     shareBusy: bool(raw.shareBusy, DEFAULT_PREFS.shareBusy),
     shareName: typeof raw.shareName === 'string' ? raw.shareName.slice(0, 40) : DEFAULT_PREFS.shareName,
     hiddenClasses: parseHiddenClasses(raw.hiddenClasses),
+    firstSteps: parseFirstSteps(raw.firstSteps),
   }
+}
+
+function parseFirstSteps(raw: unknown): FirstStepsState {
+  if (typeof raw !== 'object' || raw === null) return { done: [], hidden: false }
+  const r = raw as Record<string, unknown>
+  const done = Array.isArray(r.done) ? r.done.filter((id): id is string => typeof id === 'string').slice(0, 20) : []
+  return { done, hidden: r.hidden === true }
 }
 
 export function loadLocalPrefs(): Prefs | null {

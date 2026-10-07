@@ -46,6 +46,9 @@ export interface PlanUi {
   prefs: Prefs
   displayName: (courseName: string) => string // skrót nazwy przedmiotu, jeśli ustawiony
   setHiddenClasses: (hidden: HiddenClass[]) => void // zajęcia usunięte z planu (prefs.hiddenClasses)
+  openSearch: () => void // pasek wyszukiwania (od razu do pisania)
+  skipFirstStep: (id: string) => void // "Pierwsze kroki": krok zrobiony albo pominięty
+  hideFirstSteps: () => void // "Pierwsze kroki": schowaj całą kartę
 }
 
 export const PlanUiContext = createContext<PlanUi | null>(null)

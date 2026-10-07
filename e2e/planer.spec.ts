@@ -381,6 +381,30 @@ test('usuwanie z planu: jeden rodzaj zajęć albo cały przedmiot, przywracanie'
   await expect(removed.getByText('Usunięte z planu (1)')).toBeVisible()
 })
 
+test('pierwsze kroki: jeden krok naraz, sam się odhacza, Pomiń i Ukryj', async ({ page }, info) => {
+  const card = page.locator('.first-steps')
+  await expect(card.getByRole('heading', { name: /Pierwsze kroki/ })).toBeVisible()
+  // Telefon: najpierw Planer na ekranie początkowym (bez przycisku - "Dalej").
+  if (info.project.name !== 'komputer') {
+    await expect(card.getByText('Planer na ekranie telefonu')).toBeVisible()
+    await card.getByRole('button', { name: 'Dalej' }).click()
+  }
+  // Otwarcie przedmiotu odhacza krok - po powrocie jest już następny.
+  await expect(card.getByText('Zajrzyj do przedmiotu')).toBeVisible()
+  await card.getByRole('button', { name: 'Otwórz' }).click()
+  await expect(page.locator('.course-header')).toBeVisible()
+  await page.goBack()
+  await expect(card.getByText('Wyszukiwanie')).toBeVisible()
+  await card.getByRole('button', { name: 'Pomiń' }).click()
+  await expect(card.getByText('Przypomnienia o terminach')).toBeVisible()
+  // Ukryj - zapamiętane (także po przeładowaniu).
+  await card.getByRole('button', { name: 'Ukryj' }).click()
+  await expect(card).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Planer' })).toBeVisible()
+  await expect(page.locator('.first-steps')).toHaveCount(0)
+})
+
 test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await expect(page.getByText('Nadchodzące terminy')).toBeVisible()
