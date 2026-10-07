@@ -1,5 +1,5 @@
 import { msg, t, tk } from '../lib/i18n'
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useImperativeHandle, useMemo, useState, type KeyboardEvent, type Ref } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import type { CourseAssessment } from '../lib/assessment'
 import { programAssessments } from '../lib/courseAssessment'
@@ -9,15 +9,15 @@ import { highlight, searchItems, type SearchGroup, type SearchHit } from '../lib
 import { buildSearchIndex, type SearchAction, type SearchSources } from '../lib/searchIndex'
 import { fetchCourseStaff, loadCachedStaff, saveCachedStaff, staffCacheKey, type CourseStaff } from '../lib/staff'
 import type { CourseSummary as ProgramSummary, StudyProgram } from '../lib/studyProgram'
-import { SearchIcon } from './SearchBar'
+
+export type SearchKeys = (e: KeyboardEvent<HTMLInputElement>) => void
 
 interface Props {
   meetings: PlanMeeting[]
   now: Date
-  autoFocus: boolean // lupa i Ctrl+K - od razu pisanie; pociągnięcie (iPhone) - tylko pasek, jak w Ustawieniach iOS
-  onClose: () => void
-  onAction: (action: SearchAction) => void
-  onSearchingChange: (searching: boolean) => void // jest zapytanie - wyniki zamiast planu
+  query: string // z paska na górze (SearchBar); puste - bez wyników, pod paskiem zwykły plan
+  keys: Ref<SearchKeys> // strzałki i Enter w polu wyszukiwania - wybór wyniku
+  onChoose: (action: SearchAction) => void
 }
 
 const GROUP_LABELS: Record<SearchGroup, string> = {
@@ -35,14 +35,18 @@ const RECENT_MS = 14 * 24 * 60 * 60 * 1000
 
 type ProgramData = SearchSources['program']
 
-// Wyszukiwanie: pasek na górze strony, pod nim zwykły plan; po wpisaniu - wyniki na bieżąco, pogrupowane.
-// Wszystko lokalnie - nic nie wychodzi z telefonu (poza dociągnięciem prowadzących z publicznego USOS).
-export function SearchPanel({ meetings, now, autoFocus, onClose, onAction, onSearchingChange }: Props) {
+// Wyniki wyszukiwania - na bieżąco, pogrupowane, w miejscu planu. Wszystko lokalnie - nic nie wychodzi
+// z telefonu (poza dociągnięciem prowadzących z publicznego USOS). Działa od otwarcia paska, żeby
+// prowadzący i program studiów zdążyli się wczytać, zanim padnie pierwsza litera.
+export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
   const { extras, materials, displayName, canOptimize } = usePlanUi()
-  const [query, setQuery] = useState('')
-  const [expanded, setExpanded] = useState<SearchGroup[]>([])
-  const [active, setActive] = useState(0)
-  const input = useRef<HTMLInputElement>(null)
+  // Wybór i rozwinięte grupy - od nowa przy każdej zmianie zapytania.
+  const [view, setView] = useState({ query, active: 0, expanded: [] as SearchGroup[] })
+  if (view.query !== query) setView({ query, active: 0, expanded: [] })
+  const { active, expanded } = view
+  const setActive = (update: number | ((i: number) => number)) =>
+    setView((v) => ({ ...v, active: typeof update === 'number' ? update : update(v.active) }))
+  const setExpanded = (update: (e: SearchGroup[]) => SearchGroup[]) => setView((v) => ({ ...v, expanded: update(v.expanded) }))
 
   const assessment = useMemo(() => programAssessments(meetings, now), [meetings, now])
 
@@ -131,24 +135,11 @@ export function SearchPanel({ meetings, now, autoFocus, onClose, onAction, onSea
   }))
   const flat = visible.flatMap((g) => g.shown)
 
-  const searching = query.trim() !== ''
-  const change = (text: string) => {
-    setQuery(text)
-    setActive(0)
-    setExpanded([])
-    onSearchingChange(text.trim() !== '')
-  }
+  const choose = (hit: SearchHit<SearchAction>) => onChoose(hit.item.action)
 
-  const choose = (hit: SearchHit<SearchAction>) => {
-    onClose()
-    onAction(hit.item.action)
-  }
-
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      onClose()
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+  // Strzałki i Enter z pola wyszukiwania (pasek jest osobnym komponentem).
+  useImperativeHandle(keys, () => (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (flat.length === 0) return
       setActive((i) => (i + (e.key === 'ArrowDown' ? 1 : flat.length - 1)) % flat.length)
@@ -156,93 +147,54 @@ export function SearchPanel({ meetings, now, autoFocus, onClose, onAction, onSea
       e.preventDefault()
       choose(flat[active])
     }
-  }
+  })
 
+  if (query.trim() === '') return null
   let position = -1
   return (
-    <div className="search" role="search" aria-label={t('Wyszukiwanie')} onKeyDown={onKeyDown}>
-      <div className="search-bar">
-        <label className="search-field">
-          <SearchIcon />
-          <input
-            ref={input}
-            type="search"
-            enterKeyHint="search"
-            autoFocus={autoFocus}
-            aria-label={t('Szukaj')}
-            placeholder={t('Szukaj')}
-            value={query}
-            onChange={(e) => change(e.target.value)}
-          />
-          {query !== '' && (
-            <button
-              type="button"
-              className="search-clear"
-              aria-label={t('Wyczyść')}
-              onClick={() => {
-                change('')
-                input.current?.focus()
-              }}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <path d="m8.5 8.5 7 7m0-7-7 7" />
-              </svg>
-            </button>
-          )}
-        </label>
-        <button type="button" className="link-button search-cancel" onClick={onClose}>
-          {t('Anuluj')}
-        </button>
-      </div>
-
-      {/* Bez zapytania pod paskiem jest zwykły plan; z zapytaniem - wyniki zamiast niego. */}
-      {searching && (
-        <div className="search-results">
-          {groups.length === 0 ? (
-            <p className="search-hint">{t('Nic nie znaleziono dla „{query}”.', { query: query.trim() })}</p>
-          ) : (
-            visible.map((g) => (
-              <section key={g.group} className="search-group">
-                <h3 className="search-group-title">{tk(GROUP_LABELS[g.group])}</h3>
-                <ul>
-                  {g.shown.map((hit) => {
-                    position++
-                    const hitIndex = position
-                    return (
-                      <li key={hit.item.id}>
-                        <button
-                          type="button"
-                          className={`search-hit${hitIndex === active ? ' is-active' : ''}`}
-                          onClick={() => choose(hit)}
-                          onMouseMove={() => setActive(hitIndex)}
-                        >
-                          <span className="search-hit-title">
-                            {highlight(hit.item.title, query).map(([text, marked], i) =>
-                              marked ? <mark key={i}>{text}</mark> : <span key={i}>{text}</span>,
-                            )}
-                          </span>
-                          {hit.item.detail && <span className="search-hit-detail">{hit.item.detail}</span>}
-                          {hit.snippet && (
-                            <span className="search-hit-snippet">
-                              {hit.snippet.label && `${hit.snippet.label}: `}
-                              {hit.snippet.text}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-                {g.hits.length > g.shown.length && (
-                  <button type="button" className="link-button search-more" onClick={() => setExpanded((e) => [...e, g.group])}>
-                    {t('Pokaż więcej ({n})', { n: g.hits.length - g.shown.length })}
-                  </button>
-                )}
-              </section>
-            ))
-          )}
-        </div>
+    <div className="search-results">
+      {groups.length === 0 ? (
+        <p className="search-hint">{t('Nic nie znaleziono dla „{query}”.', { query: query.trim() })}</p>
+      ) : (
+        visible.map((g) => (
+          <section key={g.group} className="search-group">
+            <h3 className="search-group-title">{tk(GROUP_LABELS[g.group])}</h3>
+            <ul>
+              {g.shown.map((hit) => {
+                position++
+                const hitIndex = position
+                return (
+                  <li key={hit.item.id}>
+                    <button
+                      type="button"
+                      className={`search-hit${hitIndex === active ? ' is-active' : ''}`}
+                      onClick={() => choose(hit)}
+                      onMouseMove={() => setActive(hitIndex)}
+                    >
+                      <span className="search-hit-title">
+                        {highlight(hit.item.title, query).map(([text, marked], i) =>
+                          marked ? <mark key={i}>{text}</mark> : <span key={i}>{text}</span>,
+                        )}
+                      </span>
+                      {hit.item.detail && <span className="search-hit-detail">{hit.item.detail}</span>}
+                      {hit.snippet && (
+                        <span className="search-hit-snippet">
+                          {hit.snippet.label && `${hit.snippet.label}: `}
+                          {hit.snippet.text}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            {g.hits.length > g.shown.length && (
+              <button type="button" className="link-button search-more" onClick={() => setExpanded((e) => [...e, g.group])}>
+                {t('Pokaż więcej ({n})', { n: g.hits.length - g.shown.length })}
+              </button>
+            )}
+          </section>
+        ))
       )}
     </div>
   )

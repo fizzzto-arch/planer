@@ -4125,44 +4125,58 @@ label.setting-row {
 
 /* ---------- Wyszukiwanie ---------- */
 
-/* Pasek na górze strony, nad planem (jak w Ustawieniach iOS). W trakcie pociągnięcia wysuwa się z góry -
-   wysokość rośnie z palcem, pasek przyklejony do dołu. */
+/* Pasek na górze strony, nad planem (jak w Ustawieniach iOS). Schowany: zerowa wysokość. W trakcie pociągnięcia
+   wysokość rośnie z palcem (ustawia ją usePullToSearch), pasek przyklejony do dołu - wysuwa się z góry. */
+:root {
+  --search-bar-h: 52px;
+}
+
 .search-reveal {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  height: 0;
   overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
 }
 
 .search-reveal.is-open {
-  display: block;
-  overflow: visible;
+  height: var(--search-bar-h);
+  visibility: visible;
+  opacity: 1;
 }
 
-/* Otwarty lupą - wjeżdża; po pociągnięciu już jest na miejscu. */
-.search-reveal.is-dropping .search-bar {
-  animation: search-drop 180ms ease;
+/* Lupa, skrót - wjeżdża; po pociągnięciu już jest na miejscu. Anuluj - chowa się. */
+.search-reveal.is-dropping {
+  animation: search-open 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@keyframes search-drop {
+.search-reveal.is-closing {
+  animation: search-collapse 200ms ease forwards;
+}
+
+@keyframes search-open {
   from {
+    height: 0;
     opacity: 0;
-    transform: translateY(-8px);
+  }
+}
+
+@keyframes search-collapse {
+  to {
+    height: 0;
+    opacity: 0;
   }
 }
 
 .search-bar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
+  height: var(--search-bar-h);
   padding: 2px 0 10px;
-}
-
-.search-placeholder {
-  flex: 1;
-  line-height: 40px;
-  font-size: 1rem;
-  color: var(--muted);
 }
 
 .search-field {
@@ -4319,8 +4333,5 @@ label.setting-row {
   font-size: 0.85rem;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .search-reveal.is-dropping .search-bar {
-    animation: none;
-  }
-}
+/* Wyłączone animacje (ogólna reguła data-motion w index.css) skracają je prawie do zera - chowanie
+   dalej się "kończy" (na końcu animacji pasek znika ze strony). */

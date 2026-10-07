@@ -1,4 +1,15 @@
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from 'react'
 import { AccessGate } from './components/AccessGate'
 import { AuthForm } from './components/AuthForm'
 import { CoursesView } from './components/CoursesView'
@@ -40,8 +51,9 @@ import { formatUpdatedAt, startOfWeek, toDateKey, toTimeKey } from './lib/dates'
 import { isIOS } from './lib/platform'
 import { revealWhenReady } from './lib/reveal'
 import type { SearchAction } from './lib/searchIndex'
-import { PULL_THRESHOLD, usePullToSearch } from './hooks/usePullToSearch'
-import { SearchBarPreview, SearchIcon } from './components/SearchBar'
+import { usePullToSearch } from './hooks/usePullToSearch'
+import { SearchBar, SearchIcon } from './components/SearchBar'
+import type { SearchKeys } from './components/SearchPanel'
 import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
 import { EMPTY_EXTRAS, type Deadline } from './lib/extras'
 import { withLanguageClasses } from './lib/usos'
@@ -410,40 +422,64 @@ function App() {
 
   // Wyszukiwanie: pasek na górze strony - lupa (Android, komputer), Ctrl+K albo "/" (komputer),
   // pociągnięcie w dół (iPhone). Pod paskiem zwykły plan; po wpisaniu - wyniki zamiast niego.
-  const [search, setSearch] = useState<{ focus: boolean } | null>(null) // focus - od razu pisanie
-  const [searching, setSearching] = useState(false)
-  const openSearch = useCallback((focus: boolean) => {
-    setSearch((s) => s ?? { focus })
-    window.scrollTo({ top: 0 })
+  // drop - pasek wjeżdża (lupa, skrót); po pociągnięciu jest już na miejscu. closing - chowa się (animacja).
+  const [search, setSearch] = useState<{ drop: boolean; closing: boolean } | null>(null)
+  const [query, setQuery] = useState('')
+  const searchReveal = useRef<HTMLDivElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const searchKeys = useRef<SearchKeys | null>(null)
+  const searching = search !== null && !search.closing && query.trim() !== ''
+  // Kursor w polu od razu - jeszcze w trakcie kliknięcia albo gestu, inaczej iPhone nie pokaże klawiatury.
+  const openSearch = useCallback((drop: boolean) => {
+    void loadSearchPanel()
+    if (searchReveal.current) searchReveal.current.style.visibility = 'visible'
+    searchInput.current?.focus({ preventScroll: true })
+    setSearch((s) => (s && !s.closing ? s : { drop, closing: false }))
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
+  // Otwarty pasek widać już dzięki klasie - bez ręcznego "visible" (inaczej nie dałoby się go schować).
+  useLayoutEffect(() => {
+    if (search && searchReveal.current) searchReveal.current.style.visibility = ''
+  }, [search])
+  // Anuluj, Escape - pasek chowa się płynnie (koniec animacji: finishCloseSearch).
   const closeSearch = useCallback(() => {
-    setSearch(null)
-    setSearching(false)
+    searchInput.current?.blur()
+    setSearch((s) => (s ? { ...s, closing: true } : s))
   }, [])
+  const finishCloseSearch = useCallback(() => {
+    setSearch(null)
+    setQuery('')
+  }, [])
+  // Wybrany wynik, inna zakładka - od razu (i tak zmienia się cała strona).
+  const closeSearchNow = useCallback(() => {
+    searchInput.current?.blur()
+    finishCloseSearch()
+  }, [finishCloseSearch])
   const ios = useMemo(() => isIOS(), [])
-  // Pociągnięcie odsłania pasek, ale nie wysuwa klawiatury (jak w Ustawieniach iOS) - pisanie po stuknięciu.
-  const pull = usePullToSearch(ios && !search, () => openSearch(false))
-  useEffect(() => {
-    if (pull > 0) void loadSearchPanel() // wyszukiwarka gotowa, zanim palec puści
-  }, [pull])
+  usePullToSearch(ios && !search, searchReveal, () => openSearch(false))
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable="true"]')
       if ((e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey)) {
         if (document.querySelector('dialog[open]')) return
         e.preventDefault()
-        if (search) document.querySelector<HTMLInputElement>('.search input')?.focus()
-        else openSearch(true)
+        openSearch(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [search, openSearch])
+  }, [openSearch])
+  const onSearchKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeSearch()
+    } else searchKeys.current?.(e)
+  }
 
   // Zmiana zakładki: nowy widok wjeżdża z tej strony, w którą "idziemy".
   const changeView = useCallback(
     (next: View) => {
-      closeSearch() // inna zakładka - pasek wyszukiwania się chowa
+      closeSearchNow() // inna zakładka - pasek wyszukiwania się chowa
       if (next === view && !page) return
       if (page) closePage()
       const step = VIEW_ORDER.indexOf(next) - VIEW_ORDER.indexOf(view)
@@ -451,7 +487,7 @@ function App() {
       if (next !== view) setSelectedWeek(null)
       setView(next)
     },
-    [view, page, closePage, closeSearch],
+    [view, page, closePage, closeSearchNow],
   )
 
   // Wybrany wynik wyszukiwania.
@@ -798,30 +834,34 @@ function App() {
             </button>
           </div>
         )}
-        {/* Pasek wyszukiwania: w trakcie pociągnięcia wysuwa się z góry, potem zostaje nad planem. */}
-        {(search || pull > 0) && (
-          <div
-            className={`search-reveal${search ? ' is-open' : ''}${search?.focus ? ' is-dropping' : ''}`}
-            style={search ? undefined : { height: pull, opacity: Math.min(1, pull / PULL_THRESHOLD) }}
-          >
-            {search ? (
-              <Suspense fallback={<SearchBarPreview />}>
-                <SearchPanel
-                  meetings={meetings}
-                  now={now}
-                  autoFocus={search.focus}
-                  onClose={closeSearch}
-                  onAction={runSearchAction}
-                  onSearchingChange={setSearching}
-                />
-              </Suspense>
-            ) : (
-              <SearchBarPreview />
-            )}
-          </div>
+        {/* Pasek wyszukiwania - zawsze w stronie, schowany; pociągnięcie wysuwa go z góry razem z palcem. */}
+        <div
+          ref={searchReveal}
+          role="search"
+          aria-label={t('Wyszukiwanie')}
+          className={`search-reveal${search ? ' is-open' : ''}${search?.drop ? ' is-dropping' : ''}${search?.closing ? ' is-closing' : ''}`}
+          onAnimationEnd={(e) => {
+            if (e.animationName === 'search-collapse') finishCloseSearch()
+          }}
+        >
+          <SearchBar inputRef={searchInput} query={query} onQuery={setQuery} onCancel={closeSearch} onKeyDown={onSearchKey} />
+        </div>
+        {search && (
+          <Suspense fallback={null}>
+            <SearchPanel
+              meetings={meetings}
+              now={now}
+              query={searching ? query : ''}
+              keys={searchKeys}
+              onChoose={(action) => {
+                closeSearchNow()
+                runSearchAction(action)
+              }}
+            />
+          </Suspense>
         )}
         {/* Z wpisanym zapytaniem - same wyniki; plan zostaje (ukryty), żeby po wyczyszczeniu wrócić tam, gdzie był. */}
-        <div hidden={search !== null && searching}>
+        <div hidden={searching}>
           <header className="topbar">
             <div className="brand-row">
               <h1 className="brand">Planer</h1>

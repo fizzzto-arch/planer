@@ -26,7 +26,8 @@ interface Step {
 export function FirstSteps() {
   const { extras, editDeadline, openSettings } = usePlanUi()
   const [hidden, setHidden] = useState(loadHidden)
-  if (!extras || hidden) return null
+  // Dopóki terminy z konta się nie wczytały, kroki wyglądałyby na niezrobione - karta mignęłaby i znikła.
+  if (!extras || !extras.ready || hidden) return null
 
   const phone = window.matchMedia('(pointer: coarse)').matches
   const notificationsOn = 'Notification' in window && Notification.permission === 'granted'

@@ -756,14 +756,14 @@ test('wyszukiwanie: lupa (Android, komputer) - przedmiot, sala, ustawienie', asy
   await expect(tab(page, 'Dziś')).toBeHidden()
   await search.press('Enter')
   await expect(page.getByRole('heading', { name: 'Analiza matematyczna' })).toBeVisible()
-  await expect(bar).toHaveCount(0)
+  await expect(bar).toBeHidden()
 
   // Sala: kiedy najbliższe zajęcia. Escape chowa pasek, plan wraca.
   await open()
   await search.fill('418')
   await expect(page.locator('.search-group', { hasText: 'Sale' }).getByText(/Sala 418/)).toBeVisible()
   await search.press('Escape')
-  await expect(bar).toHaveCount(0)
+  await expect(bar).toBeHidden()
   await expect(page.getByRole('heading', { name: 'Analiza matematyczna' })).toBeVisible()
 
   // Ustawienie: przejście prosto do sekcji.
@@ -825,14 +825,14 @@ test.describe('wyszukiwanie: pociągnięcie w dół (jak na iPhonie)', () => {
         fire('touchend', ${to})
       })()`)
     await pullDown(210) // za mało
-    await expect(page.getByRole('search', { name: 'Wyszukiwanie' })).toHaveCount(0)
+    await expect(page.getByRole('search', { name: 'Wyszukiwanie' })).toBeHidden()
     await pullDown(390)
-    // Pasek nad planem, bez klawiatury (jak w Ustawieniach iOS) - plan dalej widać.
+    // Pasek nad planem, od razu z kursorem (klawiatura) - plan dalej widać, dopóki nic nie wpisano.
     const search = page.getByRole('searchbox', { name: 'Szukaj' })
     await expect(search).toBeVisible()
-    await expect(search).not.toBeFocused()
+    await expect(search).toBeFocused()
     await expect(tab(page, 'Dziś')).toBeVisible()
     await page.getByRole('button', { name: 'Anuluj' }).click()
-    await expect(search).toHaveCount(0)
+    await expect(search).toBeHidden()
   })
 })
