@@ -809,6 +809,21 @@ test('skróty nazw: wszędzie pełna nazwa, skrót tylko w siatce tygodnia', asy
     // Telefon: wąskie kolumny - bez wpisanego skrótu automatyczny ("AM"), krótkie nagłówki dni.
     await expect(page.locator('.week-grid')).toHaveClass(/is-compact/)
     await expect(titles.filter({ hasText: /^AM$/ }).first()).toBeVisible()
+    // Rodzaj i godziny w jednej linii; dni dokładnie pośrodku ekranu (równy odstęp z lewej i prawej).
+    await expect(page.locator('.grid-event', { hasText: 'AM' }).first().locator('.grid-event-meta')).toHaveText('wyk')
+    // (Po animacji wejścia widoku - w trakcie jest przesunięty w bok.)
+    const layout = () =>
+      page.evaluate(`(() => {
+        const cols = [...document.querySelectorAll('.week-grid .grid-col')].map((c) => c.getBoundingClientRect())
+        const times = [...document.querySelectorAll('.grid-event-time')]
+        return {
+          symmetric: Math.abs(cols[0].left - (innerWidth - cols[cols.length - 1].right)) < 1,
+          oneLine: times.every((t) => t.getBoundingClientRect().height < 1.6 * parseFloat(getComputedStyle(t).fontSize)),
+          fits: times.every((t) => t.scrollWidth <= t.clientWidth),
+          pageScroll: document.documentElement.scrollWidth > innerWidth,
+        }
+      })()`)
+    await expect.poll(layout).toEqual({ symmetric: true, oneLine: true, fits: true, pageScroll: false })
   }
 })
 

@@ -3238,8 +3238,17 @@ label.setting-row {
 
 /* Siatka tygodnia na telefonie: wąskie kolumny - krótkie nagłówki, skrót nazwy i sala, mniejsze odstępy. */
 .week-grid.is-compact {
+  --grid-hours: 1.4rem;
   column-gap: 3px;
   row-gap: 4px;
+}
+
+/* Symetria względem ekranu: godziny wchodzą w lewy margines strony, a z prawej zostaje tyle samo
+   miejsca - dni są dokładnie pośrodku, z równym odstępem od lewej i prawej krawędzi. */
+.week-body > .week-grid.is-compact {
+  --page-side: 16px; /* boczny margines .app */
+  margin-left: calc(-1 * var(--page-side));
+  padding-right: calc(var(--grid-hours) + 3px - var(--page-side));
 }
 
 .week-grid.is-compact .grid-day-head {
@@ -3272,6 +3281,7 @@ label.setting-row {
 
 /* Symetrycznie jak nagłówki dni: treść na środku, równa ramka ze wszystkich stron. */
 .week-grid.is-compact .grid-event {
+  container-type: inline-size; /* godziny dopasowują się do szerokości okienka */
   align-items: center;
   padding: 3px 2px;
   border: 1px solid color-mix(in srgb, var(--c) 70%, var(--surface));
@@ -3312,19 +3322,26 @@ label.setting-row {
   -webkit-line-clamp: 3;
 }
 
+/* Nic się nie ściska (napis ucięty w połowie wysokości) - co się nie mieści, w ogóle nie jest pokazywane. */
+.week-grid.is-compact .grid-event > * {
+  flex-shrink: 0;
+}
+
 .week-grid.is-compact .grid-event-meta {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Godziny drobnym drukiem - gdy się nie mieszczą, koniec przechodzi do drugiej linii. */
+/* Godziny drobnym drukiem, zawsze w jednej linii - czcionka zmniejsza się do szerokości okienka. */
 .grid-event-time {
   display: block;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
+  font-size: clamp(0.45rem, 17cqi, 0.62rem);
   color: var(--muted);
-  font-variant-numeric: tabular-nums;
   line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .week-grid.is-compact .calendar-label {

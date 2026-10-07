@@ -13,6 +13,10 @@ const DEFAULT_FIRST_HOUR = 8
 const DEFAULT_LAST_HOUR = 16
 // Krótsze zajęcia pokazują nazwę i szczegóły w jednej linii każde.
 const SHORT_EVENT_MIN = 75
+// Telefon: wysokości linii w okienku (px, jak w extras.css) - ile się mieści.
+const COMPACT_LINE = 13.5 // nazwa, rodzaj (0.7rem × 1.2)
+const COMPACT_TIME_LINE = 11.5 // godziny drobnym drukiem
+const COMPACT_CHROME = 8 // ramka i odstępy w pionie
 
 interface Props {
   days: Date[]
@@ -22,6 +26,16 @@ interface Props {
   highlightIds?: Set<string> // zajęcia do wyróżnienia (np. nowe grupy)
   // Telefon: wąskie kolumny - skrót nazwy i sala, krótkie nagłówki dni, ciaśniejsza skala godzin.
   compact?: boolean
+}
+
+// Co zmieści się w okienku na telefonie: nazwa zawsze, potem godziny, potem rodzaj (krótkie zajęcia -
+// bez rodzaju, jest jeszcze kolor), a nazwa dostaje tyle linii, ile zostało (najwyżej 3).
+function compactFit(heightPx: number): { time: boolean; type: boolean; titleLines: number } {
+  const room = heightPx - COMPACT_CHROME
+  const time = room >= COMPACT_LINE + COMPACT_TIME_LINE
+  const type = room >= 2 * COMPACT_LINE + COMPACT_TIME_LINE
+  const left = room - (time ? COMPACT_TIME_LINE : 0) - (type ? COMPACT_LINE : 0)
+  return { time, type, titleLines: Math.max(1, Math.min(3, Math.floor(left / COMPACT_LINE))) }
 }
 
 function minuteOfDay(d: Date): number {
@@ -79,7 +93,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
     // minmax(0, 1fr): kolumny zawsze równe - długi tekst w nagłówku nie poszerza swojego dnia.
     <div
       className={`week-grid${compact ? ' is-compact' : ''}`}
-      style={{ gridTemplateColumns: `${compact ? '1.6rem' : '3rem'} repeat(${days.length}, minmax(0, 1fr))` }}
+      style={{ gridTemplateColumns: `${compact ? 'var(--grid-hours)' : '3rem'} repeat(${days.length}, minmax(0, 1fr))` }}
     >
       <div />
       {days.map((day) => {
@@ -132,6 +146,8 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                 building,
               ].filter(Boolean)
               const durationMin = minuteOfDay(m.end) - minuteOfDay(m.start)
+              const height = Math.max(durationMin, 20) * px
+              const fit = compactFit(height)
               const classes = ['grid-event', `type-${typeSlug(m.type)}`]
               if (durationMin < SHORT_EVENT_MIN) classes.push('is-short')
               if (m.end <= now) classes.push('is-past')
@@ -162,20 +178,23 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                   style={{
                     '--i': i,
                     top: (minuteOfDay(m.start) - firstMin) * px,
-                    height: Math.max(durationMin, 20) * px,
+                    height,
                     left: `${(lane / laneCount) * 100}%`,
                     width: `${100 / laneCount}%`,
                   } as CSSProperties}
                 >
-                  <span className="grid-event-title">{shortName(m.courseName, compact)}</span>
+                  <span className="grid-event-title" style={compact ? { WebkitLineClamp: fit.titleLines } : undefined}>
+                    {shortName(m.courseName, compact)}
+                  </span>
                   {compact ? (
                     // Telefon: rodzaj i godziny drobnym drukiem (sala - po stuknięciu, na stronie przedmiotu).
                     <>
-                      <span className="grid-event-meta">{typeShort(m.type)}</span>
-                      <span className="grid-event-time">
-                        {formatTime(m.start)}–<wbr />
-                        {formatTime(m.end)}
-                      </span>
+                      {fit.type && <span className="grid-event-meta">{typeShort(m.type)}</span>}
+                      {fit.time && (
+                        <span className="grid-event-time">
+                          {formatTime(m.start)}–{formatTime(m.end)}
+                        </span>
+                      )}
                     </>
                   ) : (
                     <span className="grid-event-meta">
