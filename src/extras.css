@@ -4030,6 +4030,52 @@ label.setting-row {
   font-size: 0.8rem;
 }
 
+/* ---------- Usunięte z planu ---------- */
+
+.course-remove {
+  display: block;
+  margin: 4px 0 8px;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.hide-course-lead,
+.hide-course-note {
+  margin: 0;
+}
+
+.hide-course-note {
+  font-size: 0.85rem;
+}
+
+.hide-course-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hidden-classes {
+  margin-top: 14px;
+}
+
+.hidden-classes ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.hidden-classes li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.hidden-classes li + li {
+  border-top: 1px solid var(--border);
+}
+
 /* ---------- Oceny w programie studiów ---------- */
 
 .program-average {

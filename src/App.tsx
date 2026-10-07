@@ -32,6 +32,7 @@ import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from '.
 import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
+import { isHiddenClass, isHiddenUsosClass, type HiddenClass } from './lib/hiddenClasses'
 import { displayName } from './lib/prefs'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
@@ -295,8 +296,17 @@ function App() {
   }, [])
 
   const extras = extrasApi?.extras ?? EMPTY_EXTRAS
-  // Lektoraty (w USOS: ćwiczenia) jako osobny typ z własnym kolorem.
-  const meetings = useMemo(() => applyEdits(withLanguageClasses(plan.meetings), extras), [plan.meetings, extras])
+  // Zajęcia usunięte z planu (USOS pokazuje coś, czego nie ma) - znikają wszędzie, także z optymalizatora.
+  const hidden = prefs.hiddenClasses
+  const planMeetings = useMemo(
+    () => (hidden.length > 0 ? plan.meetings.filter((m) => !isHiddenUsosClass(hidden, m.courseName, m.type)) : plan.meetings),
+    [plan.meetings, hidden],
+  )
+  // Lektoraty (w USOS: ćwiczenia) jako osobny typ z własnym kolorem. Własne zajęcia usuniętego przedmiotu też znikają.
+  const meetings = useMemo(
+    () => applyEdits(withLanguageClasses(planMeetings), extras).filter((m) => !isHiddenClass(hidden, m.courseName, m.type)),
+    [planMeetings, extras, hidden],
+  )
   // Wspólne okienka: publikacja moich godzin zajęć (gdy włączone w ustawieniach) i znajomi.
   // Kalendarz akademicki (dni wolne, sesja) - etykiety przy dniach.
   const calendarEvents = useAcademicCalendar()
@@ -605,6 +615,7 @@ function App() {
       },
       prefs,
       displayName: (name: string) => displayName(name, prefs),
+      setHiddenClasses: (hiddenClasses: HiddenClass[]) => prefsApi.update({ hiddenClasses }, true),
     }),
     [
       extrasApi,
@@ -626,6 +637,7 @@ function App() {
       deadlinesByDay,
       extras.customMeetings,
       prefs,
+      prefsApi,
     ],
   )
 
@@ -800,7 +812,7 @@ function App() {
               <Suspense fallback={loading()}>
                 {/* Optymalizator tylko dla administratora i osób, którym go przyznał - inni nie wejdą nawet z historii. */}
                 {page?.kind === 'optimizer' && canOptimize ? (
-                  <OptimizerView planMeetings={plan.meetings} meetings={meetings} now={now} onBack={closePage} />
+                  <OptimizerView planMeetings={planMeetings} meetings={meetings} now={now} onBack={closePage} />
                 ) : page?.kind === 'program' ? (
                   <ProgramView meetings={meetings} now={now} focusCourse={page.course} onBack={closePage} />
                 ) : page?.kind === 'help' ? (

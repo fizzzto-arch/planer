@@ -28,6 +28,7 @@ import { USOSWEB_PERSON_URL, isPersonId, parsePersonPage } from '../src/lib/usos
 import { translate, type Language } from '../src/lib/i18n.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
+import { isHiddenUsosClass, parseHiddenClasses } from '../src/lib/hiddenClasses.ts'
 
 // Język powiadomień: z ustawień odbiorcy (brak = polski, jak przed wersją angielską).
 function userLanguage(prefs: DocumentData): Language {
@@ -279,6 +280,11 @@ async function planNotices(
   const wantFirst = prefs.beforeFirstClass === true
   if (!wantChanges && !wantMorning && !wantFirst) return []
 
+  // Zajęcia usunięte przez użytkownika z planu - bez powiadomień o nich (zapamiętany plan zostaje pełny,
+  // żeby po przywróceniu nie wyglądały na nowe).
+  const hidden = parseHiddenClasses(prefs.hiddenClasses)
+  const visible = (list: WatchedMeeting[]) => list.filter((m) => !isHiddenUsosClass(hidden, m.course, m.type))
+
   const ref = db.doc(`planWatch/${uid}`)
   const watch = (await ref.get()).data() as { plan?: WatchedMeeting[]; until?: number; checkedAt?: number } | undefined
   let plan = watch?.plan ?? null
@@ -295,7 +301,7 @@ async function planNotices(
         const broken = plan !== null && watch?.until !== undefined && looksBroken(plan, next, now, watch.until)
         if (!broken) {
           if (plan && watch?.until && wantChanges) {
-            const changes = diffPlans(plan, next, now, watch.until)
+            const changes = diffPlans(visible(plan), visible(next), now, watch.until)
             if (changes.length > 0) notices.push({ ...changesText(changes, label, lang), tag: `plan-${now.getTime()}`, kind: 'plan' })
           }
           plan = next
@@ -308,7 +314,7 @@ async function planNotices(
   }
   if (!plan) return notices
 
-  const today = classesOn(plan, now)
+  const today = classesOn(visible(plan), now)
   if (today.length === 0) return notices
   const dateKey = now.toDateString().replace(/\s+/g, '-')
   const last = today.reduce((a, b) => (b.end > a.end ? b : a))

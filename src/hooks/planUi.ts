@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { CustomMeeting, Deadline } from '../lib/extras'
 import type { PlanMeeting } from '../lib/edits'
+import type { HiddenClass } from '../lib/hiddenClasses'
 import type { Prefs } from '../lib/prefs'
 import type { Cloud } from '../lib/cloudTypes'
 import type { CalendarEvent } from '../lib/academicCalendar'
@@ -44,6 +45,7 @@ export interface PlanUi {
   deadlinesFor: (meeting: PlanMeeting) => Deadline[] // terminy przypadające na te zajęcia
   prefs: Prefs
   displayName: (courseName: string) => string // skrót nazwy przedmiotu, jeśli ustawiony
+  setHiddenClasses: (hidden: HiddenClass[]) => void // zajęcia usunięte z planu (prefs.hiddenClasses)
 }
 
 export const PlanUiContext = createContext<PlanUi | null>(null)

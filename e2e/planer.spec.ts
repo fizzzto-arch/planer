@@ -346,6 +346,41 @@ test('oceny: średnia w programie studiów', async ({ page }) => {
   await expect(fourth.getByRole('radiogroup')).toHaveCount(0)
 })
 
+test('usuwanie z planu: jeden rodzaj zajęć albo cały przedmiot, przywracanie', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  const row = (name: string) => page.locator('.course-row', { hasText: name })
+
+  // Sam wykład z Analizy - ćwiczenia zostają.
+  await row('Analiza matematyczna').click()
+  await page.getByRole('button', { name: 'Usuń z planu…' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Usuń z planu' })
+  await dialog.getByRole('radio', { name: 'Tylko: Wykład' }).check()
+  await dialog.getByRole('button', { name: 'Usuń', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole('heading', { name: 'Analiza matematyczna' })).toBeVisible()
+  await expect(page.locator('.course-header')).not.toContainText('Wykład')
+
+  // Fizyka ma jeden rodzaj zajęć - bez wyboru, znika cały przedmiot i wracamy do listy.
+  await page.goBack()
+  await row('Fizyka').click()
+  await page.getByRole('button', { name: 'Usuń z planu…' }).click()
+  await expect(dialog.getByRole('radio')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Usuń', exact: true }).click()
+  await expect(row('Programowanie')).toBeVisible()
+  await expect(row('Fizyka')).toHaveCount(0)
+
+  // Po przeładowaniu dalej usunięte; przywrócenie z listy na dole.
+  await page.reload()
+  await tab(page, 'Przedmioty').click()
+  await expect(row('Fizyka')).toHaveCount(0)
+  const removed = page.locator('.hidden-classes')
+  await removed.getByText('Usunięte z planu (2)').click()
+  await expect(removed.getByText('Analiza matematyczna')).toBeVisible()
+  await removed.locator('li', { hasText: 'Fizyka' }).getByRole('button', { name: 'Przywróć' }).click()
+  await expect(row('Fizyka')).toBeVisible()
+  await expect(removed.getByText('Usunięte z planu (1)')).toBeVisible()
+})
+
 test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await expect(page.getByText('Nadchodzące terminy')).toBeVisible()

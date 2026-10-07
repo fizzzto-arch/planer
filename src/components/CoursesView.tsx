@@ -1,5 +1,6 @@
-import { t } from '../lib/i18n'
+import { locale, t } from '../lib/i18n'
 import { useMemo, useState, type CSSProperties } from 'react'
+import { withoutHidden } from '../lib/hiddenClasses'
 import { usePlanUi } from '../hooks/planUi'
 import { formatTypes, summarizeCourses } from '../lib/courses'
 import { daysBetween, formatShortDay, formatTime, parseDateKey } from '../lib/dates'
@@ -7,7 +8,7 @@ import { upcomingDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
 import { GENERAL_NOTE, courseKey, type DeadlineKind } from '../lib/extras'
 import { plural } from '../lib/plural'
-import { typeSlug } from '../lib/usos'
+import { typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { NoteField } from './NoteField'
 import { assessmentLine } from '../lib/assessment'
@@ -32,7 +33,8 @@ interface Props {
 }
 
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, openCourse, openOptimizer, openProgram, isAdmin, canOptimize, editDeadline, displayName } = usePlanUi()
+  const { extras, openCourse, openOptimizer, openProgram, isAdmin, canOptimize, editDeadline, displayName, prefs, setHiddenClasses } =
+    usePlanUi()
   // Program studiów (na razie tylko Inżynieria Biomedyczna) - gdy przedmioty z planu do niego pasują;
   // z niego też zaliczenie przedmiotów.
   const assessments = useMemo(() => programAssessments(meetings, now), [meetings, now])
@@ -189,6 +191,26 @@ export function CoursesView({ meetings, now }: Props) {
           )
         })}
       </ul>
+
+      {/* Usunięte z planu - do przywrócenia (np. gdy jednak się odbywają). */}
+      {prefs.hiddenClasses.length > 0 && (
+        <details className="collapsible hidden-classes">
+          <summary>{t('Usunięte z planu ({n})', { n: prefs.hiddenClasses.length })}</summary>
+          <ul>
+            {prefs.hiddenClasses.map((h) => (
+              <li key={`${h.course}|${h.type ?? ''}`}>
+                <span>
+                  {displayName(h.course)}
+                  <span className="muted"> · {h.type ? typeLabel(h.type).toLocaleLowerCase(locale()) : t('cały przedmiot')}</span>
+                </span>
+                <button type="button" className="link-button" onClick={() => setHiddenClasses(withoutHidden(prefs.hiddenClasses, h))}>
+                  {t('Przywróć')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   )
 }

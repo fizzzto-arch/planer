@@ -162,6 +162,9 @@ export const EN: Record<string, string> = {
   'Przedmiot w USOSweb ↗': 'Course in USOSweb ↗',
 
   // src/components/CoursesView.tsx
+  'Usunięte z planu ({n})': 'Removed from timetable ({n})',
+  'cały przedmiot': 'whole course',
+  'Przywróć': 'Restore',
   'Wszystkie': 'All',
   'Kolokwia': 'Tests',
   'Egzaminy': 'Exams',
@@ -185,6 +188,7 @@ export const EN: Record<string, string> = {
   'termin|terminy|terminów': 'deadline|deadlines',
 
   // src/components/CourseView.tsx
+  'Usuń z planu…': 'Remove from timetable…',
   'Wróć': 'Back',
   'Następne zajęcia:': 'Next class:',
   's. {room}': 'room {room}',
@@ -483,6 +487,14 @@ export const EN: Record<string, string> = {
   'Skopiowano ✓': 'Copied ✓',
   'Kopiuj temat': 'Copy subject',
   'Kopiuj treść': 'Copy text',
+
+  // src/components/HideCourseDialog.tsx
+  'Usuń z planu': 'Remove from timetable',
+  'Usunięte zajęcia znikną z planu i nie wrócą po odświeżeniu z USOS.': 'Removed classes disappear from your timetable and won\'t come back when it refreshes from USOS.',
+  'Co usunąć': 'What to remove',
+  'Cały przedmiot „{name}”': 'The whole course “{name}”',
+  'Tylko: {type}': 'Only: {type}',
+  'Notatki, terminy i punkty zostają. Przywrócisz zajęcia na dole zakładki Przedmioty.': 'Notes, deadlines and points stay. You can restore the classes at the bottom of the Courses tab.',
 
   // src/components/HelpView.tsx
   'Planer to nieoficjalny, darmowy organizer planu zajęć dla studentów PW i WAT (Wydział Cybernetyki). Poniżej wszystko o tym, co dzieje się z Twoimi danymi, i odpowiedzi na najczęstsze pytania.': 'Planer is an unofficial, free timetable organizer for students of the Warsaw University of Technology (PW) and WAT (Faculty of Cybernetics). Below is everything about what happens to your data, plus answers to common questions.',

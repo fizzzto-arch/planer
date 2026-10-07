@@ -1,11 +1,11 @@
-import { t } from '../lib/i18n'
+import { locale, t } from '../lib/i18n'
 import { usePlanUi } from '../hooks/planUi'
 import { formatTypes, summarizeCourses } from '../lib/courses'
 import { daysBetween, formatDay, formatTime, isSameDay, parseDateKey } from '../lib/dates'
 import { sortDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
 import { courseKey } from '../lib/extras'
-import { typeSlug } from '../lib/usos'
+import { typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { MaterialsSection } from './MaterialsSection'
 import { MeetingCard } from './MeetingCard'
@@ -15,7 +15,8 @@ import { CourseInfoSection } from './CourseInfoSection'
 import { AssessmentSection } from './AssessmentSection'
 import { ScoreSection } from './ScoreSection'
 import { programAssessments } from '../lib/courseAssessment'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { HideCourseDialog } from './HideCourseDialog'
 
 interface Props {
   courseName: string
@@ -60,6 +61,8 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
   const note = extras?.extras.courses.get(courseKey(courseName))?.note ?? ''
   // Zaliczenie z programu studiów (na razie Inżynieria Biomedyczna) - gdy plan do niego pasuje.
   const assessment = useMemo(() => programAssessments(meetings, now)?.(courseName) ?? null, [meetings, now, courseName])
+  const types = [...new Set(courseMeetings.map((m) => m.type))].sort((a, b) => typeLabel(a).localeCompare(typeLabel(b), locale()))
+  const [hiding, setHiding] = useState(false)
 
   return (
     <section className={`course-page type-${typeSlug(summary?.mainType ?? 'INNE')}`}>
@@ -139,6 +142,23 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
                 onSave={(text) => extras.saveCourseNote(courseName, text)}
               />
             </div>
+          )}
+
+          {/* USOS czasem pokazuje zajęcia, których nie ma - można je usunąć (i przywrócić w zakładce Przedmioty). */}
+          {types.length > 0 && (
+            <button type="button" className="link-button course-remove" onClick={() => setHiding(true)}>
+              {t('Usuń z planu…')}
+            </button>
+          )}
+          {hiding && (
+            <HideCourseDialog
+              courseName={courseName}
+              types={types}
+              onClose={() => setHiding(false)}
+              onHidden={(whole) => {
+                if (whole) onBack()
+              }}
+            />
           )}
         </div>
 

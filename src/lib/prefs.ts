@@ -1,4 +1,5 @@
 // Ustawienia użytkownika. Zapisywane w przeglądarce, a po zalogowaniu także na koncie.
+import { parseHiddenClasses, type HiddenClass } from './hiddenClasses'
 import { LANGUAGES, detectLanguage, type Language } from './i18n'
 import { DEFAULT_REMINDERS, parseReminderKinds, type ReminderKind } from './reminders'
 
@@ -27,6 +28,7 @@ export interface Prefs {
   beforeFirstClass: boolean // przypomnienie 30 min przed pierwszymi zajęciami dnia
   shareBusy: boolean // wspólne okienka: udostępniaj znajomym same godziny zajęć (bez nazw i sal)
   shareName: string // jak widzą mnie znajomi (puste = początek e-maila)
+  hiddenClasses: HiddenClass[] // zajęcia usunięte z planu (czyta je też skrypt wysyłający)
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -49,6 +51,7 @@ export const DEFAULT_PREFS: Prefs = {
   beforeFirstClass: false,
   shareBusy: false,
   shareName: '',
+  hiddenClasses: [],
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -100,6 +103,7 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     beforeFirstClass: bool(raw.beforeFirstClass, DEFAULT_PREFS.beforeFirstClass),
     shareBusy: bool(raw.shareBusy, DEFAULT_PREFS.shareBusy),
     shareName: typeof raw.shareName === 'string' ? raw.shareName.slice(0, 40) : DEFAULT_PREFS.shareName,
+    hiddenClasses: parseHiddenClasses(raw.hiddenClasses),
   }
 }
 

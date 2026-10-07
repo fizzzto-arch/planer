@@ -39,14 +39,16 @@ export function useSyncedValue<T>({ account, loadLocal, saveLocal, saveAccount, 
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
+  // immediate - jednorazowa zmiana (np. usunięcie przedmiotu z planu), bez czekania na koniec pisania.
   const set = useCallback(
-    (next: T) => {
+    (next: T, immediate = false) => {
       setLocal(next)
       saveLocal(next)
       if (!saveAccount) return
       setPending(next)
       clearTimeout(timer.current)
-      timer.current = setTimeout(() => saveAccount(next), delayMs)
+      if (immediate) saveAccount(next)
+      else timer.current = setTimeout(() => saveAccount(next), delayMs)
     },
     [saveLocal, saveAccount, delayMs],
   )

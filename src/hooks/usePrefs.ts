@@ -33,7 +33,10 @@ export function usePrefs(extras: ExtrasApi | null) {
     applyPrefsToDocument(prefs, systemDark, isPhone)
   }, [prefs, systemDark, isPhone])
 
-  const update = useCallback((patch: Partial<Prefs>) => setPrefs({ ...prefs, ...patch }), [prefs, setPrefs])
+  const update = useCallback(
+    (patch: Partial<Prefs>, immediate = false) => setPrefs({ ...prefs, ...patch }, immediate),
+    [prefs, setPrefs],
+  )
 
   return { prefs, update, isPhone }
 }
