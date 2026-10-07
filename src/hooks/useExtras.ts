@@ -177,6 +177,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
         endTime: edit.endTime,
         weekday: edit.weekday ?? null,
         fromWeekday: edit.fromWeekday ?? null,
+        dates: edit.dates ?? null,
       }
       write((c, u) => (isEmptySeriesEdit(data) ? c.deleteItem(u, 'seriesEdits', id) : c.setItem(u, 'seriesEdits', id, data)))
     },
@@ -187,7 +188,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     (meeting: Omit<CustomMeeting, 'id'> & { id?: string }) => {
       write((c, u) => {
         const { id, ...data } = meeting
-        return c.setItem(u, 'customMeetings', id || c.newId(), data)
+        return c.setItem(u, 'customMeetings', id || c.newId(), clean(data))
       })
     },
     [write],

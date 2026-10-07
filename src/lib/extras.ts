@@ -1,5 +1,6 @@
 // Własne dodatki użytkownika do planu, przechowywane na koncie (Firestore: users/{uid}/...).
 import { msg, tk } from './i18n'
+import { parseClassDates, parseDates, parseWeeks, type ClassDates, type WeekParity } from './classDates'
 import { isTimeKey, parseDateKey } from './dates'
 import type { OptimizerSettings } from './optimizer'
 import type { Prefs } from './prefs'
@@ -84,22 +85,26 @@ export interface SeriesEdit {
   weekday?: number | null // nowy dzień tygodnia (1 = poniedziałek), w tym samym tygodniu
   // Których zajęć grupy dotyczy zmiana (dzień tygodnia w USOS). Brak - wszystkich (starsze zmiany).
   fromWeekday?: number | null
+  // Kiedy zajęcia faktycznie są (np. laboratorium tylko w tyg. 10-14); pozostałe terminy znikają z planu.
+  dates?: ClassDates | null
 }
 
 // Zmiana grupy bez żadnej zmiany (wszystko jak w USOS) - do usunięcia.
 export function isEmptySeriesEdit(edit: Omit<SeriesEdit, 'id'>): boolean {
-  return !edit.room && !edit.startTime && !edit.endTime && !edit.weekday
+  return !edit.room && !edit.startTime && !edit.endTime && !edit.weekday && !edit.dates
 }
 
 export interface CustomMeeting {
   id: string
   courseName: string
   type: string
-  date: string
+  date: string // pierwsze zajęcia (przy wybranych dniach - najwcześniejszy)
   startTime: string
   endTime: string
   room: string | null
-  repeatWeeklyUntil: string | null
+  repeatWeeklyUntil: string | null // co tydzień od date do tego dnia (włącznie)
+  weeks?: WeekParity // przy powtarzaniu: wszystkie, nieparzyste albo parzyste tygodnie semestru
+  dates?: string[] | null // wybrane dni zamiast powtarzania
 }
 
 export interface Extras {
@@ -227,6 +232,7 @@ export function parseSeriesEdit(id: string, raw: Raw): SeriesEdit {
     endTime: optTime(raw.endTime),
     weekday: optWeekday(raw.weekday),
     fromWeekday: optWeekday(raw.fromWeekday),
+    dates: parseClassDates(raw.dates),
   }
 }
 
@@ -245,5 +251,7 @@ export function parseCustomMeeting(id: string, raw: Raw): CustomMeeting | null {
     endTime,
     room: optStr(raw.room),
     repeatWeeklyUntil: optDate(raw.repeatWeeklyUntil),
+    weeks: parseWeeks(raw.weeks),
+    dates: parseDates(raw.dates).length > 0 ? parseDates(raw.dates) : null,
   }
 }

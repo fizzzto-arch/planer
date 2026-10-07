@@ -4087,6 +4087,73 @@ label.setting-row {
   font-size: 0.8rem;
 }
 
+/* ---------- Kiedy zajęcia się odbywają (grupa z USOS, własne zajęcia) ---------- */
+
+.class-dates {
+  gap: 8px;
+}
+
+/* Trzy warianty w jednym rzędzie także na wąskim telefonie (zwykle .segmented robi tam siatkę 2×2). */
+.segmented.class-dates-modes {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.class-dates-modes .segment {
+  padding: 7px 6px;
+  font-size: 0.8rem;
+}
+
+.class-dates-parity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.class-dates-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.class-dates-list li {
+  padding: 5px 0;
+}
+
+.class-dates-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.class-dates-add .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.class-dates-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.class-dates-chips li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  font-size: 0.85rem;
+}
+
 /* ---------- Usunięte z planu ---------- */
 
 .course-remove {

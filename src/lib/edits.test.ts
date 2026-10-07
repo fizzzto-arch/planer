@@ -166,3 +166,57 @@ describe('budowanie zmian z formularza', () => {
     expect(applyEdits(plan, extras({ seriesEdits })).every((m) => m.room === '200')).toBe(true)
   })
 })
+
+describe('kiedy zajęcia naprawdę są (grupa z USOS i własne zajęcia)', () => {
+  // Laboratorium w piątki: 9.10 (tydz. 1, nieparzysty), 16.10 (2), 23.10 (3), 30.10 (4), 6.11 (5).
+  const fridays = [9, 16, 23, 30, 37].map((day, i) => lab(`f${i}`, day))
+  const days = (list: { start: Date }[]) => list.map((m) => m.start.getDate())
+
+  it('grupa z USOS tylko w nieparzyste tygodnie z zakresu', () => {
+    const edits = extras({
+      seriesEdits: new Map([
+        ['543976-102', { id: '543976-102', room: null, startTime: null, endTime: null, fromWeekday: 5, dates: { kind: 'range', from: '2026-10-01', to: '2026-10-31', weeks: 'odd' } }],
+      ]),
+    })
+    expect(days(applyEdits(fridays, edits))).toEqual([9, 23])
+  })
+
+  it('grupa z USOS tylko w wybrane dni; zajęcia z innego dnia tygodnia bez zmian', () => {
+    const monday = lab('pon', 12)
+    const edits = extras({
+      seriesEdits: new Map([
+        ['543976-102', { id: '543976-102', room: null, startTime: null, endTime: null, fromWeekday: 5, dates: { kind: 'dates', dates: ['2026-10-16', '2026-10-30'] } }],
+      ]),
+    })
+    expect(days(applyEdits([...fridays, monday], edits))).toEqual([12, 16, 30])
+  })
+
+  it('własne zajęcia: co tydzień tylko w parzyste tygodnie albo w wybrane dni', () => {
+    const base = { courseName: 'Odrabianie', type: 'LAB', startTime: '08:15', endTime: '10:00', room: null }
+    const even = extras({
+      customMeetings: [{ ...base, id: 'x', date: '2026-10-05', repeatWeeklyUntil: '2026-11-02', weeks: 'even' }],
+    })
+    // Tygodnie liczone z planu z USOS (pierwszy tydzień zajęć = 5.10).
+    expect(days(applyEdits(fridays, even).filter((m) => m.custom))).toEqual([12, 26])
+    const picked = extras({
+      customMeetings: [{ ...base, id: 'y', date: '2026-10-07', repeatWeeklyUntil: null, dates: ['2026-10-07', '2026-10-21'] }],
+    })
+    expect(days(applyEdits(fridays, picked).filter((m) => m.custom))).toEqual([7, 21])
+  })
+})
+
+describe('formularz dat', () => {
+  it('od-do z tygodniami, wybrane dni, błędy', async () => {
+    const { datesFromDraft, draftFromDates, parseClassDates } = await import('./classDates')
+    const draft = draftFromDates(null, { from: '2026-10-01', to: '2026-12-31' })
+    expect(datesFromDraft(draft)).toEqual({ dates: null })
+    expect(datesFromDraft({ ...draft, mode: 'range', even: false })).toEqual({
+      dates: { kind: 'range', from: '2026-10-01', to: '2026-12-31', weeks: 'odd' },
+    })
+    expect(datesFromDraft({ ...draft, mode: 'range', odd: false, even: false })).toEqual({ error: 'parity' })
+    expect(datesFromDraft({ ...draft, mode: 'range', to: '2026-09-01' })).toEqual({ error: 'range' })
+    expect(datesFromDraft({ ...draft, mode: 'dates' })).toEqual({ error: 'empty' })
+    expect(parseClassDates({ kind: 'dates', dates: ['2026-10-16', 'zle', '2026-10-09'] })).toEqual({ kind: 'dates', dates: ['2026-10-09', '2026-10-16'] })
+    expect(parseClassDates({ kind: 'range', from: '2026-10-01' })).toBeNull()
+  })
+})

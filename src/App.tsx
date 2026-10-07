@@ -54,9 +54,11 @@ import type { SearchAction } from './lib/searchIndex'
 import { usePullToSearch } from './hooks/usePullToSearch'
 import { SearchBar, SearchIcon } from './components/SearchBar'
 import type { SearchKeys } from './components/SearchPanel'
-import { applyEdits, customMeetingId, type PlanMeeting } from './lib/edits'
+import { applyEdits, customMeetingId, weekdayOf, type PlanMeeting } from './lib/edits'
+import { weekNumbers } from './lib/classDates'
+import { seriesKey } from './lib/extras'
 import { EMPTY_EXTRAS, notesEnabled, type Deadline } from './lib/extras'
-import { withLanguageClasses } from './lib/usos'
+import { withLanguageClasses, type Meeting } from './lib/usos'
 import { locale, setLanguage, t } from './lib/i18n'
 
 type View = 'today' | 'week' | 'courses' | 'notifications' | 'report' | 'settings'
@@ -319,6 +321,8 @@ function App() {
     () => (hidden.length > 0 ? plan.meetings.filter((m) => !isHiddenUsosClass(hidden, m.courseName, m.type)) : plan.meetings),
     [plan.meetings, hidden],
   )
+  // Numery tygodni semestru (parzyste/nieparzyste) - do wyboru dni zajęć w edytorach.
+  const weekOf = useMemo(() => weekNumbers(planMeetings), [planMeetings])
   // Lektoraty (w USOS: ćwiczenia) jako osobny typ z własnym kolorem. Własne zajęcia usuniętego przedmiotu też znikają.
   const meetings = useMemo(
     () => applyEdits(withLanguageClasses(planMeetings), extras).filter((m) => !isHiddenClass(hidden, m.courseName, m.type)),
@@ -965,13 +969,20 @@ function App() {
           />
         )}
         {editingMeeting && extrasApi && (
-          <MeetingEditor meeting={editingMeeting} extras={extrasApi} onClose={() => setEditingMeeting(null)} />
+          <MeetingEditor
+            meeting={editingMeeting}
+            extras={extrasApi}
+            seriesDates={seriesDates(planMeetings, editingMeeting.original ?? editingMeeting)}
+            weekOf={weekOf}
+            onClose={() => setEditingMeeting(null)}
+          />
         )}
         {customDraft && extrasApi && (
           <CustomMeetingEditor
             draft={customDraft}
             courseNames={courseNames}
             extras={extrasApi}
+            weekOf={weekOf}
             onClose={() => setCustomDraft(null)}
           />
         )}
@@ -987,6 +998,15 @@ function SearchButton({ onClick }: { onClick: () => void }) {
       <SearchIcon />
     </button>
   )
+}
+
+// Terminy grupy z USOS z tego samego dnia tygodnia co dane zajęcia (zmiana całej grupy dotyczy jednego dnia).
+function seriesDates(plan: Meeting[], original: Meeting): string[] {
+  const key = seriesKey(original)
+  if (!key) return []
+  const day = weekdayOf(original.start)
+  const dates = plan.filter((m) => seriesKey(m) === key && weekdayOf(m.start) === day).map((m) => toDateKey(m.start))
+  return [...new Set(dates)].sort()
 }
 
 export default App

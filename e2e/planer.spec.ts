@@ -393,6 +393,55 @@ test('usuwanie z planu: jeden rodzaj zajęć albo cały przedmiot, przywracanie'
   await expect(removed.getByText('Usunięte z planu (1)')).toBeVisible()
 })
 
+test('daty zajęć: grupa z USOS tylko w nieparzyste tygodnie z zakresu, potem przywrócenie', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Grafika komputerowa' }).click()
+  // Wykład w piątki co tydzień; najbliższy 16.10 (tydz. 2).
+  await expect(page.getByText(/Następne zajęcia: Piątek, 16 października/)).toBeVisible()
+  await page.locator('.course-meetings .card').first().locator('summary').click()
+  await page.getByRole('button', { name: 'Zmień', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Zmień zajęcia' })
+  await dialog.getByRole('radio', { name: 'Cała grupa' }).click()
+  await dialog.getByRole('radio', { name: 'Co tydzień od–do' }).click()
+  await dialog.getByLabel('Od dnia').fill('2026-10-19')
+  await dialog.getByLabel('Do dnia (włącznie)').fill('2026-11-15')
+  await dialog.getByRole('checkbox', { name: 'Tygodnie parzyste' }).uncheck()
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+  // Zostają 23.10 (tydz. 3) i 6.11 (tydz. 5).
+  await expect(page.getByText(/Następne zajęcia: Piątek, 23 października/)).toBeVisible()
+  await expect(page.locator('.course-meetings .card')).toHaveCount(2)
+
+  await page.locator('.course-meetings .card').first().locator('summary').click()
+  await page.getByRole('button', { name: 'Zmień', exact: true }).click()
+  await dialog.getByRole('radio', { name: 'Cała grupa' }).click()
+  await expect(dialog.getByRole('radio', { name: 'Co tydzień od–do' })).toHaveAttribute('aria-checked', 'true')
+  await dialog.getByRole('button', { name: 'Przywróć grupę z USOS' }).click()
+  await expect(page.getByText(/Następne zajęcia: Piątek, 16 października/)).toBeVisible()
+})
+
+test('daty zajęć: własne zajęcia w wybrane dni', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  await page.getByRole('button', { name: '+ Dodaj zajęcia' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Dodaj własne zajęcia' })
+  await dialog.getByRole('radio', { name: 'Wybrane dni' }).click()
+  await dialog.getByLabel('Od', { exact: true }).fill('16:15')
+  await dialog.getByLabel('Do', { exact: true }).fill('18:00')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText('Wybierz co najmniej jeden dzień.')
+  for (const day of ['2026-10-21', '2026-11-04']) {
+    await dialog.getByLabel('Dzień zajęć').fill(day)
+    await dialog.getByRole('button', { name: 'Dodaj dzień' }).click()
+  }
+  await expect(dialog.locator('.class-dates-chips li')).toHaveCount(2)
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText('Środa, 21 października')).toBeVisible()
+  await expect(page.getByText('Środa, 4 listopada')).toBeVisible()
+  await expect(page.getByText('Środa, 28 października')).toHaveCount(0)
+})
+
 test('pierwsze kroki: jeden krok naraz, sam się odhacza, Pomiń i Ukryj', async ({ page }, info) => {
   const card = page.locator('.first-steps')
   await expect(card.getByRole('heading', { name: /Pierwsze kroki/ })).toBeVisible()

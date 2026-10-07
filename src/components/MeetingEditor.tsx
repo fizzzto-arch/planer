@@ -7,16 +7,20 @@ import { weekdayName } from '../lib/timetable'
 import { seriesKey } from '../lib/extras'
 import { typeLabel } from '../lib/usos'
 import { Dialog } from './Dialog'
+import { ClassDatesField } from './ClassDatesField'
+import { datesError, datesFromDraft, draftFromDates, type WeekOf } from '../lib/classDates'
 
 interface Props {
   meeting: PlanMeeting // zajęcia z USOS (dla własnych jest CustomMeetingEditor)
   extras: ExtrasApi
+  seriesDates: string[] // wszystkie terminy tej grupy w USOS (z tego dnia tygodnia) - do wyboru, kiedy naprawdę są
+  weekOf: WeekOf
   onClose: () => void
 }
 
 type Scope = 'single' | 'series'
 
-export function MeetingEditor({ meeting, extras, onClose }: Props) {
+export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }: Props) {
   const original = meeting.original ?? meeting
   const key = seriesKey(original)
   const [scope, setScope] = useState<Scope>('single')
@@ -27,6 +31,13 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
   const [cancelled, setCancelled] = useState(meeting.cancelled)
   const [weekday, setWeekday] = useState(weekdayOf(meeting.start)) // tylko dla całej grupy
   const [error, setError] = useState<string | null>(null)
+  // Cała grupa: kiedy zajęcia faktycznie są (np. laboratorium tylko w tyg. 10-14) - pozostałe znikają z planu.
+  const [dates, setDates] = useState(() =>
+    draftFromDates(key ? (extras.extras.seriesEdits.get(key)?.dates ?? null) : null, {
+      from: seriesDates[0] ?? toDateKey(original.start),
+      to: seriesDates.at(-1) ?? toDateKey(original.start),
+    }),
+  )
 
   const hasSingle = !!extras.extras.meetingEdits.get(meeting.id)?.override
   const hasSeries = key ? extras.extras.seriesEdits.has(key) : false
@@ -49,7 +60,12 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
       return
     }
     if (scope === 'series' && key) {
-      extras.saveSeriesEdit(buildSeriesEdit(key, original, { startTime, endTime, room, weekday }))
+      const held = datesFromDraft(dates)
+      if ('error' in held) {
+        setError(datesError(held.error))
+        return
+      }
+      extras.saveSeriesEdit({ ...buildSeriesEdit(key, original, { startTime, endTime, room, weekday }), dates: held.dates })
     } else {
       const base = seriesBase(original, extras.extras)
       extras.saveMeetingEdit(meeting.id, {
@@ -92,7 +108,7 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
         <p className="hint">
           {scope === 'single'
             ? t('Zmiana tylko zajęć z dnia {day}.', { day: midSentence(formatDay(meeting.start)) })
-            : t('Stała zmiana co tydzień: dzień, godziny albo sala tych zajęć grupy (w USOS: {day}). Np. wykład przeniesiony na stałe z piątku na czwartek.', {
+            : t('Stała zmiana tych zajęć grupy (w USOS: {day}): dzień, godziny, sala albo w które dni naprawdę się odbywają - np. laboratorium tylko w tygodniach 10–14.', {
                 day: midSentence(weekdayName(weekdayOf(original.start))),
               })}
         </p>
@@ -138,6 +154,10 @@ export function MeetingEditor({ meeting, extras, onClose }: Props) {
           <span className="field-label">{t('Sala')}</span>
           <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
         </label>
+
+        {scope === 'series' && (
+          <ClassDatesField draft={dates} onChange={setDates} allLabel={t('Wszystkie z USOS')} choices={seriesDates} weekOf={weekOf} />
+        )}
 
         {scope === 'single' && (
           <label className="check-field">

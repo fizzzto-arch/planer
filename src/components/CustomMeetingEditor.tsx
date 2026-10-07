@@ -5,17 +5,21 @@ import type { ExtrasApi } from '../hooks/useExtras'
 import { parseDateKey } from '../lib/dates'
 import { MEETING_TYPES, typeLabel } from '../lib/usos'
 import { Dialog } from './Dialog'
+import { ClassDatesField } from './ClassDatesField'
+import { datesError, datesFromDraft, draftFromDates, type WeekOf } from '../lib/classDates'
+import { customMeetingDays } from '../lib/edits'
 
 interface Props {
   draft: CustomMeetingDraft
   courseNames: string[]
   extras: ExtrasApi
+  weekOf: WeekOf
   onClose: () => void
 }
 
 const NEW_COURSE = '__nowy__'
 
-export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Props) {
+export function CustomMeetingEditor({ draft, courseNames, extras, weekOf, onClose }: Props) {
   const isNew = !draft.id
   const knownCourse = draft.courseName && courseNames.includes(draft.courseName)
   const [courseChoice, setCourseChoice] = useState(
@@ -27,29 +31,45 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
   const [startTime, setStartTime] = useState(draft.startTime ?? '')
   const [endTime, setEndTime] = useState(draft.endTime ?? '')
   const [room, setRoom] = useState(draft.room ?? '')
-  const [repeat, setRepeat] = useState(!!draft.repeatWeeklyUntil)
-  const [until, setUntil] = useState(draft.repeatWeeklyUntil ?? '')
+  // Jednorazowo, co tydzień od-do (też tylko parzyste/nieparzyste tygodnie) albo wybrane dni.
+  const [dates, setDates] = useState(() =>
+    draftFromDates(
+      draft.dates?.length
+        ? { kind: 'dates', dates: draft.dates }
+        : draft.repeatWeeklyUntil && draft.date
+          ? { kind: 'range', from: draft.date, to: draft.repeatWeeklyUntil, weeks: draft.weeks ?? 'all' }
+          : null,
+      { from: draft.date ?? '', to: '' },
+    ),
+  )
   const [error, setError] = useState<string | null>(null)
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const courseName = (courseChoice === NEW_COURSE ? newCourse : courseChoice).trim()
     if (!courseName) return setError(t('Podaj nazwę przedmiotu.'))
-    if (!parseDateKey(date)) return setError(t('Wybierz datę.'))
+    if (dates.mode === 'all' && !parseDateKey(date)) return setError(t('Wybierz datę.'))
     if (!startTime || !endTime || endTime <= startTime) return setError(t('Podaj godziny: koniec musi być po początku.'))
-    if (repeat && (!parseDateKey(until) || until < date)) {
-      return setError(t('Data końca powtarzania musi być po pierwszych zajęciach.'))
-    }
-    extras.saveCustomMeeting({
+    const held = datesFromDraft(dates)
+    if ('error' in held) return setError(datesError(held.error))
+    const spec = held.dates
+    const meeting = {
       id: draft.id,
       courseName,
       type,
-      date,
+      date: spec?.kind === 'range' ? spec.from : spec?.kind === 'dates' ? spec.dates[0] : date,
       startTime,
       endTime,
       room: room.trim() || null,
-      repeatWeeklyUntil: repeat ? until : null,
-    })
+      repeatWeeklyUntil: spec?.kind === 'range' ? spec.to : null,
+      weeks: spec?.kind === 'range' ? spec.weeks : ('all' as const),
+      dates: spec?.kind === 'dates' ? spec.dates : null,
+    }
+    // Np. tylko parzyste tygodnie w zakresie, w którym ich nie ma.
+    if (customMeetingDays({ ...meeting, id: draft.id ?? '' }, weekOf).length === 0) {
+      return setError(t('W tym zakresie nie ma żadnego takiego tygodnia.'))
+    }
+    extras.saveCustomMeeting(meeting)
     onClose()
   }
 
@@ -100,10 +120,14 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
           </label>
         </div>
 
-        <label className="field">
-          <span className="field-label">{t('Data')}</span>
-          <input className="text-input" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <ClassDatesField draft={dates} onChange={setDates} allLabel={t('Jednorazowo')} weekOf={weekOf} />
+
+        {dates.mode === 'all' && (
+          <label className="field">
+            <span className="field-label">{t('Data')}</span>
+            <input className="text-input" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
+          </label>
+        )}
 
         <div className="field-row">
           <label className="field">
@@ -115,17 +139,6 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
             <input className="text-input" type="time" value={endTime} required onChange={(e) => setEndTime(e.target.value)} />
           </label>
         </div>
-
-        <label className="check-field">
-          <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
-          {t('Powtarzaj co tydzień')}
-        </label>
-        {repeat && (
-          <label className="field">
-            <span className="field-label">{t('Do kiedy (włącznie)')}</span>
-            <input className="text-input" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
-          </label>
-        )}
 
         {error && (
           <p className="error" role="alert">
@@ -139,7 +152,7 @@ export function CustomMeetingEditor({ draft, courseNames, extras, onClose }: Pro
               type="button"
               className="button danger"
               onClick={() => {
-                const question = draft.repeatWeeklyUntil
+                const question = draft.repeatWeeklyUntil || draft.dates?.length
                   ? t('Usunąć te zajęcia ze wszystkich tygodni?')
                   : t('Usunąć te zajęcia?')
                 if (window.confirm(question)) {
