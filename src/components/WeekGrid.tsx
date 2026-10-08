@@ -13,10 +13,12 @@ const DEFAULT_FIRST_HOUR = 8
 const DEFAULT_LAST_HOUR = 16
 // Krótsze zajęcia pokazują nazwę i szczegóły w jednej linii każde.
 const SHORT_EVENT_MIN = 75
-// Telefon: wysokości linii w okienku (px, jak w extras.css) - ile się mieści.
-const COMPACT_LINE = 13.5 // nazwa, rodzaj (0.7rem × 1.2)
-const COMPACT_TIME_LINE = 11.5 // godziny drobnym drukiem
-const COMPACT_CHROME = 8 // ramka i odstępy w pionie
+// Telefon: wysokości linii w okienku (px, jak w extras.css) - ile się mieści. Najkrótsze zajęcia
+// (45 min) mieszczą wszystkie trzy linie.
+const COMPACT_TITLE_LINE = 13.5 // nazwa (0.7rem × 1.2 - z miejscem na ogonki liter: g, y, ę)
+const COMPACT_TYPE_LINE = 11 // rodzaj (0.62rem × 1.1)
+const COMPACT_TIME_LINE = 10.6 // godziny drobnym drukiem (0.6rem × 1.1)
+const COMPACT_CHROME = 2 // ramka (bez odstępów w pionie - napisy i tak są na środku)
 
 interface Props {
   days: Date[]
@@ -28,14 +30,14 @@ interface Props {
   compact?: boolean
 }
 
-// Co zmieści się w okienku na telefonie: nazwa zawsze, potem godziny, potem rodzaj (krótkie zajęcia -
-// bez rodzaju, jest jeszcze kolor), a nazwa dostaje tyle linii, ile zostało (najwyżej 3).
+// Co zmieści się w okienku na telefonie: nazwa zawsze, potem godziny, potem rodzaj (gdyby zajęcia były
+// krótsze niż 45 min - bez rodzaju, jest jeszcze kolor), a nazwa dostaje tyle linii, ile zostało (najwyżej 3).
 function compactFit(heightPx: number): { time: boolean; type: boolean; titleLines: number } {
   const room = heightPx - COMPACT_CHROME
-  const time = room >= COMPACT_LINE + COMPACT_TIME_LINE
-  const type = room >= 2 * COMPACT_LINE + COMPACT_TIME_LINE
-  const left = room - (time ? COMPACT_TIME_LINE : 0) - (type ? COMPACT_LINE : 0)
-  return { time, type, titleLines: Math.max(1, Math.min(3, Math.floor(left / COMPACT_LINE))) }
+  const time = room >= COMPACT_TITLE_LINE + COMPACT_TIME_LINE
+  const type = room >= COMPACT_TITLE_LINE + COMPACT_TYPE_LINE + COMPACT_TIME_LINE
+  const left = room - (time ? COMPACT_TIME_LINE : 0) - (type ? COMPACT_TYPE_LINE : 0)
+  return { time, type, titleLines: Math.max(1, Math.min(3, Math.floor(left / COMPACT_TITLE_LINE))) }
 }
 
 function minuteOfDay(d: Date): number {
@@ -183,23 +185,27 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                     width: `${100 / laneCount}%`,
                   } as CSSProperties}
                 >
-                  <span className="grid-event-title" style={compact ? { WebkitLineClamp: fit.titleLines } : undefined}>
-                    {shortName(m.courseName, compact)}
-                  </span>
                   {compact ? (
-                    // Telefon: rodzaj i godziny drobnym drukiem (sala - po stuknięciu, na stronie przedmiotu).
-                    <>
+                    // Telefon: skrót nazwy, rodzaj i godziny drobnym drukiem, razem na środku okienka
+                    // (sala - po stuknięciu, na stronie przedmiotu).
+                    <span className="grid-event-body">
+                      <span className="grid-event-title" style={{ WebkitLineClamp: fit.titleLines }}>
+                        {shortName(m.courseName, true)}
+                      </span>
                       {fit.type && <span className="grid-event-meta">{typeShort(m.type)}</span>}
                       {fit.time && (
                         <span className="grid-event-time">
                           {formatTime(m.start)}–{formatTime(m.end)}
                         </span>
                       )}
-                    </>
-                  ) : (
-                    <span className="grid-event-meta">
-                      {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
                     </span>
+                  ) : (
+                    <>
+                      <span className="grid-event-title">{shortName(m.courseName)}</span>
+                      <span className="grid-event-meta">
+                        {formatTime(m.start)}–{formatTime(m.end)} · {details.join(' · ')}
+                      </span>
+                    </>
                   )}
                   {(deadlines.length > 0 || note || m.edited) && (
                     <span className="grid-event-flags" aria-hidden="true">

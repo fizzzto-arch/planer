@@ -3282,13 +3282,19 @@ label.setting-row {
 /* Symetrycznie jak nagłówki dni: treść na środku, równa ramka ze wszystkich stron. */
 .week-grid.is-compact .grid-event {
   container-type: inline-size; /* godziny dopasowują się do szerokości okienka */
-  align-items: center;
-  padding: 3px 2px;
+  padding: 0 2px;
   border: 1px solid color-mix(in srgb, var(--c) 70%, var(--surface));
   border-radius: 5px;
   font-size: 0.7rem;
-  line-height: 1.2;
+  line-height: 1.1; /* wysokości linii liczy też WeekGrid (compactFit) */
   text-align: center;
+}
+
+/* Napisy na środku okienka, w pionie i w poziomie. Automatyczne marginesy zamiast justify-content:
+   gdyby się nie zmieściły, ucina się dół, a nie nazwa u góry. */
+.grid-event-body {
+  display: block;
+  margin: auto 0;
 }
 
 .week-grid.is-compact .grid-event.is-custom {
@@ -3296,11 +3302,10 @@ label.setting-row {
   border-color: var(--c);
 }
 
-/* Znaczniki (termin, notatka, zmiana) w rogu na dole - nie zasłaniają wyśrodkowanej nazwy. */
+/* Znaczniki (termin, notatka, zmiana) w prawym górnym rogu - obok wyśrodkowanej nazwy, nie na godzinach. */
 .week-grid.is-compact .grid-event-flags {
-  top: auto;
-  bottom: 3px;
-  right: 3px;
+  top: 2px;
+  right: 2px;
 }
 
 .week-grid.is-compact .flag {
@@ -3320,6 +3325,7 @@ label.setting-row {
   hyphens: auto;
   overflow-wrap: anywhere;
   -webkit-line-clamp: 3;
+  line-height: 1.2;
 }
 
 /* Nic się nie ściska (napis ucięty w połowie wysokości) - co się nie mieści, w ogóle nie jest pokazywane. */
@@ -3328,6 +3334,7 @@ label.setting-row {
 }
 
 .week-grid.is-compact .grid-event-meta {
+  font-size: 0.62rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3337,9 +3344,8 @@ label.setting-row {
 .grid-event-time {
   display: block;
   font-size: 0.6rem;
-  font-size: clamp(0.45rem, 17cqi, 0.62rem);
+  font-size: clamp(0.45rem, 17cqi, 0.6rem);
   color: var(--muted);
-  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
 }
