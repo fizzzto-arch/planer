@@ -40,6 +40,28 @@ function compactFit(heightPx: number): { time: boolean; type: boolean; titleLine
   return { time, type, titleLines: Math.max(1, Math.min(3, Math.floor(left / COMPACT_TITLE_LINE))) }
 }
 
+// Szerokość napisu w em czcionki strony - każdy telefon ma inną czcionkę (iPhone, Samsung, Pixel), więc
+// godziny w okienku dostają czcionkę dobraną do swojej szerokości i zawsze mieszczą się w jednej linii.
+const FALLBACK_EM = 6.4 // bez pomiaru: zapas jak dla szerokiej czcionki
+const emWidths = new Map<string, number>()
+let measure: CanvasRenderingContext2D | null | undefined
+function textEm(text: string): number {
+  const known = emWidths.get(text)
+  if (known !== undefined) return known
+  if (measure === undefined) {
+    try {
+      measure = document.createElement('canvas').getContext('2d')
+      if (measure) measure.font = `400 100px ${getComputedStyle(document.body).fontFamily}`
+    } catch {
+      measure = null
+    }
+  }
+  const width = measure ? measure.measureText(text).width / 100 : 0
+  const em = width > 2 && width < 12 ? width : FALLBACK_EM
+  emWidths.set(text, em)
+  return em
+}
+
 function minuteOfDay(d: Date): number {
   return d.getHours() * 60 + d.getMinutes()
 }
@@ -194,7 +216,10 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                       </span>
                       {fit.type && <span className="grid-event-meta">{typeShort(m.type)}</span>}
                       {fit.time && (
-                        <span className="grid-event-time">
+                        <span
+                          className="grid-event-time"
+                          style={{ '--time-em': textEm(`${formatTime(m.start)}–${formatTime(m.end)}`) } as CSSProperties}
+                        >
                           {formatTime(m.start)}–{formatTime(m.end)}
                         </span>
                       )}

@@ -3340,11 +3340,12 @@ label.setting-row {
   text-overflow: ellipsis;
 }
 
-/* Godziny drobnym drukiem, zawsze w jednej linii - czcionka zmniejsza się do szerokości okienka. */
+/* Godziny drobnym drukiem, zawsze w jednej linii - czcionka zmniejsza się do szerokości okienka
+   (--time-em: szerokość napisu w em zmierzona w tej przeglądarce, WeekGrid). */
 .grid-event-time {
   display: block;
   font-size: 0.6rem;
-  font-size: clamp(0.45rem, 17cqi, 0.6rem);
+  font-size: clamp(0.45rem, calc(96cqi / var(--time-em, 6.4)), 0.6rem);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
