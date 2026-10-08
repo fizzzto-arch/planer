@@ -89,13 +89,39 @@ export interface GroupsProgress {
   total: number
 }
 
+type PlanRef = Pick<Meeting, 'unitId' | 'groupNumber' | 'start'>
+
+// Obecna grupa: ta, której terminy pokrywają się z planem. Sam numer grupy z planu nie wystarcza -
+// po zmianie grupy w planie zostają czasem zajęcia ze starym numerem (np. sprzed zmiany, z początku
+// tygodnia) i wtedy optymalizator dalej podpowiadał przejście do grupy, w której już jesteś.
+// Przy remisie (np. dwie grupy w tym samym czasie) decyduje, ile zajęć w planie ma numer grupy.
+export function currentOptionIndex(options: GroupOption[], plan: PlanRef[]): number | null {
+  const units = new Set(options.map((o) => o.unitId))
+  const mine = plan.filter((m) => m.unitId !== null && units.has(m.unitId))
+  const starts = new Set(mine.map((m) => m.start.getTime()))
+  let best: number | null = null
+  let bestOverlap = 0
+  let bestLabelled = 0
+  options.forEach((o, i) => {
+    const overlap = o.meetings.filter((m) => starts.has(m.start.getTime())).length
+    const labelled = mine.filter((m) => m.unitId === o.unitId && m.groupNumber === o.groupNumber).length
+    if (overlap === 0 && labelled === 0) return
+    if (best === null || overlap > bestOverlap || (overlap === bestOverlap && labelled > bestLabelled)) {
+      best = i
+      bestOverlap = overlap
+      bestLabelled = labelled
+    }
+  })
+  return best
+}
+
 // Buduje "sloty" (przedmiot + typ zajęć z planu użytkownika) ze wszystkimi grupami do wyboru.
 export async function fetchSlots(meetings: Meeting[], onProgress: (p: GroupsProgress) => void): Promise<Slot[]> {
   // Zajęcia z USOS (własne i bez identyfikatora pomijamy).
-  const units = new Map<string, { groupNumber: number | null; courseName: string; meetings: Meeting[] }>()
+  const units = new Map<string, { courseName: string; meetings: Meeting[] }>()
   for (const m of meetings) {
     if (!m.unitId) continue
-    const u = units.get(m.unitId) ?? { groupNumber: m.groupNumber, courseName: m.courseName, meetings: [] }
+    const u = units.get(m.unitId) ?? { courseName: m.courseName, meetings: [] }
     u.meetings.push(m)
     units.set(m.unitId, u)
   }
@@ -183,9 +209,7 @@ export async function fetchSlots(meetings: Meeting[], onProgress: (p: GroupsProg
     .map(({ groups, ...slot }) => {
       const options = [...groups.values()].sort((a, b) => a.groupNumber - b.groupNumber)
       for (const o of options) o.meetings.sort((a, b) => a.start.getTime() - b.start.getTime())
-      // Wszystkie grupy jednego typu zajęć mają ten sam unit_id - obecna to ta z numerem z planu.
-      const currentIndex = options.findIndex((o) => units.get(o.unitId)?.groupNumber === o.groupNumber)
-      return { ...slot, options, currentIndex: currentIndex >= 0 ? currentIndex : null }
+      return { ...slot, options, currentIndex: currentOptionIndex(options, meetings) }
     })
     .filter((s) => s.options.length > 0)
     .sort((a, b) => a.courseName.localeCompare(b.courseName, 'pl') || a.classType.localeCompare(b.classType))
@@ -227,24 +251,19 @@ export function slotsCacheKey(meetings: Pick<Meeting, 'unitId' | 'groupNumber'>[
 // Zapamiętane plany grup dopasowane do obecnego planu: tylko jego zajęcia, terminy od "from"
 // i obecna grupa według planu (zmiana grupy nie wymaga pobierania od nowa).
 // null - brakuje danych któregoś przedmiotu.
-export function slotsForPlan(
-  cached: CachedSlots,
-  meetings: Pick<Meeting, 'unitId' | 'groupNumber'>[],
-  from: number,
-): Slot[] | null {
+export function slotsForPlan(cached: CachedSlots, meetings: PlanRef[], from: number): Slot[] | null {
   const units = planUnits(meetings)
   const known = new Set(cached.units)
   if (!units.every((u) => known.has(u))) return null
   const wanted = new Set(units)
-  const current = new Set(slotsCacheKey(meetings).split(','))
+  const plan = meetings.filter((m) => m.start.getTime() >= from)
   return cached.slots.flatMap((slot) => {
     if (!slot.options.some((o) => wanted.has(o.unitId))) return []
     const options = slot.options
       .map((o) => ({ ...o, meetings: o.meetings.filter((m) => m.start.getTime() >= from) }))
       .filter((o) => o.meetings.length > 0)
     if (options.length === 0) return []
-    const currentIndex = options.findIndex((o) => current.has(`${o.unitId}:${o.groupNumber}`))
-    return [{ ...slot, options, currentIndex: currentIndex >= 0 ? currentIndex : null }]
+    return [{ ...slot, options, currentIndex: currentOptionIndex(options, plan) }]
   })
 }
 

@@ -68,6 +68,29 @@ describe('pamięć planów grup', () => {
     expect(slotsForPlan(cached, [at('U1', 201), at('U3', 1)], 0)).toBeNull()
   })
 
+  it('obecna grupa po zmianie: ta, której terminy są w planie, nawet gdy zostały zajęcia ze starym numerem', () => {
+    // Lektorat: grupa 12 - śr. i pt. 8:15, grupa 23 - śr. 8:15 i pt. 10:15. W planie już grupa 23,
+    // ale środa (sprzed zmiany) dalej z numerem 12.
+    const day = (d: number, h: number) => ({ start: new Date(2026, 9, d, h, 15), end: new Date(2026, 9, d, h + 1, 45), room: null, building: null })
+    const lektorat: CachedSlots = {
+      units: ['L'],
+      fetchedAt: 1,
+      slots: [
+        slot('ANG', [
+          { unitId: 'L', groupNumber: 12, meetings: [day(7, 8), day(9, 8), day(14, 8), day(16, 8)] },
+          { unitId: 'L', groupNumber: 23, meetings: [day(7, 8), day(9, 10), day(14, 8), day(16, 10)] },
+        ]),
+      ],
+    }
+    const planned = (d: number, h: number, groupNumber: number) => meeting(`L${d}`, new Date(2026, 9, d, h, 15), { unitId: 'L', groupNumber })
+    const plan = [planned(7, 8, 12), planned(9, 10, 23), planned(14, 8, 23), planned(16, 10, 23)]
+    const [ang] = slotsForPlan(lektorat, plan, new Date(2026, 9, 5).getTime())!
+    expect(ang.options[ang.currentIndex!].groupNumber).toBe(23)
+    // Same numery, gdy godziny się nie zgadzają z żadną grupą - jak dotąd.
+    const [other] = slotsForPlan(lektorat, [planned(8, 12, 12)], 0)!
+    expect(other.options[other.currentIndex!].groupNumber).toBe(12)
+  })
+
   it('tylko terminy od bieżącego tygodnia', () => {
     const [lab, lecture] = slotsForPlan(cached, [at('U1', 202), at('U2', 1)], new Date(2026, 9, 12).getTime())!
     // Grupa 202 nie ma już zajęć - nie ma jej do wyboru (ani jako obecnej).
