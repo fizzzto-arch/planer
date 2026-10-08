@@ -388,6 +388,15 @@ function App() {
     window.scrollTo({ top: 0 })
   }, [markFirstStep])
 
+  // Sąsiedni przedmiot (strzałki na stronie przedmiotu): bez nowego wpisu w historii - "wstecz" wraca do listy.
+  const switchCourse = useCallback((name: string, step: 1 | -1) => {
+    pageNow.current = { kind: 'course', name }
+    window.history.replaceState({ course: name }, '')
+    setPage({ kind: 'course', name })
+    setEnter(step > 0 ? 'right' : 'left')
+    window.scrollTo({ top: 0 })
+  }, [])
+
   const openOptimizer = useCallback(() => {
     pageNow.current = { kind: 'optimizer' }
     window.history.pushState({ optimizer: true }, '')
@@ -944,7 +953,7 @@ function App() {
                       onBack={closePage}
                     />
                   ) : course ? (
-                    <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} />
+                    <CourseView courseName={course} meetings={meetings} now={now} onBack={closePage} onSwitch={switchCourse} />
                   ) : (
                     mainView
                   )}

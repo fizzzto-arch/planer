@@ -12,6 +12,7 @@ export interface MeetingOverride {
   endTime?: string
   room?: string
   cancelled?: boolean
+  online?: boolean
 }
 
 export interface MeetingEdit {
@@ -31,11 +32,12 @@ export interface SeriesEdit {
   fromWeekday?: number | null
   // Kiedy zajęcia faktycznie są (np. laboratorium tylko w tyg. 10-14); pozostałe terminy znikają z planu.
   dates?: ClassDates | null
+  online?: boolean | null // zajęcia grupy online (zamiast sali)
 }
 
 // Zmiana grupy bez żadnej zmiany (wszystko jak w USOS) - do usunięcia.
 export function isEmptySeriesEdit(edit: Omit<SeriesEdit, 'id'>): boolean {
-  return !edit.room && !edit.startTime && !edit.endTime && !edit.weekday && !edit.dates
+  return !edit.room && !edit.startTime && !edit.endTime && !edit.weekday && !edit.dates && !edit.online
 }
 
 export interface CustomMeeting {
@@ -49,6 +51,7 @@ export interface CustomMeeting {
   repeatWeeklyUntil: string | null // co tydzień od date do tego dnia (włącznie)
   weeks?: WeekParity // przy powtarzaniu: wszystkie, nieparzyste albo parzyste tygodnie semestru
   dates?: string[] | null // wybrane dni zamiast powtarzania
+  online?: boolean
 }
 
 export interface PlanEdits {
@@ -86,6 +89,7 @@ export function parseMeetingEdit(id: string, raw: Raw): MeetingEdit {
     if (endTime) override.endTime = endTime
     if (room) override.room = room
     if (typeof o.cancelled === 'boolean') override.cancelled = o.cancelled
+    if (typeof o.online === 'boolean') override.online = o.online
     if (Object.keys(override).length === 0) override = null
   }
   return { id, note: str(raw.note), override }
@@ -100,6 +104,7 @@ export function parseSeriesEdit(id: string, raw: Raw): SeriesEdit {
     weekday: optWeekday(raw.weekday),
     fromWeekday: optWeekday(raw.fromWeekday),
     dates: parseClassDates(raw.dates),
+    online: raw.online === true ? true : null,
   }
 }
 
@@ -120,6 +125,7 @@ export function parseCustomMeeting(id: string, raw: Raw): CustomMeeting | null {
     repeatWeeklyUntil: optDate(raw.repeatWeeklyUntil),
     weeks: parseWeeks(raw.weeks),
     dates: parseDates(raw.dates).length > 0 ? parseDates(raw.dates) : null,
+    online: raw.online === true,
   }
 }
 

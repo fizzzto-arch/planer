@@ -187,7 +187,14 @@
   white-space: nowrap;
 }
 
+/* Napisy w przycisku jawnie blokowe, a nadmiar przycięty: Safari na iPhonie układa treść przycisku po swojemu
+   i bez tego data z przedmiotem nie skracała się "…", tylko wychodziła na licznik dni i poza ekran. */
+.deadline-main {
+  overflow: hidden;
+}
+
 .deadline-meta {
+  display: block;
   font-size: 0.8rem;
   color: var(--muted);
   overflow: hidden;
@@ -559,6 +566,34 @@ input[type="time"].text-input {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Strona przedmiotu: "Wróć" z lewej, strzałki do sąsiednich przedmiotów z prawej. */
+.course-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.course-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.course-switch .icon-button {
+  width: 36px;
+  height: 36px;
+}
+
+.course-switch-count {
+  min-width: 4.5ch;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .back-button svg {
@@ -4230,6 +4265,11 @@ label.setting-row {
 .class-dates-modes .segment {
   padding: 7px 6px;
   font-size: 0.8rem;
+}
+
+/* Liczba zajęć: wąskie pole pod datami (np. "5"). */
+.class-dates-count .text-input {
+  max-width: 7rem;
 }
 
 .class-dates-parity {

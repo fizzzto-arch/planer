@@ -168,7 +168,7 @@ function listSheet(model: ExportModel): Sheet {
       e.course,
       e.typeName,
       e.groupNumber ?? '',
-      e.room ?? '',
+      e.online ? t('online') : (e.room ?? ''),
       e.building ?? '',
       ...(week ? [] : [e.when || t('co tydzień')]),
     ]

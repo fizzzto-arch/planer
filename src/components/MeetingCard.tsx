@@ -4,7 +4,7 @@ import { usePlanUi } from '../hooks/planUi'
 import { formatDay, formatDuration, formatTime, minutesBetween, toDateKey, toTimeKey } from '../lib/dates'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel, seriesKey } from '../lib/extras'
-import { shortBuilding, typeLabel, typeSlug } from '../lib/usos'
+import { placeLabel, shortBuilding, typeLabel, typeSlug } from '../lib/usos'
 import { NoteField } from './NoteField'
 
 interface Props {
@@ -94,7 +94,7 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
           <div className="card-meta">
             <span className="type-badge">{typeLabel(m.type)}</span>
             {m.groupNumber !== null && <span>{t('gr. {n}', { n: m.groupNumber })}</span>}
-            {m.room && <span>{t('s. {room}', { room: m.room })}</span>}
+            {placeLabel(m) && <span>{placeLabel(m)}</span>}
             {building && <span>{building}</span>}
           </div>
           {(deadlines.length > 0 || note || m.edited || m.custom) && (

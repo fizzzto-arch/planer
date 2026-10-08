@@ -2,7 +2,7 @@
 // choć w USOS grupa ma je co tydzień. Dla grupy z USOS (zmiana całej grupy) i dla własnych zajęć.
 // Tygodnie parzyste/nieparzyste liczone jak w Planerze ("tydzień 2 · parzysty") - z planu semestru.
 // Używa go też serwer powiadomień (Node) - importy tylko z .ts.
-import { parseDateKey, toDateKey } from './dates.ts'
+import { addDays, parseDateKey, toDateKey } from './dates.ts'
 import { t } from './i18n.ts'
 import { semesterAt, semesters, weekIndex } from './semesterWeek.ts'
 import type { Meeting } from './usos.ts'
@@ -59,6 +59,36 @@ export function parseClassDates(raw: unknown): ClassDates | null {
   return null
 }
 
+// Najwięcej tygodni, które liczymy w przód (jak powtarzanie własnych zajęć).
+const MAX_WEEKS = 60
+
+// Dzień N-tych zajęć co tydzień od "from" - liczone są tylko wybrane tygodnie (parzyste/nieparzyste).
+// "Na 5 zajęć" zamiast samemu liczyć datę końca. null - tylu zajęć się nie da (np. poza semestrem).
+export function nthWeeklyDate(from: string, count: number, weeks: WeekParity, weekOf: WeekOf): string | null {
+  const first = parseDateKey(from)
+  if (!first || !Number.isInteger(count) || count < 1) return null
+  let found = 0
+  for (let i = 0; i < MAX_WEEKS; i++) {
+    const day = addDays(first, 7 * i)
+    if (parityMatches(weeks, day, weekOf) && ++found === count) return toDateKey(day)
+  }
+  return null
+}
+
+// Ile zajęć wypada co tydzień od "from" do "to" (włącznie) w wybranych tygodniach.
+export function weeklyCount(from: string, to: string, weeks: WeekParity, weekOf: WeekOf): number {
+  const first = parseDateKey(from)
+  const last = parseDateKey(to)
+  if (!first || !last || last < first) return 0
+  let count = 0
+  for (let i = 0; i < MAX_WEEKS; i++) {
+    const day = addDays(first, 7 * i)
+    if (day > last) break
+    if (parityMatches(weeks, day, weekOf)) count++
+  }
+  return count
+}
+
 // ---------- Formularz ----------
 
 export type DatesMode = 'all' | 'range' | 'dates' // all - wszystkie terminy z USOS / jednorazowo (własne)
@@ -70,6 +100,7 @@ export interface DatesDraft {
   odd: boolean
   even: boolean
   dates: string[]
+  count?: number | null // wpisana liczba zajęć: zmiana początku albo tygodni przelicza koniec
 }
 
 export function draftFromDates(spec: ClassDates | null, defaults: { from: string; to: string }): DatesDraft {

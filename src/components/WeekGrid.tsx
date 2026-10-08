@@ -5,7 +5,7 @@ import { dayLabel, eventName, shortDayLabel } from '../lib/academicCalendar'
 import type { PlanMeeting } from '../lib/edits'
 import { deadlineKindLabel } from '../lib/extras'
 import { usePlanUi } from '../hooks/planUi'
-import { shortBuilding, typeLabel, typeShort, typeSlug } from '../lib/usos'
+import { placeLabel, shortBuilding, typeLabel, typeShort, typeSlug } from '../lib/usos'
 
 const PX_PER_MIN = 1.1
 const COMPACT_PX_PER_MIN = 0.85 // telefon: cały dzień bez długiego przewijania
@@ -166,7 +166,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
               const details = [
                 typeLabel(m.type),
                 m.groupNumber !== null ? t('gr. {n}', { n: m.groupNumber }) : null,
-                m.room ? t('s. {room}', { room: m.room }) : null,
+                placeLabel(m),
                 building,
               ].filter(Boolean)
               const durationMin = minuteOfDay(m.end) - minuteOfDay(m.start)

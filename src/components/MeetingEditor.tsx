@@ -28,6 +28,7 @@ export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }:
   const [startTime, setStartTime] = useState(toTimeKey(meeting.start))
   const [endTime, setEndTime] = useState(toTimeKey(meeting.end))
   const [room, setRoom] = useState(meeting.room ?? '')
+  const [online, setOnline] = useState(meeting.online ?? false)
   const [cancelled, setCancelled] = useState(meeting.cancelled)
   const [weekday, setWeekday] = useState(weekdayOf(meeting.start)) // tylko dla całej grupy
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +50,7 @@ export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }:
     setStartTime(toTimeKey(source.start))
     setEndTime(toTimeKey(source.end))
     setRoom(source.room ?? '')
+    setOnline(source.online ?? false)
     setWeekday(weekdayOf(source.start))
     setError(null)
   }
@@ -65,11 +67,11 @@ export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }:
         setError(datesError(held.error))
         return
       }
-      extras.saveSeriesEdit({ ...buildSeriesEdit(key, original, { startTime, endTime, room, weekday }), dates: held.dates })
+      extras.saveSeriesEdit({ ...buildSeriesEdit(key, original, { startTime, endTime, room, weekday, online }), dates: held.dates })
     } else {
       const base = seriesBase(original, extras.extras)
       extras.saveMeetingEdit(meeting.id, {
-        override: buildOverride(base, { date, startTime, endTime, room, cancelled }),
+        override: buildOverride(base, { date, startTime, endTime, room, cancelled, online }),
       })
     }
     onClose()
@@ -150,10 +152,16 @@ export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }:
           </label>
         </div>
 
-        <label className="field">
-          <span className="field-label">{t('Sala')}</span>
-          <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
+        <label className="check-field">
+          <input type="checkbox" checked={online} onChange={(e) => setOnline(e.target.checked)} />
+          {t('Zajęcia online')}
         </label>
+        {!online && (
+          <label className="field">
+            <span className="field-label">{t('Sala')}</span>
+            <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
+          </label>
+        )}
 
         {scope === 'series' && (
           <ClassDatesField draft={dates} onChange={setDates} allLabel={t('Wszystkie z USOS')} choices={seriesDates} weekOf={weekOf} />

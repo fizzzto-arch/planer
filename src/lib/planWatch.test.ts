@@ -201,6 +201,17 @@ describe('powiadomienia jak plan w Planerze: ręczne zmiany, własne zajęcia, u
     expect(diffPlans(withEdits(withGroups(old, plan), edits), withEdits(plan, edits), now, at(30, 0))).toEqual([])
   })
 
+  it('zajęcia online: w przypomnieniu i planie dnia "online" zamiast sali, zmiana na online to zmiana miejsca', () => {
+    const online = parsePlanEdits({ meetingEdits: [{ id: 'w1', data: { note: '', override: { online: true } } }] })
+    const [w1] = withEdits([lesson('w1', 11, 10)], online)
+    expect(w1).toMatchObject({ online: true, room: null })
+    expect(firstClassText(w1, label, new Date(2026, 10, 11, 9, 45)).body).toBe('10:15–11:45 · online')
+    expect(daySummaryText([w1], label).body).toBe('Pierwsze: Radiologia, online o 10:15')
+    const now = new Date(2026, 10, 9, 12, 0)
+    const changes = diffPlans(withEdits([lesson('w1', 11, 10)], parsePlanEdits({})), [w1], now, at(30, 0))
+    expect(changesText(changes, label).body).toBe('Radiologia (śr. 11.11): sala 014 → online')
+  })
+
   it('usunięte z planu: zajęcia z USOS według typu z Planera, własne według swojego typu', () => {
     const seen = withEdits(plan, edits)
     expect(withoutHidden(seen, [{ course: 'Radiologia', type: 'LAB' }]).map((m) => m.id)).toEqual(['w1', 'w2', 'custom:k:2026-11-19'])

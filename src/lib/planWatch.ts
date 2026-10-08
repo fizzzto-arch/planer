@@ -18,6 +18,7 @@ export interface WatchedMeeting {
   end: number
   room: string | null
   cancelled: boolean
+  online?: boolean // zaznaczone w Planerze jako online (tylko w planie z ręcznymi zmianami)
   // Grupa i tydzień semestru - do wyboru dat w zmianie grupy (np. laboratorium tylko w tyg. 10-14).
   // Starsze zapamiętane plany ich nie mają - wtedy zajęcia liczą się jak zwykle.
   unitId?: string | null
@@ -97,6 +98,7 @@ export function withEdits(plan: WatchedMeeting[], edits: PlanEdits): WatchedMeet
     end: m.end.getTime(),
     room: m.room,
     cancelled: m.cancelled,
+    online: m.online === true,
     unitId: m.unitId,
     groupNumber: m.groupNumber,
     week: weekOf(m.start),
@@ -111,6 +113,9 @@ export function withoutHidden(plan: WatchedMeeting[], hidden: HiddenClass[]): Wa
     m.id.startsWith(CUSTOM_ID_PREFIX) ? !isHiddenClass(hidden, m.course, m.type) : !isHiddenUsosClass(hidden, m.course, m.type),
   )
 }
+
+// Miejsce zajęć do porównania i treści: sala albo "online".
+const place = (m: WatchedMeeting) => (m.online ? 'online' : (m.room ?? ''))
 
 export type PlanChange =
   | { kind: 'moved'; before: WatchedMeeting; after: WatchedMeeting }
@@ -134,7 +139,7 @@ export function diffPlans(prev: WatchedMeeting[], next: WatchedMeeting[], now: D
       changes.push({ kind: 'cancelled', before: b })
     } else if (a.start !== b.start || a.end !== b.end) {
       changes.push({ kind: 'moved', before: b, after: a })
-    } else if ((a.room ?? '') !== (b.room ?? '')) {
+    } else if (place(a) !== place(b)) {
       changes.push({ kind: 'room', before: b, after: a })
     }
   }
@@ -158,7 +163,7 @@ export function diffPlans(prev: WatchedMeeting[], next: WatchedMeeting[], now: D
     const a = twin.after
     // Sam nowy identyfikator (USOS czasem je zmienia) - te same godziny i sala to żadna zmiana.
     if (a.start === b.start && a.end === b.end) {
-      if ((a.room ?? '') === (b.room ?? '')) changes.splice(changes.indexOf(gone), 1)
+      if (place(a) === place(b)) changes.splice(changes.indexOf(gone), 1)
       else changes.splice(changes.indexOf(gone), 1, { kind: 'room', before: b, after: a })
     } else {
       changes.splice(changes.indexOf(gone), 1, { kind: 'moved', before: b, after: a })
@@ -201,7 +206,7 @@ function changeLine(c: PlanChange, label: (course: string) => string, lang: Lang
       return `${label(m.course)} (${day(c.before.start, lang)} ${clock(c.before.start)}) → ${to}`
     }
     case 'room':
-      return translate(lang, '{what}: sala {from} → {to}', { what, from: c.before.room ?? '?', to: c.after.room ?? '?' })
+      return translate(lang, '{what}: sala {from} → {to}', { what, from: place(c.before) || '?', to: place(c.after) || '?' })
     case 'cancelled':
       return translate(lang, '{what} {time} - odwołane', { what, time: clock(m.start) })
     case 'added':
@@ -251,7 +256,7 @@ export function daySummaryText(
   // "zajęcia" nie ma liczby pojedynczej: jedne zajęcia, 2-4 zajęcia, 5+ zajęć (ale 22 zajęcia).
   const count =
     n === 1 ? translate(lang, 'jedne zajęcia') : `${n} ${pluralIn(lang, n, 'zajęcia', 'zajęcia', 'zajęć')}`
-  const room = first.room ? translate(lang, ', s. {room}', { room: first.room }) : ''
+  const room = first.online ? ', online' : first.room ? translate(lang, ', s. {room}', { room: first.room }) : ''
   return {
     title: translate(lang, 'Dziś {count}, {from}–{to}', { count, from: clock(first.start), to: clock(last.end) }),
     body: translate(lang, 'Pierwsze: {course}{room} o {time}', { course: label(first.course), room, time: clock(first.start) }),
@@ -268,6 +273,6 @@ export function firstClassText(
   const minutes = Math.max(1, Math.round((first.start - now.getTime()) / 60_000))
   return {
     title: translate(lang, 'Za {n} min: {course}', { n: minutes, course: label(first.course) }),
-    body: `${clock(first.start)}–${clock(first.end)}${first.room ? translate(lang, ' · s. {room}', { room: first.room }) : ''}`,
+    body: `${clock(first.start)}–${clock(first.end)}${first.online ? ' · online' : first.room ? translate(lang, ' · s. {room}', { room: first.room }) : ''}`,
   }
 }

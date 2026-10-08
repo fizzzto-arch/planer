@@ -29,7 +29,9 @@ export function exportIcs(meetings: TimetableMeeting[], label: (course: string) 
   const events = meetings
     .filter((m) => !m.cancelled)
     .map((m) => {
-      const place = [m.room ? t('s. {room}', { room: m.room }) : '', shortBuilding(m.building) ?? m.building ?? ''].filter(Boolean).join(', ')
+      const place = m.online
+        ? t('online')
+        : [m.room ? t('s. {room}', { room: m.room }) : '', shortBuilding(m.building) ?? m.building ?? ''].filter(Boolean).join(', ')
       return [
         'BEGIN:VEVENT',
         `UID:${text(m.id)}@planer`,

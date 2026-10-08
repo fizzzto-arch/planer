@@ -25,13 +25,14 @@ export const weekdayOf = (d: Date) => ((d.getDay() + 6) % 7) + 1
 export function seriesOverride(start: Date, series: SeriesEdit | undefined): MeetingOverride | null {
   if (!series) return null
   if (series.fromWeekday && weekdayOf(start) !== series.fromWeekday) return null
-  if (!series.room && !series.startTime && !series.endTime && !series.weekday) return null
+  if (!series.room && !series.startTime && !series.endTime && !series.weekday && !series.online) return null
   const day = series.weekday ? addDays(startOfDay(start), series.weekday - weekdayOf(start)) : null
   return {
     date: day ? toDateKey(day) : undefined,
     room: series.room ?? undefined,
     startTime: series.startTime ?? undefined,
     endTime: series.endTime ?? undefined,
+    online: series.online || undefined,
   }
 }
 
@@ -45,6 +46,7 @@ export function applyChange<T extends Pick<Meeting, 'start' | 'end' | 'room'>>(m
     room: change.room ?? m.room,
   }
   if (change.cancelled !== undefined) (changed as T & { cancelled: boolean }).cancelled = change.cancelled
+  if (change.online !== undefined) (changed as T & { online: boolean }).online = change.online
   return changed
 }
 
@@ -82,6 +84,7 @@ function expandCustomMeetings(customs: CustomMeeting[], weekOf: WeekOf): Meeting
         unitId: null,
         usosUrl: null,
         cancelled: false,
+        online: c.online === true,
       })
     }
   }
@@ -121,6 +124,9 @@ export function applyEdits(meetings: Meeting[], extras: PlanEdits, weekOf: WeekO
         edited = true
       }
 
+      // Online: bez sali i budynku (np. bez "zmiany budynku" między zajęciami); sala z USOS zostaje w original.
+      if (result.online) result = { ...result, room: null, building: null, address: null }
+
       const custom = m.id.startsWith(CUSTOM_ID_PREFIX)
       return {
         ...result,
@@ -147,6 +153,7 @@ export interface MeetingFormValues {
   endTime: string
   room: string
   cancelled: boolean
+  online?: boolean
 }
 
 // Zajęcia ze zmianą serii, ale bez zmiany pojedynczej - punkt odniesienia dla formularza.
@@ -160,18 +167,20 @@ export function buildOverride(base: Meeting, values: MeetingFormValues): Meeting
   if (values.date !== toDateKey(base.start)) override.date = values.date
   if (values.startTime !== toTimeKey(base.start)) override.startTime = values.startTime
   if (values.endTime !== toTimeKey(base.end)) override.endTime = values.endTime
+  const online = values.online ?? false
   const room = values.room.trim()
-  if (room && room !== (base.room ?? '')) override.room = room
+  if (!online && room && room !== (base.room ?? '')) override.room = room
   if (values.cancelled !== base.cancelled) override.cancelled = values.cancelled
+  if (online !== (base.online ?? false)) override.online = online
   return Object.keys(override).length > 0 ? override : null
 }
 
 export function buildSeriesEdit(
   id: string,
   original: Meeting,
-  values: Pick<MeetingFormValues, 'startTime' | 'endTime' | 'room'> & { weekday: number },
+  values: Pick<MeetingFormValues, 'startTime' | 'endTime' | 'room' | 'online'> & { weekday: number },
 ): SeriesEdit {
-  const room = values.room.trim()
+  const room = values.online ? '' : values.room.trim()
   const fromWeekday = weekdayOf(original.start)
   return {
     id,
@@ -180,5 +189,6 @@ export function buildSeriesEdit(
     endTime: values.endTime !== toTimeKey(original.end) ? values.endTime : null,
     weekday: values.weekday !== fromWeekday ? values.weekday : null,
     fromWeekday,
+    online: values.online ? true : null,
   }
 }

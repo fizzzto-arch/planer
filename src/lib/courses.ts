@@ -1,4 +1,5 @@
 import type { PlanMeeting } from './edits'
+import { semesterAt, semesters } from './semesterWeek'
 import { typeLabel } from './usos'
 
 export interface CourseSummary {
@@ -40,4 +41,24 @@ export function formatTypes(types: CourseSummary['types']): string {
     .sort((a, b) => typeRank(a.type) - typeRank(b.type))
     .map(({ type, groups }) => (groups.length ? `${typeLabel(type)} gr. ${groups.join(', ')}` : typeLabel(type)))
     .join(' · ')
+}
+
+// Przedmioty z poprzedniego semestru (plan trzyma jeszcze ich historię): wszystkie zajęcia przed
+// początkiem obecnego semestru. Bez rozpoznanego semestru - wszystkie są obecne.
+export function pastCourses(meetings: PlanMeeting[], now: Date): Set<string> {
+  const list = semesters(meetings.filter((m) => !m.custom))
+  const current = semesterAt(now, list) ?? [...list].reverse().find((s) => s.firstWeek <= now) ?? null
+  if (!current) return new Set()
+  const lastEnd = new Map<string, number>()
+  for (const m of meetings) lastEnd.set(m.courseName, Math.max(lastEnd.get(m.courseName) ?? 0, m.end.getTime()))
+  return new Set([...lastEnd].filter(([, end]) => end < current.firstWeek.getTime()).map(([name]) => name))
+}
+
+// Przedmioty do przechodzenia strzałkami na stronie przedmiotu: z tej samej części listy (obecne albo
+// z poprzedniego semestru), w kolejności jak na liście Przedmioty.
+export function siblingCourses(meetings: PlanMeeting[], now: Date, courseName: string): string[] {
+  const past = pastCourses(meetings, now)
+  return summarizeCourses(meetings, now)
+    .map((c) => c.name)
+    .filter((name) => past.has(name) === past.has(courseName))
 }

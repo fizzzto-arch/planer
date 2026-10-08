@@ -18,7 +18,7 @@ import {
   type TimetableNote,
 } from './timetable'
 import { DEFAULT_TYPE_COLORS, type TypeColors } from './typeColors'
-import { colorType, shortBuilding, typeLabel } from './usos'
+import { colorType, placeLabel, shortBuilding, typeLabel } from './usos'
 
 export interface ExportOptions {
   scope: 'typical' | 'week' // typowy tydzień semestru albo konkretny tydzień
@@ -223,7 +223,7 @@ export function buildExportModel({ timetable, meetings, options, weekStart, hidd
       typeName,
       time: `${formatClock(e.start)}–${formatClock(e.end)}`,
       meta: [typeName, options.showGroup && e.groupNumber !== null ? t('gr. {n}', { n: e.groupNumber }) : ''].filter(Boolean).join(' · '),
-      place: options.showRoom ? [e.room ? t('s. {room}', { room: e.room }) : '', building ?? ''].filter(Boolean).join(' · ') : '',
+      place: options.showRoom ? [placeLabel(e) ?? '', e.online ? '' : (building ?? '')].filter(Boolean).join(' · ') : '',
       when: recurrenceLabel(e),
       color: colorOf(e.type),
       lane,

@@ -174,6 +174,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
         weekday: edit.weekday ?? null,
         fromWeekday: edit.fromWeekday ?? null,
         dates: edit.dates ?? null,
+        online: edit.online ?? null,
       }
       write((c, u) => (isEmptySeriesEdit(data) ? c.deleteItem(u, 'seriesEdits', id) : c.setItem(u, 'seriesEdits', id, data)))
     },

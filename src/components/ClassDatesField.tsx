@@ -1,6 +1,6 @@
 import { t } from '../lib/i18n'
 import { useState } from 'react'
-import { MAX_DATES, type DatesDraft, type DatesMode, type WeekOf } from '../lib/classDates'
+import { MAX_DATES, draftWeeks, nthWeeklyDate, weeklyCount, type DatesDraft, type DatesMode, type WeekOf } from '../lib/classDates'
 import { formatShortDay, parseDateKey } from '../lib/dates'
 
 interface Props {
@@ -15,7 +15,15 @@ interface Props {
 // parzystymi/nieparzystymi) albo wybrane dni.
 export function ClassDatesField({ draft, onChange, allLabel, choices, weekOf }: Props) {
   const [picked, setPicked] = useState('')
-  const set = (patch: Partial<DatesDraft>) => onChange({ ...draft, ...patch })
+  // Liczba zajęć w trakcie wpisywania (puste pole nie może od razu wrócić do wyliczonej liczby).
+  const [countText, setCountText] = useState<string | null>(null)
+  const set = (patch: Partial<DatesDraft>) => {
+    const next = { ...draft, ...patch }
+    // Wpisana liczba zajęć: koniec liczy się od nowa po zmianie początku albo tygodni.
+    const to = next.count ? nthWeeklyDate(next.from, next.count, draftWeeks(next), weekOf) : null
+    onChange(to ? { ...next, to } : next)
+  }
+  const count = weeklyCount(draft.from, draft.to, draftWeeks(draft), weekOf)
   const modes: { id: DatesMode; label: string }[] = [
     { id: 'all', label: allLabel },
     { id: 'range', label: t('Co tydzień od–do') },
@@ -55,9 +63,28 @@ export function ClassDatesField({ draft, onChange, allLabel, choices, weekOf }: 
             </label>
             <label className="field">
               <span className="field-label">{t('Do dnia (włącznie)')}</span>
-              <input className="text-input" type="date" value={draft.to} onChange={(e) => set({ to: e.target.value })} />
+              <input className="text-input" type="date" value={draft.to} onChange={(e) => set({ to: e.target.value, count: null })} />
             </label>
           </div>
+          <label className="field class-dates-count">
+            <span className="field-label">
+              {t('Liczba zajęć')} <span className="label-note">{t('(koniec policzy się sam)')}</span>
+            </span>
+            <input
+              className="text-input"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_DATES}
+              value={countText ?? (count > 0 ? String(count) : '')}
+              onChange={(e) => {
+                setCountText(e.target.value)
+                const n = Number(e.target.value)
+                if (Number.isInteger(n) && n >= 1 && n <= MAX_DATES) set({ count: n })
+              }}
+              onBlur={() => setCountText(null)}
+            />
+          </label>
           <div className="class-dates-parity">
             <label className="check-field">
               <input type="checkbox" checked={draft.odd} onChange={(e) => set({ odd: e.target.checked })} />

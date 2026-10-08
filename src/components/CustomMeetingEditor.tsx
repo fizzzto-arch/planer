@@ -31,6 +31,7 @@ export function CustomMeetingEditor({ draft, courseNames, extras, weekOf, onClos
   const [startTime, setStartTime] = useState(draft.startTime ?? '')
   const [endTime, setEndTime] = useState(draft.endTime ?? '')
   const [room, setRoom] = useState(draft.room ?? '')
+  const [online, setOnline] = useState(draft.online ?? false)
   // Jednorazowo, co tydzień od-do (też tylko parzyste/nieparzyste tygodnie) albo wybrane dni.
   const [dates, setDates] = useState(() =>
     draftFromDates(
@@ -60,7 +61,8 @@ export function CustomMeetingEditor({ draft, courseNames, extras, weekOf, onClos
       date: spec?.kind === 'range' ? spec.from : spec?.kind === 'dates' ? spec.dates[0] : date,
       startTime,
       endTime,
-      room: room.trim() || null,
+      room: online ? null : room.trim() || null,
+      online,
       repeatWeeklyUntil: spec?.kind === 'range' ? spec.to : null,
       weeks: spec?.kind === 'range' ? spec.weeks : ('all' as const),
       dates: spec?.kind === 'dates' ? spec.dates : null,
@@ -112,13 +114,19 @@ export function CustomMeetingEditor({ draft, courseNames, extras, weekOf, onClos
               ))}
             </select>
           </label>
-          <label className="field">
-            <span className="field-label">
-              {t('Sala')} <span className="label-note">{t('(opcjonalnie)')}</span>
-            </span>
-            <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
-          </label>
+          {!online && (
+            <label className="field">
+              <span className="field-label">
+                {t('Sala')} <span className="label-note">{t('(opcjonalnie)')}</span>
+              </span>
+              <input className="text-input" value={room} placeholder={t('np. 161')} onChange={(e) => setRoom(e.target.value)} />
+            </label>
+          )}
         </div>
+        <label className="check-field">
+          <input type="checkbox" checked={online} onChange={(e) => setOnline(e.target.checked)} />
+          {t('Zajęcia online')}
+        </label>
 
         <ClassDatesField draft={dates} onChange={setDates} allLabel={t('Jednorazowo')} weekOf={weekOf} />
 

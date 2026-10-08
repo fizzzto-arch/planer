@@ -1,11 +1,11 @@
 import { locale, t } from '../lib/i18n'
 import { usePlanUi } from '../hooks/planUi'
-import { formatTypes, summarizeCourses } from '../lib/courses'
+import { formatTypes, siblingCourses, summarizeCourses } from '../lib/courses'
 import { daysBetween, formatDay, formatTime, isSameDay, parseDateKey } from '../lib/dates'
 import { sortDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
 import { courseKey } from '../lib/extras'
-import { typeLabel, typeSlug } from '../lib/usos'
+import { placeLabel, typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { MaterialsSection } from './MaterialsSection'
 import { MeetingCard } from './MeetingCard'
@@ -25,6 +25,7 @@ interface Props {
   meetings: PlanMeeting[]
   now: Date
   onBack: () => void
+  onSwitch?: (courseName: string, step: 1 | -1) => void // poprzedni/następny przedmiot (strzałki)
 }
 
 const UPCOMING_LIMIT = 8
@@ -46,7 +47,7 @@ function MeetingsByDay({ meetings, now }: { meetings: PlanMeeting[]; now: Date }
   )
 }
 
-export function CourseView({ courseName, meetings, now, onBack }: Props) {
+export function CourseView({ courseName, meetings, now, onBack, onSwitch }: Props) {
   const { extras, editDeadline, addCustomMeeting, displayName, notesOn } = usePlanUi()
   const courseMeetings = meetings.filter((m) => m.courseName === courseName)
   const summary = summarizeCourses(courseMeetings, now)[0]
@@ -66,15 +67,32 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
   const assessment = useMemo(() => programAssessments(meetings, now)?.(courseName) ?? null, [meetings, now, courseName])
   const types = [...new Set(courseMeetings.map((m) => m.type))].sort((a, b) => typeLabel(a).localeCompare(typeLabel(b), locale()))
   const [hiding, setHiding] = useState(false)
+  // Sąsiednie przedmioty z listy - po ostatnim znowu pierwszy.
+  const siblings = useMemo(() => siblingCourses(meetings, now, courseName), [meetings, now, courseName])
+  const position = siblings.indexOf(courseName)
+  const switchBy = (step: 1 | -1) => onSwitch?.(siblings[(position + step + siblings.length) % siblings.length], step)
 
   return (
     <section className={`course-page type-${typeSlug(summary?.mainType ?? 'INNE')}`}>
-      <button type="button" className="back-button" onClick={onBack}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m15 6-6 6 6 6" />
-        </svg>
-        {t('Wróć')}
-      </button>
+      <div className="course-topbar">
+        <button type="button" className="back-button" onClick={onBack}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 6-6 6 6 6" />
+          </svg>
+          {t('Wróć')}
+        </button>
+        {onSwitch && position >= 0 && siblings.length > 1 && (
+          <div className="course-switch">
+            <button type="button" className="icon-button" aria-label={t('Poprzedni przedmiot')} onClick={() => switchBy(-1)}>
+              ‹
+            </button>
+            <span className="course-switch-count">{t('{done} z {total}', { done: position + 1, total: siblings.length })}</span>
+            <button type="button" className="icon-button" aria-label={t('Następny przedmiot')} onClick={() => switchBy(1)}>
+              ›
+            </button>
+          </div>
+        )}
+      </div>
 
       <header className="course-header">
         <h2>{displayName(courseName)}</h2>
@@ -83,7 +101,7 @@ export function CourseView({ courseName, meetings, now, onBack }: Props) {
         {summary?.next && (
           <p className="course-next">
             {t('Następne zajęcia:')} {formatDay(summary.next.start)}, {formatTime(summary.next.start)}
-            {summary.next.room && ' · ' + t('s. {room}', { room: summary.next.room })}
+            {placeLabel(summary.next) && ' · ' + placeLabel(summary.next)}
           </p>
         )}
       </header>

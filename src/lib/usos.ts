@@ -17,6 +17,13 @@ export interface Meeting {
   unitId: string | null // zaj_cyk_id - identyfikator zajęć w USOS
   usosUrl: string | null
   cancelled: boolean
+  online?: boolean // zaznaczone w Planerze (USOS tego nie podaje) - zamiast sali "online"
+}
+
+// Gdzie są zajęcia: "online" albo "s. 118" (null - bez sali).
+export function placeLabel(m: Pick<Meeting, 'room' | 'online'>): string | null {
+  if (m.online) return t('online')
+  return m.room ? t('s. {room}', { room: m.room }) : null
 }
 
 const TYPE_LABELS: Record<string, string> = {

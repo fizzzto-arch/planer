@@ -7,7 +7,7 @@ import { typeLabel, type Meeting } from './usos'
 
 export type TimetableMeeting = Pick<
   Meeting,
-  'id' | 'courseName' | 'type' | 'start' | 'end' | 'room' | 'building' | 'groupNumber' | 'cancelled'
+  'id' | 'courseName' | 'type' | 'start' | 'end' | 'room' | 'building' | 'groupNumber' | 'cancelled' | 'online'
 >
 
 // 'weekly' - co tydzień, 'odd'/'even' - tygodnie nieparzyste/parzyste.
@@ -23,6 +23,7 @@ export interface TimetableEntry {
   groupNumber: number | null
   room: string | null
   building: string | null
+  online?: boolean // zajęcia online (zamiast sali)
   recurrence: Recurrence
   range: { from: Date; to: Date } | null // tylko część semestru
   only: Date[] | null // zajęcia tylko w te dni (1-2 terminy)
@@ -180,6 +181,7 @@ export function buildTimetable(
       groupNumber: first.groupNumber,
       room: mostCommon(s.meetings.map((m) => m.room)),
       building: mostCommon(s.meetings.map((m) => m.building)),
+      online: mostCommon(s.meetings.map((m) => (m.online ? 'online' : 'sala'))) === 'online',
       recurrence,
       range: !only && partial ? { from: startOfDay(first.start), to: startOfDay(last.start) } : null,
       only,
@@ -305,6 +307,7 @@ export function weekEntries(meetings: TimetableMeeting[], weekStart: Date): Time
       groupNumber: m.groupNumber,
       room: m.room,
       building: m.building,
+      online: m.online === true,
       recurrence: 'weekly',
       range: null,
       only: null,

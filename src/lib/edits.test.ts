@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { applyEdits, buildOverride, buildSeriesEdit, customMeetingId, seriesBase } from './edits'
-import { EMPTY_EXTRAS, type Extras } from './extras'
+import { EMPTY_EXTRAS, seriesKey, type Extras } from './extras'
 import type { Meeting } from './usos'
 
 const lab = (id: string, day: number): Meeting => ({
@@ -143,8 +143,21 @@ describe('budowanie zmian z formularza', () => {
       endTime: '16:45',
       weekday: null,
       fromWeekday: 5,
+      online: null,
     })
     expect(buildSeriesEdit('k', m, { startTime: '11:15', endTime: '13:00', room: '416', weekday: 4 }).weekday).toBe(4)
+  })
+
+  it('online: cała grupa albo jedne zajęcia - bez sali i budynku, sala z USOS zostaje w oryginale', () => {
+    const m = lab('a', 9)
+    // Grupa online: sala z formularza się nie liczy.
+    const series = buildSeriesEdit(seriesKey(m)!, m, { startTime: '14:15', endTime: '16:00', room: '200', weekday: 5, online: true })
+    expect(series).toMatchObject({ room: null, online: true })
+    const [moved] = applyEdits([m], { meetingEdits: new Map(), seriesEdits: new Map([[series.id, series]]), customMeetings: [] })
+    expect(moved).toMatchObject({ online: true, room: null, building: null, edited: true })
+    expect(moved.original?.room).toBe(m.room)
+    // Jedne zajęcia z powrotem stacjonarnie mimo grupy online.
+    expect(buildOverride(moved, { date: '2026-10-09', startTime: '14:15', endTime: '16:00', room: '', cancelled: false, online: false })).toEqual({ online: false })
   })
 
   it('stała zmiana dnia: piątkowe zajęcia grupy co tydzień w czwartek, inne dni grupy bez zmian', () => {

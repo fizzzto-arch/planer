@@ -2,13 +2,12 @@ import { locale, t } from '../lib/i18n'
 import { useMemo, useState, type CSSProperties } from 'react'
 import { withoutHidden } from '../lib/hiddenClasses'
 import { usePlanUi } from '../hooks/planUi'
-import { formatTypes, summarizeCourses, type CourseSummary } from '../lib/courses'
+import { formatTypes, pastCourses, summarizeCourses, type CourseSummary } from '../lib/courses'
 import { daysBetween, formatShortDay, formatTime, parseDateKey } from '../lib/dates'
 import { upcomingDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
 import { GENERAL_NOTE, courseKey, type Deadline, type DeadlineKind } from '../lib/extras'
 import { plural } from '../lib/plural'
-import { semesterAt, semesters } from '../lib/semesterWeek'
 import { typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
 import { NoteField } from './NoteField'
@@ -31,17 +30,6 @@ const FILTERS = (): { value: KindFilter; label: string }[] => ([
 interface Props {
   meetings: PlanMeeting[]
   now: Date
-}
-
-// Przedmioty z poprzedniego semestru (plan trzyma jeszcze ich historię): wszystkie zajęcia przed
-// początkiem obecnego semestru. Bez rozpoznanego semestru - wszystkie są obecne.
-function pastCourses(meetings: PlanMeeting[], now: Date): Set<string> {
-  const list = semesters(meetings.filter((m) => !m.custom))
-  const current = semesterAt(now, list) ?? [...list].reverse().find((s) => s.firstWeek <= now) ?? null
-  if (!current) return new Set()
-  const lastEnd = new Map<string, number>()
-  for (const m of meetings) lastEnd.set(m.courseName, Math.max(lastEnd.get(m.courseName) ?? 0, m.end.getTime()))
-  return new Set([...lastEnd].filter(([, end]) => end < current.firstWeek.getTime()).map(([name]) => name))
 }
 
 export function CoursesView({ meetings, now }: Props) {

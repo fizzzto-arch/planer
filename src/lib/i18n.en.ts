@@ -187,6 +187,8 @@ export const EN: Record<string, string> = {
   'termin|terminy|terminów': 'deadline|deadlines',
 
   // src/components/CourseView.tsx
+  'Poprzedni przedmiot': 'Previous course',
+  'Następny przedmiot': 'Next course',
   'Zaloguj się (Ustawienia), żeby dodawać terminy i liczyć punkty.': 'Sign in (Settings) to add deadlines and count points.',
   'Wpisuj punkty, a Planer policzy ocenę': 'Enter your points and Planer works out the grade',
   'np. kontakt do prowadzącego, co przynieść na zajęcia': 'e.g. how to contact the lecturer, what to bring to class',
@@ -488,6 +490,8 @@ export const EN: Record<string, string> = {
   'Kopiuj treść': 'Copy text',
 
   // src/components/ClassDatesField.tsx (+ lib/classDates.ts)
+  'Liczba zajęć': 'Number of classes',
+  '(koniec policzy się sam)': '(the end date is calculated for you)',
   'Co tydzień od–do': 'Weekly from–to',
   'Wybrane dni': 'Selected days',
   'tydzień {n}': 'week {n}',
@@ -646,6 +650,7 @@ export const EN: Record<string, string> = {
   'Przedmiot →': 'Course →',
 
   // src/components/MeetingEditor.tsx
+  'Zajęcia online': 'Online class',
   'Koniec zajęć musi być po początku.': 'The class must end after it starts.',
   'Zmień zajęcia': 'Change class',
   'Zakres zmiany': 'Change scope',
@@ -1289,6 +1294,7 @@ export const EN: Record<string, string> = {
   'Semestr letni {years}': 'Summer semester {years}',
 
   // src/lib/usos.ts
+  'online': 'online',
   'wyk': 'lec',
   'ćw': 'tut',
   'lab': 'lab',
