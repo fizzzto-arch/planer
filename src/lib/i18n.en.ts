@@ -910,7 +910,7 @@ export const EN: Record<string, string> = {
   'O 7:00: ile zajęć, od której do której i gdzie pierwsze.': 'At 7 am: how many classes, from when to when and where the first one is.',
   'Przed pierwszymi zajęciami': 'Before the first class',
   'Ok. 30 minut wcześniej, z salą.': 'About 30 minutes before, with the room.',
-  'Działa z planem dodanym linkiem z USOSweb (nie z pliku). Pomija zajęcia usunięte z planu i terminy spoza wybranych dni grupy; innych ręcznych zmian (np. sali) nie uwzględnia.': 'Works with a timetable added by a USOSweb link (not a file). Skips classes removed from your timetable and dates outside the days you picked for a group; other manual changes (e.g. room) are not included.',
+  'Działa z planem dodanym linkiem z USOSweb (nie z pliku). Uwzględnia Twoje zmiany w planie (sala, godziny, odwołane zajęcia, wybrane dni grupy), Twoje własne zajęcia i pomija zajęcia usunięte z planu.': 'Works with a timetable added by a USOSweb link (not a file). Includes your changes (room, times, cancelled classes, days picked for a group) and your own classes, and skips classes removed from your timetable.',
   'Kiedy przypominać o terminach': 'When to remind about deadlines',
   'Te ustawienia są wspólne dla wszystkich Twoich urządzeń z włączonymi powiadomieniami.': 'These settings are shared by all your devices with notifications on.',
 

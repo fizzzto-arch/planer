@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { changesText, classesOn, daySummaryText, diffPlans, firstClassText, looksBroken, type WatchedMeeting } from './planWatch'
+import { parsePlanEdits } from './extras'
+import {
+  changesText,
+  classesOn,
+  daySummaryText,
+  diffPlans,
+  firstClassText,
+  looksBroken,
+  withEdits,
+  withGroups,
+  withoutHidden,
+  type WatchedMeeting,
+} from './planWatch'
 
 const at = (d: number, h: number, m = 15) => new Date(2026, 10, d, h, m).getTime() // listopad 2026
 const lesson = (id: string, d: number, h: number, over: Partial<WatchedMeeting> = {}): WatchedMeeting => ({
@@ -104,54 +116,94 @@ describe('pełna lista zmian do historii powiadomień', () => {
   })
 })
 
-describe('powiadomienia a wybór dat grupy (np. laboratorium tylko w wybrane tygodnie)', () => {
-  it('zapamiętany plan ma grupę i tydzień semestru', async () => {
+describe('powiadomienia jak plan w Planerze: ręczne zmiany, własne zajęcia, usunięte', () => {
+  const lab = (day: number) => ({
+    id: `l${day}`,
+    courseName: 'Radiologia',
+    type: 'LAB',
+    start: new Date(2026, 9, day, 14, 15),
+    end: new Date(2026, 9, day, 17, 0),
+    room: '014',
+    building: null,
+    address: null,
+    groupNumber: 102,
+    unitId: '777',
+    usosUrl: null,
+    cancelled: false,
+  })
+
+  it('zapamiętany plan ma grupę i tydzień semestru; dzisiejsze zakończone zajęcia zostają', async () => {
     const { snapshotPlan } = await import('./planWatch')
     // Laboratorium w piątki od 9.10.2026 (tydz. 1); "teraz" 14.10 - zapamiętujemy 16.10 (tydz. 2) i 23.10 (tydz. 3).
-    const lab = (day: number) => ({
-      id: `l${day}`,
-      courseName: 'Radiologia',
-      type: 'LAB',
-      start: new Date(2026, 9, day, 14, 15),
-      end: new Date(2026, 9, day, 17, 0),
-      room: '014',
-      building: null,
-      address: null,
-      groupNumber: 102,
-      unitId: '777',
-      usosUrl: null,
-      cancelled: false,
-    })
     const plan = snapshotPlan([lab(9), lab(16), lab(23)], new Date(2026, 9, 14, 12, 0), 14)
     expect(plan.map((m) => [m.id, m.unitId, m.groupNumber, m.week])).toEqual([
       ['l16', '777', 102, 2],
       ['l23', '777', 102, 3],
     ])
+    // Piątek 16.10 wieczorem: dzisiejsze laboratorium już się skończyło, ale dalej jest w planie dnia -
+    // inaczej kolejne zajęcia wyglądałyby na pierwsze.
+    const evening = snapshotPlan([lab(9), lab(16), lab(23)], new Date(2026, 9, 16, 18, 0), 14)
+    expect(evening.map((m) => m.id)).toEqual(['l16', 'l23'])
   })
 
-  it('terminy spoza wybranych dat nie są liczone; stary zapamiętany plan uzupełniany z nowego', async () => {
-    const { heldPerSeriesDates, seriesDatesFrom, withGroups } = await import('./planWatch')
-    const series = seriesDatesFrom([
-      { id: '777-102', data: { fromWeekday: 2, dates: { kind: 'range', from: '2026-11-01', to: '2026-11-30', weeks: 'odd' } } },
-      { id: 'inna-1', data: { room: '200' } }, // zmiana bez wyboru dat - pomijana
-    ])
-    expect([...series.keys()]).toEqual(['777-102'])
-    // 10.11 i 17.11 to wtorki; tydzień 7 nieparzysty, 8 parzysty.
-    const odd = lesson('x', 10, 12, { unitId: '777', groupNumber: 102, week: 7 })
-    const even = lesson('y', 17, 12, { unitId: '777', groupNumber: 102, week: 8 })
-    expect(heldPerSeriesDates(odd, series)).toBe(true)
-    expect(heldPerSeriesDates(even, series)).toBe(false)
-    expect(heldPerSeriesDates(lesson('z', 17, 12), series)).toBe(true) // bez danych grupy - jak zwykle
+  // 10.11 i 17.11 to wtorki (tydz. 7 nieparzysty, 8 parzysty), 11.11 środa.
+  const groupLab = (id: string, d: number, week: number) => lesson(id, d, 12, { type: 'LAB', unitId: '777', groupNumber: 102, week })
+  const plan = [groupLab('x', 10, 7), lesson('w1', 11, 10, { week: 7 }), lesson('w2', 12, 10, { week: 7 }), groupLab('y', 17, 8)]
+  const edits = parsePlanEdits({
+    // Grupa laboratoryjna: sala 200 i tylko nieparzyste tygodnie listopada.
+    seriesEdits: [
+      {
+        id: '777-102',
+        data: { room: '200', fromWeekday: 2, dates: { kind: 'range', from: '2026-11-01', to: '2026-11-30', weeks: 'odd' } },
+      },
+    ],
+    // Jeden wykład przeniesiony na 11:00 do sali 5, drugi odwołany ręcznie.
+    meetingEdits: [
+      { id: 'w1', data: { note: 'kolokwium', override: { startTime: '11:00', room: '5' } } },
+      { id: 'w2', data: { note: '', override: { cancelled: true } } },
+    ],
+    // Własne konsultacje w czwartki parzystych tygodni (19.11 to tydz. 8).
+    customMeetings: [
+      {
+        id: 'k',
+        data: { courseName: 'Konsultacje', type: 'KON', date: '2026-11-12', startTime: '16:00', endTime: '17:00', room: '9', repeatWeeklyUntil: '2026-11-30', weeks: 'even' },
+      },
+    ],
+  })
 
-    // Stary plan (bez grupy) przed porównaniem dostaje grupę z nowego - bez fałszywego "odwołane".
-    const old = [lesson('y', 17, 12)]
-    const fresh = [even]
-    const changes = diffPlans(
-      withGroups(old, fresh).filter((m) => heldPerSeriesDates(m, series)),
-      fresh.filter((m) => heldPerSeriesDates(m, series)),
-      new Date(2026, 10, 9, 12, 0),
-      at(30, 0),
+  it('nakłada zmiany grupy, pojedynczych zajęć i własne zajęcia (tydzień semestru z zapamiętanego planu)', () => {
+    const seen = withEdits(plan, edits)
+    const show = (m: WatchedMeeting) => [m.id, new Date(m.start).getDate(), new Date(m.start).getHours(), m.room, m.cancelled]
+    expect(seen.map(show)).toEqual([
+      ['x', 10, 12, '200', false],
+      ['w1', 11, 11, '5', false],
+      ['w2', 12, 10, '014', true],
+      ['custom:k:2026-11-19', 19, 16, '9', false],
+    ])
+    // Plan dnia bez ręcznie odwołanych; przypomnienie z salą i godziną po zmianie.
+    expect(classesOn(seen, new Date(2026, 10, 12, 7, 0))).toEqual([])
+    expect(firstClassText(classesOn(seen, new Date(2026, 10, 11, 7, 0))[0], label, new Date(2026, 10, 11, 10, 30))).toEqual({
+      title: 'Za 30 min: Radiologia',
+      body: '11:00–11:45 · s. 5',
+    })
+  })
+
+  it('zmiana w USOS tam, gdzie i tak jest ręczna zmiana - bez powiadomienia; reszta jak zwykle', () => {
+    const now = new Date(2026, 10, 9, 12, 0)
+    // USOS: inna sala wykładu w1 (u nas i tak sala 5) i inna godzina laboratorium x.
+    const next = plan.map((m) =>
+      m.id === 'w1' ? { ...m, room: '300' } : m.id === 'x' ? { ...m, start: m.start + 60 * 60 * 1000, end: m.end + 60 * 60 * 1000 } : m,
     )
-    expect(changes).toEqual([])
+    const changes = diffPlans(withEdits(plan, edits), withEdits(next, edits), now, at(30, 0))
+    expect(changes.map((c) => [c.kind, 'after' in c ? c.after.id : c.before.id])).toEqual([['moved', 'x']])
+    // Stary plan (bez grupy) przed porównaniem dostaje grupę z nowego - tydzień parzysty nie wraca jako odwołany.
+    const old = plan.map(({ unitId: _u, groupNumber: _g, week: _w, ...m }) => m)
+    expect(diffPlans(withEdits(withGroups(old, plan), edits), withEdits(plan, edits), now, at(30, 0))).toEqual([])
+  })
+
+  it('usunięte z planu: zajęcia z USOS według typu z Planera, własne według swojego typu', () => {
+    const seen = withEdits(plan, edits)
+    expect(withoutHidden(seen, [{ course: 'Radiologia', type: 'LAB' }]).map((m) => m.id)).toEqual(['w1', 'w2', 'custom:k:2026-11-19'])
+    expect(withoutHidden(seen, [{ course: 'Konsultacje', type: null }]).map((m) => m.id)).toEqual(['x', 'w1', 'w2'])
   })
 })

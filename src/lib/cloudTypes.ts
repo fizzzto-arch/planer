@@ -48,6 +48,10 @@ export const COLLECTION_NAMES = [
 ] as const
 export type CollectionName = (typeof COLLECTION_NAMES)[number]
 
+// Ręczne zmiany planu: każdy zapis zostawia też znacznik w users/{uid} (planEditsAt). Serwer powiadomień
+// czyta je dopiero, gdy znacznik się zmieni - bez czytania wszystkich zmian co kwadrans.
+export const PLAN_EDIT_COLLECTIONS: readonly CollectionName[] = ['meetingEdits', 'seriesEdits', 'customMeetings']
+
 export interface CloudDoc {
   id: string
   data: Record<string, unknown>

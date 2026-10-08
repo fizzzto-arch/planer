@@ -1,8 +1,9 @@
-// Nakładanie ręcznych zmian i własnych zajęć na plan z USOS.
-import { matchesClassDates, parityMatches, weekNumbers, type WeekOf } from './classDates'
-import { addDays, parseDateKey, startOfDay, toDateKey, toTimeKey, withTime } from './dates'
-import { seriesKey, type Extras, type MeetingOverride, type SeriesEdit } from './extras'
-import type { Meeting } from './usos'
+// Nakładanie ręcznych zmian i własnych zajęć na plan z USOS. Używa go też serwer powiadomień
+// (Node, scripts/send-reminders.ts) - importy wykonywalne tylko z .ts.
+import { matchesClassDates, parityMatches, weekNumbers, type WeekOf } from './classDates.ts'
+import { addDays, parseDateKey, startOfDay, toDateKey, toTimeKey, withTime } from './dates.ts'
+import { seriesKey, type CustomMeeting, type MeetingOverride, type PlanEdits, type SeriesEdit } from './planEdits.ts'
+import type { Meeting } from './usos.ts'
 
 export interface PlanMeeting extends Meeting {
   edited: boolean // zmienione ręcznie względem USOS
@@ -49,7 +50,7 @@ export function applyChange<T extends Pick<Meeting, 'start' | 'end' | 'room'>>(m
 
 // Dni własnych zajęć: wybrane dni albo co tydzień od pierwszych do "do kiedy" (też tylko parzyste
 // albo nieparzyste tygodnie semestru), albo jeden dzień.
-export function customMeetingDays(c: Extras['customMeetings'][number], weekOf: WeekOf): Date[] {
+export function customMeetingDays(c: CustomMeeting, weekOf: WeekOf): Date[] {
   if (c.dates && c.dates.length > 0) return c.dates.flatMap((d) => parseDateKey(d) ?? [])
   const first = parseDateKey(c.date)
   if (!first) return []
@@ -64,7 +65,7 @@ export function customMeetingDays(c: Extras['customMeetings'][number], weekOf: W
   return days
 }
 
-function expandCustomMeetings(customs: Extras['customMeetings'], weekOf: WeekOf): Meeting[] {
+function expandCustomMeetings(customs: CustomMeeting[], weekOf: WeekOf): Meeting[] {
   const out: Meeting[] = []
   for (const c of customs) {
     for (const day of customMeetingDays(c, weekOf)) {
@@ -88,7 +89,7 @@ function expandCustomMeetings(customs: Extras['customMeetings'], weekOf: WeekOf)
 }
 
 // Zajęcia z USOS, których według zmiany grupy nie ma (np. laboratorium tylko w wybrane tygodnie).
-function heldPerSeries(m: Meeting, seriesEdits: Extras['seriesEdits'], weekOf: WeekOf): boolean {
+function heldPerSeries(m: Meeting, seriesEdits: PlanEdits['seriesEdits'], weekOf: WeekOf): boolean {
   const key = seriesKey(m)
   const series = key ? seriesEdits.get(key) : undefined
   if (!series?.dates) return true
@@ -96,12 +97,9 @@ function heldPerSeries(m: Meeting, seriesEdits: Extras['seriesEdits'], weekOf: W
   return matchesClassDates(series.dates, m.start, weekOf)
 }
 
-export function applyEdits(
-  meetings: Meeting[],
-  extras: Pick<Extras, 'meetingEdits' | 'seriesEdits' | 'customMeetings'>,
-): PlanMeeting[] {
-  // Numery tygodni (parzyste/nieparzyste) z planu z USOS - jak "tydzień 2 · parzysty" w Planerze.
-  const weekOf = weekNumbers(meetings)
+// weekOf: numery tygodni (parzyste/nieparzyste) - domyślnie z planu z USOS, jak "tydzień 2 · parzysty"
+// w Planerze; serwer, który zna tylko najbliższe tygodnie, podaje je z zapamiętanego planu.
+export function applyEdits(meetings: Meeting[], extras: PlanEdits, weekOf: WeekOf = weekNumbers(meetings)): PlanMeeting[] {
   const customs = expandCustomMeetings(extras.customMeetings, weekOf)
   const all = [...meetings.filter((m) => heldPerSeries(m, extras.seriesEdits, weekOf)), ...customs]
 
@@ -152,7 +150,7 @@ export interface MeetingFormValues {
 }
 
 // Zajęcia ze zmianą serii, ale bez zmiany pojedynczej - punkt odniesienia dla formularza.
-export function seriesBase(original: Meeting, extras: Pick<Extras, 'seriesEdits'>): Meeting {
+export function seriesBase(original: Meeting, extras: Pick<PlanEdits, 'seriesEdits'>): Meeting {
   return applyEdits([original], { seriesEdits: extras.seriesEdits, meetingEdits: new Map(), customMeetings: [] })[0]
 }
 

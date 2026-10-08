@@ -18,20 +18,22 @@ import {
   daySummaryText,
   diffPlans,
   firstClassText,
-  heldPerSeriesDates,
   looksBroken,
-  seriesDatesFrom,
   snapshotPlan,
+  withEdits,
   withGroups,
+  withoutHidden,
   type WatchedMeeting,
 } from '../src/lib/planWatch.ts'
+import { parsePlanEdits, type PlanEdits } from '../src/lib/planEdits.ts'
+import { startOfDay } from '../src/lib/dates.ts'
 import { isAutoReport } from '../src/lib/feedback.ts'
 import { NOTIFICATION_KEEP_DAYS, type NotificationKind } from '../src/lib/notifications.ts'
 import { USOSWEB_PERSON_URL, isPersonId, parsePersonPage } from '../src/lib/usosPeople.ts'
 import { translate, type Language } from '../src/lib/i18n.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
-import { isHiddenUsosClass, parseHiddenClasses } from '../src/lib/hiddenClasses.ts'
+import { parseHiddenClasses } from '../src/lib/hiddenClasses.ts'
 
 // Język powiadomień: z ustawień odbiorcy (brak = polski, jak przed wersją angielską).
 function userLanguage(prefs: DocumentData): Language {
@@ -283,23 +285,28 @@ async function planNotices(
   const wantFirst = prefs.beforeFirstClass === true
   if (!wantChanges && !wantMorning && !wantFirst) return []
 
-  // Zajęcia usunięte przez użytkownika z planu - całe przedmioty albo terminy spoza wybranych dat grupy
-  // (np. laboratorium tylko w tyg. 10-14) - bez powiadomień o nich. Zapamiętany plan zostaje pełny,
-  // żeby po przywróceniu nie wyglądały na nowe.
+  // Powiadomienia mówią to samo co plan w Planerze: z ręcznymi zmianami (sala, godziny, odwołane, wybrane
+  // daty grupy), z własnymi zajęciami i bez usuniętych z planu. Zapamiętany plan z USOS zostaje bez zmian
+  // (do porównania z nową wersją), a plan "jak w Planerze" (seen) liczymy od nowa tylko po pobraniu planu
+  // albo gdy użytkownik coś zmienił (znacznik planEditsAt w users/{uid}) - bez czytania zmian co kwadrans.
   const hidden = parseHiddenClasses(prefs.hiddenClasses)
-  const series = seriesDatesFrom(
-    (await db.collection(`users/${uid}/seriesEdits`).get()).docs.map((d) => ({ id: d.id, data: d.data() })),
-  )
-  const visible = (list: WatchedMeeting[]) =>
-    list.filter((m) => !isHiddenUsosClass(hidden, m.course, m.type) && heldPerSeriesDates(m, series))
+  const user = await db.doc(`users/${uid}`).get()
+  const editsAt = millis(user.get('planEditsAt'))
+  let edits: PlanEdits | null = null
+  const loadEdits = async () => (edits ??= await readPlanEdits(uid))
 
   const ref = db.doc(`planWatch/${uid}`)
-  const watch = (await ref.get()).data() as { plan?: WatchedMeeting[]; until?: number; checkedAt?: number } | undefined
+  const watch = (await ref.get()).data() as
+    | { plan?: WatchedMeeting[]; until?: number; checkedAt?: number; seen?: WatchedMeeting[]; editsAt?: number | null }
+    | undefined
   let plan = watch?.plan ?? null
+  let until = watch?.until ?? now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000
+  let seen = watch?.seen ?? null
+  let refreshed = false
   const notices: Notice[] = []
 
   if (!watch?.checkedAt || now.getTime() - watch.checkedAt >= WATCH_EVERY_MS) {
-    const url = (await db.doc(`users/${uid}`).get()).get('icalUrl')
+    const url = user.get('icalUrl')
     if (typeof url === 'string' && url.startsWith('https://')) {
       try {
         const response = await fetch(url)
@@ -309,11 +316,18 @@ async function planNotices(
         const broken = plan !== null && watch?.until !== undefined && looksBroken(plan, next, now, watch.until)
         if (!broken) {
           if (plan && watch?.until && wantChanges) {
-            const changes = diffPlans(visible(withGroups(plan, next)), visible(next), now, watch.until)
+            const e = await loadEdits()
+            const changes = diffPlans(
+              withoutHidden(withEdits(withGroups(plan, next), e), hidden),
+              withoutHidden(withEdits(next, e), hidden),
+              now,
+              watch.until,
+            )
             if (changes.length > 0) notices.push({ ...changesText(changes, label, lang), tag: `plan-${now.getTime()}`, kind: 'plan' })
           }
           plan = next
-          await ref.set({ plan: next, until: now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000, checkedAt: now.getTime() })
+          until = now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000
+          refreshed = true
         }
       } catch (e) {
         console.log(`::warning::Nie udało się pobrać planu z USOS: ${(e as Error).message}`)
@@ -321,8 +335,18 @@ async function planNotices(
     }
   }
   if (!plan) return notices
+  if (refreshed || !seen || (watch?.editsAt ?? null) !== editsAt) {
+    // Własne zajęcia tylko w oknie zapamiętanego planu (cotygodniowe sięgają nawet końca semestru),
+    // od początku dnia - jak sam plan (snapshotPlan).
+    const from = startOfDay(now).getTime()
+    seen = withEdits(plan, await loadEdits()).filter((m) => m.end > from && m.start < until)
+    await ref.set(
+      refreshed ? { plan, until, checkedAt: now.getTime(), seen, editsAt } : { seen, editsAt },
+      { merge: true },
+    )
+  }
 
-  const today = classesOn(visible(plan), now)
+  const today = classesOn(withoutHidden(seen, hidden), now)
   if (today.length === 0) return notices
   const dateKey = now.toDateString().replace(/\s+/g, '-')
   const last = today.reduce((a, b) => (b.end > a.end ? b : a))
@@ -338,6 +362,23 @@ async function planNotices(
     notices.push({ ...firstClassText(first, label, now, lang), tag: `first-${first.id}`, kind: 'first' })
   }
   return notices
+}
+
+// Ręczne zmiany planu użytkownika (te same dokumenty i odczyt co w Planerze).
+async function readPlanEdits(uid: string): Promise<PlanEdits> {
+  const docs = async (name: string) =>
+    (await db.collection(`users/${uid}/${name}`).get()).docs.map((d) => ({ id: d.id, data: d.data() }))
+  const [meetingEdits, seriesEdits, customMeetings] = await Promise.all([
+    docs('meetingEdits'),
+    docs('seriesEdits'),
+    docs('customMeetings'),
+  ])
+  return parsePlanEdits({ meetingEdits, seriesEdits, customMeetings })
+}
+
+// Znacznik czasu z bazy (Timestamp) jako liczba ms; brak - null.
+function millis(value: unknown): number | null {
+  return value && typeof (value as { toMillis?: unknown }).toMillis === 'function' ? (value as { toMillis(): number }).toMillis() : null
 }
 
 // Dziennik wysłanych: create() nie nadpisuje, więc każde powiadomienie idzie najwyżej raz,

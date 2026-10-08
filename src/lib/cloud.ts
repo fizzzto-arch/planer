@@ -38,9 +38,10 @@ import {
   serverTimestamp,
   setDoc,
   where,
+  writeBatch,
   type Firestore,
 } from 'firebase/firestore'
-import { COLLECTION_NAMES, type AccessStatus, type Cloud } from './cloudTypes'
+import { COLLECTION_NAMES, PLAN_EDIT_COLLECTIONS, type AccessStatus, type Cloud, type CollectionName } from './cloudTypes'
 import type { PersonInfo } from './usosPeople'
 
 // Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
@@ -87,6 +88,18 @@ function parseAccessStatus(value: unknown): AccessStatus | null {
 // Po kliknięciu linku w mailu Firebase pokazuje przycisk powrotu do Planera.
 function verificationSettings() {
   return { url: window.location.origin + window.location.pathname }
+}
+
+// Zapis (data) albo usunięcie (null) dokumentu użytkownika. Zmiana planu idzie razem ze znacznikiem
+// w users/{uid} - po nim serwer powiadomień poznaje, że ma wczytać zmiany od nowa.
+function writeItem(db: Firestore, uid: string, name: CollectionName, id: string, data: Record<string, unknown> | null) {
+  const ref = doc(db, 'users', uid, name, id)
+  if (!PLAN_EDIT_COLLECTIONS.includes(name)) return data ? setDoc(ref, data) : deleteDoc(ref)
+  const batch = writeBatch(db)
+  if (data) batch.set(ref, data)
+  else batch.delete(ref)
+  batch.set(doc(db, 'users', uid), { planEditsAt: serverTimestamp() }, { merge: true })
+  return batch.commit()
 }
 
 async function wrap(task: () => Promise<unknown>): Promise<void> {
@@ -299,10 +312,9 @@ function createCloud(config: FirebaseOptions): Cloud {
       )
     },
 
-    setItem: (uid, name, id, data) =>
-      wrap(() => setDoc(doc(db, 'users', uid, name, id), { ...data, updatedAt: serverTimestamp() })),
+    setItem: (uid, name, id, data) => wrap(() => writeItem(db, uid, name, id, { ...data, updatedAt: serverTimestamp() })),
 
-    deleteItem: (uid, name, id) => wrap(() => deleteDoc(doc(db, 'users', uid, name, id))),
+    deleteItem: (uid, name, id) => wrap(() => writeItem(db, uid, name, id, null)),
 
     newId: () => doc(collection(db, '_')).id,
 
