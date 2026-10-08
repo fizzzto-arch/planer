@@ -19,6 +19,12 @@ describe('liczba zajęć zamiast daty końca', () => {
     expect(weeklyCount('2026-10-21', '2026-11-25', 'even', weekOf)).toBe(3)
   })
 
+  it('grupa z USOS: liczone od najbliższego dnia jej zajęć', () => {
+    // Laboratorium we wtorki; od środy 14.10 - pierwsze 20.10, trzecie 3.11.
+    expect(nthWeeklyDate('2026-10-14', 3, 'all', weekOf, 2)).toBe('2026-11-03')
+    expect(weeklyCount('2026-10-14', '2026-11-03', 'all', weekOf, 2)).toBe(3)
+  })
+
   it('błędne dane - bez daty', () => {
     expect(nthWeeklyDate('', 3, 'all', weekOf)).toBeNull()
     expect(nthWeeklyDate('2026-10-21', 0, 'all', weekOf)).toBeNull()

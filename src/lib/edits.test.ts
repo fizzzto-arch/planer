@@ -194,6 +194,25 @@ describe('kiedy zajęcia naprawdę są (grupa z USOS i własne zajęcia)', () =>
     expect(days(applyEdits(fridays, edits))).toEqual([9, 23])
   })
 
+  it('co tydzień od–do: także tygodnie, w których USOS zajęć nie ma (np. laboratorium w USOS dopiero od listopada)', () => {
+    // W USOS piątki od 6.11 do 4.12; naprawdę od teraz (8.10) do 6.11.
+    const usos = [37, 44, 51, 58, 65].map((day, i) => lab(`n${i}`, day))
+    const edits = extras({
+      seriesEdits: new Map([
+        ['543976-102', { id: '543976-102', room: null, startTime: null, endTime: null, fromWeekday: 5, dates: { kind: 'range', from: '2026-10-08', to: '2026-11-06', weeks: 'all' } }],
+      ]),
+      meetingEdits: new Map([['n0', { id: 'n0', note: 'sprawozdanie', override: null }]]),
+    })
+    const held = applyEdits(usos, edits)
+    expect(days(held)).toEqual([9, 16, 23, 30, 6])
+    // Dorobione na wzór grupy (godziny, sala); termin z USOS 6.11 zostaje z notatką.
+    expect(held[0]).toMatchObject({ id: 'series:543976-102:2026-10-09', room: '416', edited: true, original: null })
+    expect(held[0].start.getHours()).toBe(14)
+    expect(held[4]).toMatchObject({ id: 'n0', note: 'sprawozdanie' })
+    // Bez żadnych zajęć tej grupy w planie (np. zmiana grupy w USOS) - nic się nie dorabia.
+    expect(applyEdits([], edits)).toEqual([])
+  })
+
   it('grupa z USOS tylko w wybrane dni; zajęcia z innego dnia tygodnia bez zmian', () => {
     const monday = lab('pon', 12)
     const edits = extras({

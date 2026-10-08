@@ -164,7 +164,14 @@ export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }:
         )}
 
         {scope === 'series' && (
-          <ClassDatesField draft={dates} onChange={setDates} allLabel={t('Wszystkie z USOS')} choices={seriesDates} weekOf={weekOf} />
+          <ClassDatesField
+            draft={dates}
+            onChange={setDates}
+            allLabel={t('Wszystkie z USOS')}
+            choices={seriesDates}
+            weekOf={weekOf}
+            weekday={weekday}
+          />
         )}
 
         {scope === 'single' && (

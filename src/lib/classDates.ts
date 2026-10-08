@@ -62,10 +62,18 @@ export function parseClassDates(raw: unknown): ClassDates | null {
 // Najwięcej tygodni, które liczymy w przód (jak powtarzanie własnych zajęć).
 const MAX_WEEKS = 60
 
+// Pierwszy dzień zajęć od "from": ten sam dzień albo - dla grupy, która ma zajęcia w konkretny dzień
+// tygodnia (weekday: 1 = poniedziałek) - najbliższy taki dzień.
+function firstClassDay(from: string, weekday?: number): Date | null {
+  const day = parseDateKey(from)
+  if (!day || !weekday) return day
+  return addDays(day, (weekday - (((day.getDay() + 6) % 7) + 1) + 7) % 7)
+}
+
 // Dzień N-tych zajęć co tydzień od "from" - liczone są tylko wybrane tygodnie (parzyste/nieparzyste).
 // "Na 5 zajęć" zamiast samemu liczyć datę końca. null - tylu zajęć się nie da (np. poza semestrem).
-export function nthWeeklyDate(from: string, count: number, weeks: WeekParity, weekOf: WeekOf): string | null {
-  const first = parseDateKey(from)
+export function nthWeeklyDate(from: string, count: number, weeks: WeekParity, weekOf: WeekOf, weekday?: number): string | null {
+  const first = firstClassDay(from, weekday)
   if (!first || !Number.isInteger(count) || count < 1) return null
   let found = 0
   for (let i = 0; i < MAX_WEEKS; i++) {
@@ -76,8 +84,8 @@ export function nthWeeklyDate(from: string, count: number, weeks: WeekParity, we
 }
 
 // Ile zajęć wypada co tydzień od "from" do "to" (włącznie) w wybranych tygodniach.
-export function weeklyCount(from: string, to: string, weeks: WeekParity, weekOf: WeekOf): number {
-  const first = parseDateKey(from)
+export function weeklyCount(from: string, to: string, weeks: WeekParity, weekOf: WeekOf, weekday?: number): number {
+  const first = firstClassDay(from, weekday)
   const last = parseDateKey(to)
   if (!first || !last || last < first) return 0
   let count = 0

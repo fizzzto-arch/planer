@@ -420,6 +420,27 @@ test('daty zajęć: grupa z USOS tylko w nieparzyste tygodnie z zakresu, potem p
   await expect(page.getByText(/Następne zajęcia: Piątek, 16 października/)).toBeVisible()
 })
 
+test('daty zajęć: grupa z USOS od teraz na 3 zajęcia - także w tygodnie, w których USOS ich nie ma', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  // Laboratorium we wtorki co dwa tygodnie (w USOS: 20.10, 3.11, 17.11...).
+  await page.locator('.course-meetings .card').first().locator('summary').click()
+  await page.getByRole('button', { name: 'Zmień', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Zmień zajęcia' })
+  await dialog.getByRole('radio', { name: 'Cała grupa' }).click()
+  await dialog.getByRole('radio', { name: 'Co tydzień od–do' }).click()
+  await dialog.getByLabel('Od dnia').fill('2026-10-14')
+  // Liczone od najbliższego wtorku: 20.10, 27.10, 3.11.
+  await dialog.getByLabel(/^Liczba zajęć/).fill('3')
+  await expect(dialog.getByLabel('Do dnia (włącznie)')).toHaveValue('2026-11-03')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+  for (const day of ['Wtorek, 20 października', 'Wtorek, 27 października', 'Wtorek, 3 listopada']) {
+    await expect(page.locator('.course-meetings').getByText(day)).toBeVisible()
+  }
+  await expect(page.locator('.course-meetings .card')).toHaveCount(3)
+})
+
 test('daty zajęć: własne zajęcia w wybrane dni', async ({ page }) => {
   await tab(page, 'Przedmioty').click()
   await page.locator('.course-row', { hasText: 'Fizyka' }).click()

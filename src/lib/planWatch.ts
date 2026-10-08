@@ -3,7 +3,7 @@
 // Bez importów wykonywalnych - używa go skrypt w Node (scripts/send-reminders.ts).
 import { weekNumbers, type WeekOf } from './classDates.ts'
 import { startOfDay, startOfWeek } from './dates.ts'
-import { CUSTOM_ID_PREFIX, applyEdits } from './edits.ts'
+import { CUSTOM_ID_PREFIX, applyEdits, weekdayOf } from './edits.ts'
 import type { PlanEdits } from './planEdits.ts'
 import { isHiddenClass, isHiddenUsosClass, type HiddenClass } from './hiddenClasses.ts'
 import { msg, pluralIn, translate, type Language } from './i18n.ts'
@@ -35,20 +35,37 @@ export function snapshotPlan(meetings: Meeting[], now: Date, days = WATCH_DAYS):
   const until = now.getTime() + days * 24 * 60 * 60 * 1000
   // Numer tygodnia liczony z całego planu (zapamiętujemy tylko najbliższe tygodnie - z nich by się nie dało).
   const weekOf = weekNumbers(meetings)
-  return meetings
-    .filter((m) => m.end.getTime() > from && m.start.getTime() < until)
-    .map((m) => ({
-      id: m.id,
-      course: m.courseName,
-      type: m.type,
-      start: m.start.getTime(),
-      end: m.end.getTime(),
-      room: m.room,
-      cancelled: m.cancelled,
-      unitId: m.unitId,
-      groupNumber: m.groupNumber,
-      week: weekOf(m.start),
-    }))
+  return meetings.filter((m) => m.end.getTime() > from && m.start.getTime() < until).map((m) => watched(m, weekOf))
+}
+
+function watched(m: Meeting, weekOf: WeekOf): WatchedMeeting {
+  return {
+    id: m.id,
+    course: m.courseName,
+    type: m.type,
+    start: m.start.getTime(),
+    end: m.end.getTime(),
+    room: m.room,
+    cancelled: m.cancelled,
+    unitId: m.unitId,
+    groupNumber: m.groupNumber,
+    week: weekOf(m.start),
+  }
+}
+
+// Wzory grup z całego planu: jedne zajęcia na grupę i dzień tygodnia (najbliższe, a gdy już były -
+// ostatnie). Zapamiętujemy tylko najbliższe tygodnie, a "co tydzień od–do" dorabia terminy także grupie,
+// której zajęcia w USOS są dopiero później (np. laboratorium od listopada, a naprawdę od teraz).
+export function snapshotPatterns(meetings: Meeting[], now: Date): WatchedMeeting[] {
+  const weekOf = weekNumbers(meetings)
+  const byGroup = new Map<string, Meeting>()
+  for (const m of [...meetings].sort((a, b) => a.start.getTime() - b.start.getTime())) {
+    if (!m.unitId || m.groupNumber === null) continue
+    const key = `${m.unitId}-${m.groupNumber}|${weekdayOf(m.start)}`
+    const known = byGroup.get(key)
+    if (!known || known.start.getTime() < now.getTime()) byGroup.set(key, m)
+  }
+  return [...byGroup.values()].map((m) => watched(m, weekOf))
 }
 
 // Plan zapamiętany przed dodaniem grupy i tygodnia: uzupełniamy je z nowej wersji (te same id zajęć) -
@@ -74,9 +91,9 @@ export function snapshotWeekOf(plan: WatchedMeeting[]): WeekOf {
 
 // Plan tak, jak widać go w Planerze: z ręcznymi zmianami (sala, godziny, dzień, odwołane, wybrane daty
 // grupy) i z własnymi zajęciami - powiadomienia mówią to samo co plan na ekranie.
-export function withEdits(plan: WatchedMeeting[], edits: PlanEdits): WatchedMeeting[] {
+export function withEdits(plan: WatchedMeeting[], edits: PlanEdits, patterns: WatchedMeeting[] = []): WatchedMeeting[] {
   const weekOf = snapshotWeekOf(plan)
-  const meetings: Meeting[] = plan.map((m) => ({
+  const toMeeting = (m: WatchedMeeting): Meeting => ({
     id: m.id,
     courseName: m.course,
     type: m.type,
@@ -89,8 +106,8 @@ export function withEdits(plan: WatchedMeeting[], edits: PlanEdits): WatchedMeet
     unitId: m.unitId ?? null,
     usosUrl: null,
     cancelled: m.cancelled,
-  }))
-  return applyEdits(meetings, edits, weekOf).map((m) => ({
+  })
+  return applyEdits(plan.map(toMeeting), edits, weekOf, patterns.map(toMeeting)).map((m) => ({
     id: m.id,
     course: m.courseName,
     type: m.type,

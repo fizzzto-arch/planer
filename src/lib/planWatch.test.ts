@@ -179,6 +179,8 @@ describe('powiadomienia jak plan w Planerze: ręczne zmiany, własne zajęcia, u
       ['w1', 11, 11, '5', false],
       ['w2', 12, 10, '014', true],
       ['custom:k:2026-11-19', 19, 16, '9', false],
+      // Nieparzysty tydzień 9 - w USOS tego laboratorium nie ma, dorabiamy na wzór grupy.
+      ['series:777-102:2026-11-24', 24, 12, '200', false],
     ])
     // Plan dnia bez ręcznie odwołanych; przypomnienie z salą i godziną po zmianie.
     expect(classesOn(seen, new Date(2026, 10, 12, 7, 0))).toEqual([])
@@ -212,9 +214,23 @@ describe('powiadomienia jak plan w Planerze: ręczne zmiany, własne zajęcia, u
     expect(changesText(changes, label).body).toBe('Radiologia (śr. 11.11): sala 014 → online')
   })
 
+  it('co tydzień od–do na serwerze: terminy dorabiane ze wzoru grupy, gdy jej zajęć nie ma w zapamiętanych tygodniach', () => {
+    const range = parsePlanEdits({
+      seriesEdits: [{ id: '777-102', data: { fromWeekday: 2, dates: { kind: 'range', from: '2026-11-09', to: '2026-11-18', weeks: 'all' } } }],
+    })
+    // W zapamiętanych tygodniach tylko wykład; laboratorium grupy w USOS dopiero od wtorku 1.12 (wzór z całego planu).
+    const pattern = groupLab('dec', 1, 10)
+    const seen = withEdits([lesson('w1', 11, 10, { week: 7 })], range, [{ ...pattern, start: at(31, 12), end: at(31, 13, 45) }])
+    expect(seen.map((m) => [m.id, new Date(m.start).getDate()])).toEqual([
+      ['series:777-102:2026-11-10', 10],
+      ['w1', 11],
+      ['series:777-102:2026-11-17', 17],
+    ])
+  })
+
   it('usunięte z planu: zajęcia z USOS według typu z Planera, własne według swojego typu', () => {
     const seen = withEdits(plan, edits)
     expect(withoutHidden(seen, [{ course: 'Radiologia', type: 'LAB' }]).map((m) => m.id)).toEqual(['w1', 'w2', 'custom:k:2026-11-19'])
-    expect(withoutHidden(seen, [{ course: 'Konsultacje', type: null }]).map((m) => m.id)).toEqual(['x', 'w1', 'w2'])
+    expect(withoutHidden(seen, [{ course: 'Konsultacje', type: null }]).map((m) => m.id)).toEqual(['x', 'w1', 'w2', 'series:777-102:2026-11-24'])
   })
 })

@@ -19,6 +19,7 @@ import {
   diffPlans,
   firstClassText,
   looksBroken,
+  snapshotPatterns,
   snapshotPlan,
   withEdits,
   withGroups,
@@ -297,11 +298,19 @@ async function planNotices(
 
   const ref = db.doc(`planWatch/${uid}`)
   const watch = (await ref.get()).data() as
-    | { plan?: WatchedMeeting[]; until?: number; checkedAt?: number; seen?: WatchedMeeting[]; editsAt?: number | null }
+    | {
+        plan?: WatchedMeeting[]
+        until?: number
+        checkedAt?: number
+        seen?: WatchedMeeting[]
+        editsAt?: number | null
+        patterns?: WatchedMeeting[] // wzory grup z całego planu (do "co tydzień od–do")
+      }
     | undefined
   let plan = watch?.plan ?? null
   let until = watch?.until ?? now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000
   let seen = watch?.seen ?? null
+  let patterns = watch?.patterns ?? []
   let refreshed = false
   const notices: Notice[] = []
 
@@ -311,21 +320,24 @@ async function planNotices(
       try {
         const response = await fetch(url)
         if (!response.ok) throw new Error(`USOS ${response.status}`)
-        const next = snapshotPlan(parseUsosCalendar(await response.text()), now)
+        const parsed = parseUsosCalendar(await response.text())
+        const next = snapshotPlan(parsed, now)
         // Niepełna odpowiedź USOS: nie porównujemy i nie nadpisujemy - spróbujemy za kwadrans.
         const broken = plan !== null && watch?.until !== undefined && looksBroken(plan, next, now, watch.until)
         if (!broken) {
           if (plan && watch?.until && wantChanges) {
             const e = await loadEdits()
+            const fresh = snapshotPatterns(parsed, now)
             const changes = diffPlans(
-              withoutHidden(withEdits(withGroups(plan, next), e), hidden),
-              withoutHidden(withEdits(next, e), hidden),
+              withoutHidden(withEdits(withGroups(plan, next), e, fresh), hidden),
+              withoutHidden(withEdits(next, e, fresh), hidden),
               now,
               watch.until,
             )
             if (changes.length > 0) notices.push({ ...changesText(changes, label, lang), tag: `plan-${now.getTime()}`, kind: 'plan' })
           }
           plan = next
+          patterns = snapshotPatterns(parsed, now)
           until = now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000
           refreshed = true
         }
@@ -339,9 +351,9 @@ async function planNotices(
     // Własne zajęcia tylko w oknie zapamiętanego planu (cotygodniowe sięgają nawet końca semestru),
     // od początku dnia - jak sam plan (snapshotPlan).
     const from = startOfDay(now).getTime()
-    seen = withEdits(plan, await loadEdits()).filter((m) => m.end > from && m.start < until)
+    seen = withEdits(plan, await loadEdits(), patterns).filter((m) => m.end > from && m.start < until)
     await ref.set(
-      refreshed ? { plan, until, checkedAt: now.getTime(), seen, editsAt } : { seen, editsAt },
+      refreshed ? { plan, patterns, until, checkedAt: now.getTime(), seen, editsAt } : { seen, editsAt },
       { merge: true },
     )
   }

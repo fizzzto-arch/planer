@@ -9,21 +9,22 @@ interface Props {
   allLabel: string // "Wszystkie z USOS" (grupa z USOS) albo "Jednorazowo" (własne zajęcia)
   choices?: string[] // grupa z USOS: jej terminy do odznaczania; brak - dni wybiera się z kalendarza
   weekOf: WeekOf // numer tygodnia semestru - podpowiedź parzysty/nieparzysty przy dniach
+  weekday?: number // grupa z USOS: dzień tygodnia zajęć - liczba zajęć liczy się od najbliższego takiego dnia
 }
 
 // Kiedy zajęcia się odbywają: wszystkie terminy (albo jednorazowo), co tydzień od-do (z tygodniami
 // parzystymi/nieparzystymi) albo wybrane dni.
-export function ClassDatesField({ draft, onChange, allLabel, choices, weekOf }: Props) {
+export function ClassDatesField({ draft, onChange, allLabel, choices, weekOf, weekday }: Props) {
   const [picked, setPicked] = useState('')
   // Liczba zajęć w trakcie wpisywania (puste pole nie może od razu wrócić do wyliczonej liczby).
   const [countText, setCountText] = useState<string | null>(null)
   const set = (patch: Partial<DatesDraft>) => {
     const next = { ...draft, ...patch }
     // Wpisana liczba zajęć: koniec liczy się od nowa po zmianie początku albo tygodni.
-    const to = next.count ? nthWeeklyDate(next.from, next.count, draftWeeks(next), weekOf) : null
+    const to = next.count ? nthWeeklyDate(next.from, next.count, draftWeeks(next), weekOf, weekday) : null
     onChange(to ? { ...next, to } : next)
   }
-  const count = weeklyCount(draft.from, draft.to, draftWeeks(draft), weekOf)
+  const count = weeklyCount(draft.from, draft.to, draftWeeks(draft), weekOf, weekday)
   const modes: { id: DatesMode; label: string }[] = [
     { id: 'all', label: allLabel },
     { id: 'range', label: t('Co tydzień od–do') },

@@ -1,7 +1,7 @@
 // Nakładanie ręcznych zmian i własnych zajęć na plan z USOS. Używa go też serwer powiadomień
 // (Node, scripts/send-reminders.ts) - importy wykonywalne tylko z .ts.
 import { matchesClassDates, parityMatches, weekNumbers, type WeekOf } from './classDates.ts'
-import { addDays, parseDateKey, startOfDay, toDateKey, toTimeKey, withTime } from './dates.ts'
+import { addDays, parseDateKey, startOfDay, startOfWeek, toDateKey, toTimeKey, withTime } from './dates.ts'
 import { seriesKey, type CustomMeeting, type MeetingOverride, type PlanEdits, type SeriesEdit } from './planEdits.ts'
 import type { Meeting } from './usos.ts'
 
@@ -16,6 +16,8 @@ export interface PlanMeeting extends Meeting {
 const MAX_REPEATS = 60
 
 export const CUSTOM_ID_PREFIX = 'custom:'
+// Terminy grupy dorobione z "co tydzień od–do" (w USOS ich nie ma): series:{klucz grupy}:{dzień}.
+export const SERIES_ID_PREFIX = 'series:'
 
 // Dzień tygodnia: 1 = poniedziałek ... 7 = niedziela.
 export const weekdayOf = (d: Date) => ((d.getDay() + 6) % 7) + 1
@@ -91,20 +93,84 @@ function expandCustomMeetings(customs: CustomMeeting[], weekOf: WeekOf): Meeting
   return out
 }
 
-// Zajęcia z USOS, których według zmiany grupy nie ma (np. laboratorium tylko w wybrane tygodnie).
-function heldPerSeries(m: Meeting, seriesEdits: PlanEdits['seriesEdits'], weekOf: WeekOf): boolean {
-  const key = seriesKey(m)
-  const series = key ? seriesEdits.get(key) : undefined
-  if (!series?.dates) return true
-  if (series.fromWeekday && weekdayOf(m.start) !== series.fromWeekday) return true
-  return matchesClassDates(series.dates, m.start, weekOf)
+// Terminy grupy co tydzień w zakresie (np. laboratorium od teraz przez 5 tygodni) - także tam, gdzie USOS
+// ich nie ma (podaje np. laboratorium od listopada, a naprawdę jest od teraz). Termin z USOS z danego dnia
+// zostaje (z notatką i zmianami), brakujący dorabiamy na wzór zajęć grupy. Zakres i tygodnie liczą się
+// według dnia, w którym zajęcia naprawdę są (po stałej zmianie dnia tygodnia).
+function weeklyInRange(series: SeriesEdit, template: Meeting, members: Meeting[], weekOf: WeekOf): Meeting[] {
+  const range = series.dates
+  if (range?.kind !== 'range') return []
+  const from = parseDateKey(range.from)
+  const to = parseDateKey(range.to)
+  if (!from || !to) return []
+  const usosDay = weekdayOf(template.start)
+  const heldDay = series.weekday ?? usosDay
+  const byDay = new Map(members.map((m) => [toDateKey(m.start), m]))
+  const out: Meeting[] = []
+  for (let i = 0, week = startOfWeek(from); i < MAX_REPEATS && week <= to; i++, week = addDays(week, 7)) {
+    const day = addDays(week, usosDay - 1) // dzień jak w USOS - zmianę dnia nakłada potem seriesOverride
+    const held = addDays(week, heldDay - 1)
+    if (held < from || held > to || !parityMatches(range.weeks, held, weekOf)) continue
+    out.push(
+      byDay.get(toDateKey(day)) ?? {
+        ...template,
+        id: `${SERIES_ID_PREFIX}${series.id}:${toDateKey(day)}`,
+        start: withTime(day, toTimeKey(template.start)),
+        end: withTime(day, toTimeKey(template.end)),
+        cancelled: false,
+      },
+    )
+  }
+  return out
+}
+
+// Wzór do dorabiania: zajęcia grupy w najczęstszych godzinach (jednorazowe przesunięcie w USOS nie przenosi
+// dorobionych terminów), przy remisie późniejsze.
+function usualMeeting(members: Meeting[]): Meeting | undefined {
+  const hours = (m: Meeting) => `${toTimeKey(m.start)}-${toTimeKey(m.end)}`
+  const count = new Map<string, number>()
+  for (const m of members) count.set(hours(m), (count.get(hours(m)) ?? 0) + 1)
+  let best: Meeting | undefined
+  for (const m of members) if (!best || count.get(hours(m))! >= count.get(hours(best))!) best = m
+  return best
+}
+
+// Zajęcia z USOS według wybranych dat grup: "wybrane dni" - tylko te terminy z USOS, "co tydzień od–do" -
+// każdy (wybrany) tydzień zakresu (weeklyInRange). Wzór grupy spoza listy (patterns) - gdy jej terminów
+// nie ma w liście (serwer zna tylko najbliższe tygodnie planu).
+function withSeriesDates(meetings: Meeting[], seriesEdits: PlanEdits['seriesEdits'], weekOf: WeekOf, patterns: Meeting[]): Meeting[] {
+  const inRange = new Map<string, Meeting[]>() // klucz grupy -> jej terminy, których dotyczy "co tydzień od–do"
+  const applies = (m: Meeting, series: SeriesEdit) => !series.fromWeekday || weekdayOf(m.start) === series.fromWeekday
+  const out: Meeting[] = []
+  for (const m of meetings) {
+    const key = seriesKey(m)
+    const series = key ? seriesEdits.get(key) : undefined
+    if (!series?.dates || !applies(m, series)) out.push(m)
+    else if (series.dates.kind === 'dates') {
+      if (matchesClassDates(series.dates, m.start, weekOf)) out.push(m)
+    } else inRange.set(series.id, [...(inRange.get(series.id) ?? []), m])
+  }
+  for (const series of seriesEdits.values()) {
+    if (series.dates?.kind !== 'range') continue
+    const members = (inRange.get(series.id) ?? []).sort((a, b) => a.start.getTime() - b.start.getTime())
+    // Bez żadnych zajęć tej grupy w planie (np. zmiana grupy w USOS) - nic nie dorabiamy.
+    const template = usualMeeting(members) ?? patterns.find((p) => seriesKey(p) === series.id && applies(p, series))
+    if (template) out.push(...weeklyInRange(series, template, members, weekOf))
+  }
+  return out
 }
 
 // weekOf: numery tygodni (parzyste/nieparzyste) - domyślnie z planu z USOS, jak "tydzień 2 · parzysty"
-// w Planerze; serwer, który zna tylko najbliższe tygodnie, podaje je z zapamiętanego planu.
-export function applyEdits(meetings: Meeting[], extras: PlanEdits, weekOf: WeekOf = weekNumbers(meetings)): PlanMeeting[] {
+// w Planerze; serwer, który zna tylko najbliższe tygodnie, podaje je z zapamiętanego planu, a do tego
+// wzory grup z całego planu (patterns) - do dorabiania terminów "co tydzień od–do".
+export function applyEdits(
+  meetings: Meeting[],
+  extras: PlanEdits,
+  weekOf: WeekOf = weekNumbers(meetings),
+  patterns: Meeting[] = [],
+): PlanMeeting[] {
   const customs = expandCustomMeetings(extras.customMeetings, weekOf)
-  const all = [...meetings.filter((m) => heldPerSeries(m, extras.seriesEdits, weekOf)), ...customs]
+  const all = [...withSeriesDates(meetings, extras.seriesEdits, weekOf, patterns), ...customs]
 
   return all
     .map((m): PlanMeeting => {
@@ -128,12 +194,14 @@ export function applyEdits(meetings: Meeting[], extras: PlanEdits, weekOf: WeekO
       if (result.online) result = { ...result, room: null, building: null, address: null }
 
       const custom = m.id.startsWith(CUSTOM_ID_PREFIX)
+      // Dorobione z "co tydzień od–do": zmienione względem USOS, ale bez wersji z USOS do pokazania.
+      const generated = m.id.startsWith(SERIES_ID_PREFIX)
       return {
         ...result,
-        edited: edited && !custom,
+        edited: (edited || generated) && !custom,
         custom,
         note: edit?.note ?? '',
-        original: edited && !custom ? m : null,
+        original: edited && !custom && !generated ? m : null,
       }
     })
     .sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -158,7 +226,11 @@ export interface MeetingFormValues {
 
 // Zajęcia ze zmianą serii, ale bez zmiany pojedynczej - punkt odniesienia dla formularza.
 export function seriesBase(original: Meeting, extras: Pick<PlanEdits, 'seriesEdits'>): Meeting {
-  return applyEdits([original], { seriesEdits: extras.seriesEdits, meetingEdits: new Map(), customMeetings: [] })[0]
+  const key = seriesKey(original)
+  const series = seriesOverride(original.start, key ? extras.seriesEdits.get(key) : undefined)
+  if (!series) return original
+  const changed = applyChange(original, series)
+  return changed.online ? { ...changed, room: null, building: null, address: null } : changed
 }
 
 // Zapisujemy tylko pola różne od punktu odniesienia, żeby reszta dalej szła za USOS-em.
