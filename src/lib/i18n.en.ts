@@ -567,7 +567,7 @@ export const EN: Record<string, string> = {
   'Czy to oficjalna aplikacja uczelni?': 'Is this an official university app?',
   'Nie. Planer jest nieoficjalny - korzysta z Twojego linku do planu z USOSweb (PW) albo z publicznego planu grup WAT. W razie wątpliwości co do terminu zajęć rozstrzyga USOS albo plan na stronie WAT.': 'No. Planer is unofficial - it uses your timetable link from USOSweb (PW) or the public WAT group timetables. If in doubt about a class time, USOS or the timetable on the WAT website decides.',
   'Studiuję na WAT - jak dodać plan?': 'I study at WAT - how do I add my timetable?',
-  'Zamiast linku z USOS wpisz kod swojej grupy, np. WCY26IY4S1 (jest na planzajec.wcy.wat.edu.pl). Działa wszystko poza „Dobierz grupy”, które korzysta z USOS PW. Na razie tylko Wydział Cybernetyki - plany innych wydziałów WAT są w osobnych systemach. Plan odświeża się co noc, po aktualizacji planów przez WAT.': 'Instead of a USOS link, enter your group code, e.g. WCY26IY4S1 (it is on planzajec.wcy.wat.edu.pl). Everything works except “Find groups”, which uses PW’s USOS. For now only the Faculty of Cybernetics - other WAT faculties use separate systems. The timetable refreshes every night after WAT updates its timetables.',
+  'Zamiast linku z USOS wpisz kod swojej grupy, np. WCY26IY4S1 (jest na planzajec.wcy.wat.edu.pl). Działa wszystko poza „Dobierz grupy”, które korzysta z USOS PW. Na razie tylko Wydział Cybernetyki - plany innych wydziałów WAT są w osobnych systemach. Od października 2026 WAT blokuje automatyczne pobieranie planów, więc plan może być nieaktualny - datę widać pod zakładkami. Aktualny plan wgrasz sam: otwórz plan grupy na stronie WAT, zapisz stronę i wgraj ją w Planerze („Wgraj zapisaną stronę”).': 'Instead of a USOS link, enter your group code, e.g. WCY26IY4S1 (you will find it on planzajec.wcy.wat.edu.pl). Everything works except "Pick groups", which uses USOS PW. For now only the Faculty of Cybernetics - other WAT faculties have separate systems. Since October 2026 WAT blocks automatic downloading of timetables, so your timetable may be out of date - its date is shown under the tabs. You can upload a current one yourself: open your group\'s timetable on the WAT website, save the page and upload it in Planer ("Upload saved page").',
   'Czy muszę zakładać konto?': 'Do I need an account?',
   'Nie. Sam plan działa bez konta - wystarczy wkleić link z USOSweb albo kod grupy WAT. Konto przydaje się do notatek, terminów, przypomnień, wspólnych plików i do tego, żeby ten sam plan był na telefonie i komputerze.': 'No. The timetable itself works without an account - just paste the USOSweb link or a WAT group code. An account is useful for notes, deadlines, reminders, shared files and having the same timetable on your phone and computer.',
   'Czy mogę zalogować się przez Google?': 'Can I sign in with Google?',
@@ -580,7 +580,7 @@ export const EN: Record<string, string> = {
   'Jak dodać Planer do ekranu telefonu?': 'How do I add Planer to my phone’s home screen?',
   'iPhone: otwórz stronę w Safari → Udostępnij → „Do ekranu początkowego”. Android: w Chrome menu ⋮ → „Zainstaluj aplikację” albo „Dodaj do ekranu głównego”. Planer otwiera się wtedy jak zwykła aplikacja.': 'iPhone: open the page in Safari → Share → “Add to Home Screen”. Android: in Chrome, menu ⋮ → “Install app” or “Add to Home screen”. Planer then opens like a regular app.',
   'Plan się zmienił w USOS - co z Planerem?': 'My timetable changed in USOS - what about Planer?',
-  'Planer pobiera plan z USOS przy każdym otwarciu, więc zmiany pojawią się same. Twoje ręczne zmiany i notatki zostają. Stan widać pod zakładkami („Zaktualizowano…”), tam też jest „Odśwież”. Plan WAT zmienia się w Planerze następnej nocy.': 'Planer downloads the timetable from USOS every time it opens, so changes appear by themselves. Your manual changes and notes stay. The status is shown under the tabs (“Updated…”), with “Refresh” next to it. A WAT timetable changes in Planer the following night.',
+  'Planer pobiera plan z USOS przy każdym otwarciu, więc zmiany pojawią się same. Twoje ręczne zmiany i notatki zostają. Stan widać pod zakładkami („Zaktualizowano…”), tam też jest „Odśwież”. Plan WAT - zobacz pytanie o WAT.': 'Planer downloads your timetable from USOS every time you open it, so changes appear by themselves. Your manual changes and notes stay. You can see the status under the tabs ("Updated…"), with a "Refresh" button. WAT timetable - see the question about WAT.',
   'Skąd Planer wie, który tydzień jest parzysty?': 'How does Planer know which week is even?',
   'Liczy tygodnie po kolei od pierwszego tygodnia z zajęciami, także przez przerwy - tak samo, jak USOS układa zajęcia „co dwa tygodnie”. Jeśli numer nie zgadza się z kalendarzem uczelni, daj znać.': 'It counts weeks in order from the first week with classes, including breaks - the same way USOS arranges classes “every two weeks”. If the number does not match the university calendar, let us know.',
   'Nie przychodzą przypomnienia': 'Reminders do not arrive',
@@ -932,7 +932,7 @@ export const EN: Record<string, string> = {
   'Usunąć plan i zapisany link z tej przeglądarki?': 'Remove the timetable and saved link from this browser?',
   'Źródło planu': 'Timetable source',
   'Źródło': 'Source',
-  'Plan grupy {group} (WAT, odświeżany co noc)': 'Group {group} timetable (WAT, refreshed nightly)',
+  'Plan grupy {group} (WAT)': 'Group {group} timetable (WAT)',
   'Link iCal z USOS (klucz ukryty)': 'iCal link from USOS (key hidden)',
   'Plik {name}': 'File {name}',
   'W planie': 'In the timetable',
@@ -968,12 +968,24 @@ export const EN: Record<string, string> = {
   'np. Mikołaj': 'e.g. Alex',
   'Wspólne okienka znajdziesz w zakładce Tydzień.': 'You will find shared free time in the Week tab.',
 
+  // src/components/WatStatus.tsx
+  'Plan grupy {group} z WAT z {day}.': 'Group {group} timetable from WAT, as of {day}.',
+  'Plan grupy {group} z WAT.': 'Group {group} timetable from WAT.',
+  'Plan może być nieaktualny: WAT blokuje automatyczne pobieranie planów. Sprawdź go na stronie WAT albo wgraj sam - wtedy będzie aktualny.': 'The timetable may be out of date: WAT blocks automatic downloading of timetables. Check it on the WAT website or upload it yourself - then it will be current.',
+  'Plan na stronie WAT': 'Timetable on the WAT website',
+  'Wgraj zapisaną stronę': 'Upload saved page',
+  'Jak zapisać stronę?': 'How to save the page?',
+  'Otwórz plan swojej grupy na stronie WAT (przycisk wyżej).': 'Open your group\'s timetable on the WAT website (button above).',
+  'Zapisz stronę: na komputerze Ctrl+S (Mac: Cmd+S), na Androidzie w Chrome ⋮ → Pobierz, na iPhonie w Safari Udostępnij → Opcje → Archiwum WWW → Zachowaj w Plikach.': 'Save the page: on a computer Ctrl+S (Mac: Cmd+S), on Android in Chrome ⋮ → Download, on iPhone in Safari Share → Options → Web Archive → Save to Files.',
+  'Wróć tutaj, stuknij „Wgraj zapisaną stronę” i wybierz zapisany plik. Z kontem plan trafi też na Twoje inne urządzenia.': 'Come back here, tap "Upload saved page" and choose the saved file. With an account the timetable also reaches your other devices.',
+
   // src/components/SourceForm.tsx
+
   'Wklej odnośnik do planu albo wpisz kod grupy WAT.': 'Paste the timetable link or enter a WAT group code.',
   'Odnośnik powinien zaczynać się od https://': 'The link should start with https://',
   'To link do udostępniania planu (ikona „<”), a potrzebny jest link do kalendarza. W USOSweb kliknij ikonę eksportu (strzałka w górę do kreski, obok) i skopiuj „Odnośnik do planu” z okna, które się otworzy.': 'This is the link for sharing the timetable (the “<” icon), but the calendar link is needed. In USOSweb click the export icon next to it (an arrow pointing up to a line) and copy the “Odnośnik do planu” (timetable link) from the window that opens.',
   'To adres strony USOSweb. Potrzebny jest „Odnośnik do planu” z okna eksportu (krok 2).': 'This is a USOSweb page address. You need the “Odnośnik do planu” (timetable link) from the export window (step 2).',
-  'Nie mam planu grupy {watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl - plany nowych grup pojawiają się tu następnej nocy.': 'No timetable for group {watGroup}. Check the code on planzajec.wcy.wat.edu.pl - timetables of new groups appear here the following night.',
+  'Nie mam planu grupy {watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl. Jeśli jest dobry, zapisz stronę planu grupy z WAT i wgraj ją niżej.': 'No timetable for group {watGroup}. Check the code on planzajec.wcy.wat.edu.pl. If it is correct, save your group\'s timetable page from WAT and upload it below.',
   'Otwórz': 'Open',
   'Mój plan zajęć w USOSweb': 'My timetable in USOSweb',
   'Kliknij ikonę eksportu {icon} (strzałka w górę do kreski) obok nagłówka „Mój plan zajęć” - nie ikonę udostępniania „<”.': 'Click the export icon {icon} (an arrow pointing up to a line) next to the timetable heading - not the “<” share icon.',
@@ -984,7 +996,7 @@ export const EN: Record<string, string> = {
   'Wczytaj plan': 'Load timetable',
   'Link działa jak hasło do Twojego planu. Jest zapisywany tylko w tej przeglądarce, a plan odświeża się sam przy każdym otwarciu strony.': 'The link works like a password to your timetable. It is saved only in this browser, and the timetable refreshes by itself every time you open the page.',
   'albo': 'or',
-  'Wgraj plik .ics': 'Upload an .ics file',
+  'Wgraj plik (.ics albo strona planu WAT)': 'Upload a file (.ics or a WAT timetable page)',
 
   // src/components/StaffSection.tsx
   'Prowadzący': 'Teachers',
@@ -1056,6 +1068,7 @@ export const EN: Record<string, string> = {
   'Brak połączenia.': 'No connection.',
 
   // src/hooks/usePlan.ts
+  'To nie jest zapisana strona planu grupy z planzajec.wcy.wat.edu.pl.': 'This is not a saved group timetable page from planzajec.wcy.wat.edu.pl.',
   'Nie udało się pobrać planu. Sprawdź internet.': 'Could not download the timetable. Check your internet connection.',
   'Nie udało się połączyć z USOS. Sprawdź internet.': 'Could not connect to USOS. Check your internet connection.',
   'Nie mam planu grupy {group} (błąd {status}).': 'No timetable for group {group} (error {status}).',

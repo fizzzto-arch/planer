@@ -148,3 +148,81 @@ export function watPlanUrl(group: string, base: string): string {
 export function watGroupFromUrl(url: string): string | null {
   return /\/wat\/(WCY[A-Z0-9]+)\.ics(?:$|\?)/.exec(url)?.[1] ?? null
 }
+
+// Z kiedy jest plan w kalendarzu Planera (X-PLANER-WAT-UPDATED, czas wygenerowania planów przez WAT).
+export function watUpdatedFromIcs(ics: string): string | null {
+  return /^X-PLANER-WAT-UPDATED:(.+?)\r?$/m.exec(ics)?.[1].trim() ?? null
+}
+
+// "2026-10-05 00:40:17" -> data (czas polski, jak na stronie WAT); null - nieczytelne.
+export function parseWatTimestamp(value: string | null | undefined): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?/.exec(value ?? '')
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0)) : null
+}
+
+// Plan WAT wgrany ze strony zapisanej przez studenta - na koncie (users/{uid}/settings/watPlan), żeby
+// trafił też na inne urządzenia i do powiadomień.
+export interface SharedWatPlan {
+  group: string
+  updatedAt: string // z kiedy jest plan (WAT), "2026-10-12 00:40:11"
+  ics: string
+}
+
+export function parseSharedWatPlan(raw: Record<string, unknown> | undefined): SharedWatPlan | null {
+  if (!raw || typeof raw.group !== 'string' || typeof raw.updatedAt !== 'string' || typeof raw.ics !== 'string') return null
+  return { group: raw.group, updatedAt: raw.updatedAt, ics: raw.ics }
+}
+
+// ---------- Strona planu zapisana przez studenta ----------
+// WAT blokuje automatyczne pobieranie, ale student widzi swój plan w przeglądarce - może zapisać stronę
+// i wgrać ją do Planera: komputer - .html (Ctrl+S), Android - .mhtml ("Pobierz"), iPhone - archiwum Safari.
+
+const utf8 = (bytes: number[]) => new TextDecoder('utf-8').decode(new Uint8Array(bytes))
+
+function decodeQuotedPrintable(text: string): string {
+  const bytes: number[] = []
+  const body = text.replace(/=\r?\n/g, '') // miękkie złamania linii
+  for (let i = 0; i < body.length; i++) {
+    const hex = body[i] === '=' ? /^[0-9A-Fa-f]{2}/.exec(body.slice(i + 1, i + 3)) : null
+    if (hex) {
+      bytes.push(parseInt(hex[0], 16))
+      i += 2
+    } else {
+      const code = body.charCodeAt(i)
+      if (code < 0x80) bytes.push(code)
+      else bytes.push(...new TextEncoder().encode(body[i]))
+    }
+  }
+  return utf8(bytes)
+}
+
+// Sam HTML strony z pliku: .mhtml - część text/html (zwykle quoted-printable), inne - od <html do </html>.
+export function htmlFromSavedPage(text: string): string {
+  const mime = /Content-Type:\s*text\/html[^\r\n]*\r?\n((?:[^\r\n]+\r?\n)*?)\r?\n([\s\S]*?)(?:\r?\n--[^\r\n]+|$)/i.exec(text)
+  if (/^MIME-Version:/im.test(text.slice(0, 2000)) && mime) {
+    const headers = mime[1]
+    const body = mime[2]
+    if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(headers)) return decodeQuotedPrintable(body)
+    if (/Content-Transfer-Encoding:\s*base64/i.test(headers)) {
+      return utf8([...atob(body.replace(/\s+/g, ''))].map((c) => c.charCodeAt(0)))
+    }
+    return body
+  }
+  const start = text.search(/<html/i)
+  const end = text.toLowerCase().lastIndexOf('</html>')
+  return start >= 0 && end > start ? text.slice(start, end + 7) : text
+}
+
+// Grupa ze strony planu: nagłówek "Rozkład zajęć grupy: WCY26IY4S1".
+export function watGroupFromPage(html: string): string | null {
+  return /Rozkład zajęć grupy:\s*(WCY[A-Z0-9]+)/i.exec(html)?.[1].toUpperCase() ?? null
+}
+
+// Plan grupy z zapisanej strony WAT; null - to nie strona planu grupy z planzajec.wcy.wat.edu.pl.
+export function watPlanFromSavedPage(text: string): WatPlan | null {
+  const html = htmlFromSavedPage(text)
+  const group = watGroupFromPage(html)
+  if (!group) return null
+  const plan = parseWatPlan(group, html)
+  return plan.lessons.length > 0 ? plan : null
+}

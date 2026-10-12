@@ -63,7 +63,7 @@ export function SourceForm({ plan, onDone }: Props) {
           await plan.connectUrl(watPlanUrl(watGroup, document.baseURI))
         } catch {
           throw new Error(
-            t('Nie mam planu grupy {watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl - plany nowych grup pojawiają się tu następnej nocy.', { watGroup }),
+            t('Nie mam planu grupy {watGroup}. Sprawdź kod na planzajec.wcy.wat.edu.pl. Jeśli jest dobry, zapisz stronę planu grupy z WAT i wgraj ją niżej.', { watGroup }),
           )
         }
       })
@@ -131,8 +131,14 @@ export function SourceForm({ plan, onDone }: Props) {
       <div className="divider">{t('albo')}</div>
 
       <label className={`button secondary${busy ? ' is-disabled' : ''}`}>
-        {t('Wgraj plik .ics')}
-        <input type="file" accept=".ics,text/calendar" onChange={handleFile} disabled={busy} hidden />
+        {t('Wgraj plik (.ics albo strona planu WAT)')}
+        <input
+          type="file"
+          accept=".ics,text/calendar,.html,.htm,.mhtml,.mht,.webarchive,text/html"
+          onChange={handleFile}
+          disabled={busy}
+          hidden
+        />
       </label>
 
       {error && (

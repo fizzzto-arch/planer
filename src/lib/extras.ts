@@ -14,6 +14,7 @@ import type { OptimizerSettings } from './optimizer'
 import type { Prefs } from './prefs'
 import type { CourseScores, Grade } from './scoring'
 import type { TypeColors } from './typeColors'
+import type { SharedWatPlan } from './wat'
 
 export type DeadlineKind = 'kolokwium' | 'egzamin' | 'projekt' | 'inne'
 
@@ -94,6 +95,7 @@ export interface Extras {
   testerTasks: string[] // zadania dla testerów oznaczone jako zrobione (lib/testerTasks.ts)
   scores: Map<string, CourseScores> // punkty z zaliczeń; klucz: courseKey
   grades: Map<string, Grade> // oceny końcowe; klucz: nazwa przedmiotu w programie studiów
+  watPlan: SharedWatPlan | null // plan WAT wgrany ręcznie (na innym urządzeniu też)
 }
 
 export const EMPTY_EXTRAS: Extras = {
@@ -108,6 +110,7 @@ export const EMPTY_EXTRAS: Extras = {
   testerTasks: [],
   scores: new Map(),
   grades: new Map(),
+  watPlan: null,
 }
 
 // Czy jest jakakolwiek notatka (przedmiotu, ogólna albo do zajęć) - wtedy notatki są włączone,

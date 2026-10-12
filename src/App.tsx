@@ -48,6 +48,8 @@ import { compactName, displayName } from './lib/prefs'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, startOfWeek, toDateKey, toTimeKey } from './lib/dates'
+import { watGroupFromUrl } from './lib/wat'
+import { WatStatus } from './components/WatStatus'
 import { isIOS } from './lib/platform'
 import { revealWhenReady } from './lib/reveal'
 import type { SearchAction } from './lib/searchIndex'
@@ -189,6 +191,15 @@ function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extr
     return <p className="sync">{t('Plan z pliku {name}. Gdy zmieni się w USOS, wgraj nowy w ustawieniach.', { name: source.name })}</p>
   }
   if (source?.kind !== 'url') return null
+  const watGroup = watGroupFromUrl(source.url)
+  if (watGroup) {
+    return (
+      <>
+        <WatStatus plan={plan} group={watGroup} now={now} />
+        {extrasError && <p className="sync is-error">{extrasError}</p>}
+      </>
+    )
+  }
 
   let text: string
   if (status.kind === 'loading') text = t('Odświeżam plan…')
@@ -254,6 +265,17 @@ function App() {
   const plan = usePlan()
   const cloud = useCloud(plan)
   const extrasApi = useExtras(cloud.client, cloud.uid)
+  // Plan WAT wgrany ręcznie: z tego urządzenia - na konto, z innego (konto) - tutaj, gdy nowszy.
+  const sharedWat = extrasApi?.extras.watPlan ?? null
+  const saveWatPlan = extrasApi?.saveWatPlan
+  const { adoptWat, lastWatImport } = plan
+  useEffect(() => {
+    if (sharedWat) adoptWat(sharedWat)
+  }, [sharedWat, adoptWat])
+  useEffect(() => {
+    if (!lastWatImport || !saveWatPlan) return
+    if (!sharedWat || sharedWat.group !== lastWatImport.group || lastWatImport.updatedAt > sharedWat.updatedAt) saveWatPlan(lastWatImport)
+  }, [lastWatImport, saveWatPlan, sharedWat])
   const typeColors = useTypeColors(extrasApi)
   // Podgląd "jako zwykły użytkownik": administrator widzi Planera bez swoich dodatków (panel dostępu,
   // optymalizator). Tylko wygląd - uprawnienia w bazie się nie zmieniają.

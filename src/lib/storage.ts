@@ -8,6 +8,7 @@ export interface SavedPlan {
   source: PlanSource | null
   meetings: Meeting[]
   updatedAt: Date | null
+  watUpdatedAt?: string | null // plan WAT: z kiedy jest (wygenerowany przez WAT), "2026-10-05 00:40:17"
 }
 
 const KEY = 'planer.plan.v1'
@@ -18,6 +19,7 @@ interface StoredPlan {
   source: PlanSource | null
   meetings: StoredMeeting[]
   updatedAt: number | null
+  watUpdatedAt?: string | null
 }
 
 export const EMPTY_PLAN: SavedPlan = { source: null, meetings: [], updatedAt: null }
@@ -35,6 +37,7 @@ export function loadPlan(): SavedPlan {
         end: new Date(m.end),
       })),
       updatedAt: stored.updatedAt ? new Date(stored.updatedAt) : null,
+      watUpdatedAt: stored.watUpdatedAt ?? null,
     }
   } catch {
     return EMPTY_PLAN
@@ -50,6 +53,7 @@ export function savePlan(plan: SavedPlan): void {
       end: m.end.getTime(),
     })),
     updatedAt: plan.updatedAt ? plan.updatedAt.getTime() : null,
+    watUpdatedAt: plan.watUpdatedAt ?? null,
   }
   try {
     localStorage.setItem(KEY, JSON.stringify(stored))

@@ -1873,6 +1873,50 @@ label.setting-row {
   animation: slide-from-left 260ms ease-out both;
 }
 
+/* ---------- Plan WAT: może być nieaktualny ---------- */
+
+.wat-stale {
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-left: 4px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+  font-size: 0.88rem;
+}
+
+.wat-stale p {
+  margin: 0 0 8px;
+}
+
+.wat-stale-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wat-stale-actions a.button {
+  text-decoration: none;
+}
+
+.wat-how {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.wat-how summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.wat-how ol {
+  margin: 6px 0 0;
+  padding-left: 1.2rem;
+}
+
+.wat-how li + li {
+  margin-top: 4px;
+}
+
 /* ---------- Przypomnienia o terminach ---------- */
 
 .reminder-device {

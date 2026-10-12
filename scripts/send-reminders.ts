@@ -35,6 +35,7 @@ import { translate, type Language } from '../src/lib/i18n.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
 import { parseHiddenClasses } from '../src/lib/hiddenClasses.ts'
+import { parseSharedWatPlan, watGroupFromUrl, watUpdatedFromIcs } from '../src/lib/wat.ts'
 
 // Język powiadomień: z ustawień odbiorcy (brak = polski, jak przed wersją angielską).
 function userLanguage(prefs: DocumentData): Language {
@@ -320,7 +321,15 @@ async function planNotices(
       try {
         const response = await fetch(url)
         if (!response.ok) throw new Error(`USOS ${response.status}`)
-        const parsed = parseUsosCalendar(await response.text())
+        let text = await response.text()
+        // Plan WAT wgrany przez użytkownika ze strony WAT (konto) - gdy nowszy niż pobrany przez nasz serwer
+        // (WAT blokuje automatyczne pobieranie, więc ten bywa sprzed tygodni).
+        const group = watGroupFromUrl(url)
+        if (group) {
+          const shared = parseSharedWatPlan((await db.doc(`users/${uid}/settings/watPlan`).get()).data())
+          if (shared?.group === group && shared.updatedAt > (watUpdatedFromIcs(text) ?? '')) text = shared.ics
+        }
+        const parsed = parseUsosCalendar(text)
         const next = snapshotPlan(parsed, now)
         // Niepełna odpowiedź USOS: nie porównujemy i nie nadpisujemy - spróbujemy za kwadrans.
         const broken = plan !== null && watch?.until !== undefined && looksBroken(plan, next, now, watch.until)

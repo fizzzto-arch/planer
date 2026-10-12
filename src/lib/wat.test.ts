@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { parseUsosCalendar } from './usos'
-import { parseWatGroup, parseWatGroups, parseWatPlan, watGroupFromUrl, watPlanUrl, watToIcs } from './wat'
+import {
+  parseWatGroup,
+  parseWatGroups,
+  parseWatPlan,
+  parseWatTimestamp,
+  watGroupFromUrl,
+  watPlanFromSavedPage,
+  watPlanUrl,
+  watToIcs,
+  watUpdatedFromIcs,
+} from './wat'
 
 // Fragment strony planzajec.wcy.wat.edu.pl (ta sama budowa, wymyślone zajęcia).
 const lesson = (date: string, block: string, name: string, info: string) =>
@@ -75,5 +85,56 @@ describe('plan WAT', () => {
     expect(url).toBe('https://fizzzto-arch.github.io/planer/wat/WCY26IY4S1.ics')
     expect(watGroupFromUrl(url)).toBe('WCY26IY4S1')
     expect(watGroupFromUrl('https://apps.usos.pw.edu.pl/services/tt/upcoming_ical?key=x')).toBeNull()
+  })
+})
+
+describe('plan WAT ze strony zapisanej przez studenta', () => {
+  it('zwykła strona (.html): grupa z nagłówka, zajęcia jak z serwera', () => {
+    const plan = watPlanFromSavedPage(`<!DOCTYPE html><html><body>${HTML}</body></html>`)
+    expect(plan?.group).toBe('WCY26IY4S1')
+    expect(plan?.updatedAt).toBe('2026-09-30 00:39:49')
+    expect(plan?.lessons).toHaveLength(4)
+  })
+
+  it('Android (.mhtml, quoted-printable) i archiwum Safari (HTML wśród danych binarnych)', () => {
+    // Quoted-printable: "=" jako =3D, polskie litery jako bajty UTF-8, linie łamane "=" na końcu.
+    const qp = `<html><body>${HTML}</body></html>`
+      .replace(/=/g, '=3D')
+      .replace(/ł/g, '=C5=82')
+      .replace(/ę/g, '=C4=99')
+      .replace(/(.{70})/g, '$1=\r\n')
+    const mhtml = [
+      'From: <Saved by Blink>',
+      'MIME-Version: 1.0',
+      'Content-Type: multipart/related;',
+      '\ttype="text/html";',
+      '\tboundary="----MultipartBoundary--abc----"',
+      '',
+      '',
+      '------MultipartBoundary--abc----',
+      'Content-Type: text/html',
+      'Content-Transfer-Encoding: quoted-printable',
+      'Content-Location: https://planzajec.wcy.wat.edu.pl/pl/rozklad?grupa_id=WCY26IY4S1',
+      '',
+      qp,
+      '------MultipartBoundary--abc----',
+      'Content-Type: text/css',
+      '',
+      'body{}',
+      '------MultipartBoundary--abc------',
+    ].join('\r\n')
+    const fromAndroid = watPlanFromSavedPage(mhtml)
+    expect(fromAndroid?.lessons.map((l) => l.courseName)).toContain('Język obcy (II) międzywydziałowy')
+    const webarchive = `bplist00\u0000\u0001WebMainResource\u0000<html>${HTML}</html>\u0000\u0005text/html`
+    expect(watPlanFromSavedPage(webarchive)?.lessons).toHaveLength(4)
+  })
+
+  it('inna strona albo plik - null; data planu z kalendarza Planera', () => {
+    expect(watPlanFromSavedPage('<html><body>Logowanie</body></html>')).toBeNull()
+    expect(watPlanFromSavedPage('BEGIN:VCALENDAR\r\nEND:VCALENDAR')).toBeNull()
+    const ics = watToIcs(parseWatPlan('WCY26IY4S1', HTML))
+    expect(watUpdatedFromIcs(ics)).toBe('2026-09-30 00:39:49')
+    expect(parseWatTimestamp('2026-09-30 00:39:49')).toEqual(new Date(2026, 8, 30, 0, 39))
+    expect(watUpdatedFromIcs('BEGIN:VCALENDAR')).toBeNull()
   })
 })

@@ -4,7 +4,18 @@ import { MINUTE_MS } from '../lib/dates'
 import { errorMessage } from '../lib/errors'
 import { EMPTY_PLAN, clearPlan, loadPlan, savePlan, type SavedPlan } from '../lib/storage'
 import { mergeWithHistory, parseUsosCalendar } from '../lib/usos'
-import { watGroupFromUrl } from '../lib/wat'
+import {
+  watGroupFromUrl,
+  watPlanFromSavedPage,
+  watPlanUrl,
+  watToIcs,
+  watUpdatedFromIcs,
+  type SharedWatPlan,
+  type WatPlan,
+} from '../lib/wat'
+
+// Czy plan WAT "updatedAt" jest nowszy niż ten, który już mamy (brak daty - każdy jest nowszy).
+const newerWat = (updatedAt: string | null, than: string | null | undefined) => !!updatedAt && (!than || updatedAt > than)
 
 export type RefreshStatus = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string }
 
@@ -35,6 +46,8 @@ export function usePlan() {
   const [status, setStatus] = useState<RefreshStatus>({ kind: 'idle' })
   // Aktualny plan dla funkcji asynchronicznych (żeby nie czytały starej wersji).
   const planRef = useRef(plan)
+  // Ostatni plan WAT wgrany na tym urządzeniu - App zapisuje go na koncie.
+  const [lastWatImport, setLastWatImport] = useState<SharedWatPlan | null>(null)
 
   const commit = useCallback((next: SavedPlan) => {
     planRef.current = next
@@ -47,12 +60,17 @@ export function usePlan() {
     if (source?.kind !== 'url') return
     setStatus({ kind: 'loading' })
     try {
-      const fresh = parseUsosCalendar(await downloadCalendar(source.url))
+      const text = await downloadCalendar(source.url)
       const current = planRef.current
       // W trakcie pobierania ktoś mógł podmienić źródło - wtedy wynik jest nieaktualny.
       if (current.source?.kind !== 'url' || current.source.url !== source.url) return
-      const now = new Date()
-      commit({ source, meetings: mergeWithHistory(current.meetings, fresh, now), updatedAt: now })
+      // Plan WAT starszy niż wgrany ręcznie (WAT blokuje nasze pobieranie) - zostaje wgrany.
+      const watUpdatedAt = watUpdatedFromIcs(text)
+      const keepImported = !!watGroupFromUrl(source.url) && !!current.watUpdatedAt && !newerWat(watUpdatedAt, current.watUpdatedAt)
+      if (!keepImported) {
+        const now = new Date()
+        commit({ source, meetings: mergeWithHistory(current.meetings, parseUsosCalendar(text), now), updatedAt: now, watUpdatedAt })
+      }
       setStatus({ kind: 'idle' })
     } catch (e) {
       setStatus({ kind: 'error', message: errorMessage(e) })
@@ -62,20 +80,73 @@ export function usePlan() {
   // Nowe źródło zastępuje cały plan (bez łączenia z historią poprzedniego).
   const connectUrl = useCallback(
     async (url: string) => {
-      const meetings = parseUsosCalendar(await downloadCalendar(url))
-      commit({ source: { kind: 'url', url }, meetings, updatedAt: new Date() })
+      const text = await downloadCalendar(url)
+      commit({ source: { kind: 'url', url }, meetings: parseUsosCalendar(text), updatedAt: new Date(), watUpdatedAt: watUpdatedFromIcs(text) })
       setStatus({ kind: 'idle' })
     },
     [commit],
   )
 
-  const importFile = useCallback(
-    async (file: File) => {
-      const meetings = parseUsosCalendar(await file.text())
-      commit({ source: { kind: 'file', name: file.name }, meetings, updatedAt: new Date() })
+  // Plan WAT (ze strony zapisanej przez studenta albo z konta): źródłem zostaje plan grupy obok Planera,
+  // więc gdy WAT znów wpuści nasze pobieranie, plan sam będzie się odświeżał.
+  const applyWatPlan = useCallback(
+    (group: string, ics: string, updatedAt: string | null) => {
+      const url = watPlanUrl(group, document.baseURI)
+      const current = planRef.current
+      const same = current.source?.kind === 'url' && current.source.url === url
+      const now = new Date()
+      const meetings = parseUsosCalendar(ics)
+      commit({ source: { kind: 'url', url }, meetings: same ? mergeWithHistory(current.meetings, meetings, now) : meetings, updatedAt: now, watUpdatedAt: updatedAt })
       setStatus({ kind: 'idle' })
     },
     [commit],
+  )
+
+  const importWat = useCallback(
+    (wat: WatPlan) => {
+      const ics = watToIcs(wat)
+      applyWatPlan(wat.group, ics, wat.updatedAt)
+      if (wat.updatedAt) setLastWatImport({ group: wat.group, updatedAt: wat.updatedAt, ics })
+    },
+    [applyWatPlan],
+  )
+
+  // Plik .ics albo zapisana strona planu grupy WAT.
+  const importFile = useCallback(
+    async (file: File) => {
+      const text = await file.text()
+      const wat = watPlanFromSavedPage(text)
+      if (wat) return importWat(wat)
+      commit({ source: { kind: 'file', name: file.name }, meetings: parseUsosCalendar(text), updatedAt: new Date() })
+      setStatus({ kind: 'idle' })
+    },
+    [commit, importWat],
+  )
+
+  // Tylko strona planu WAT (przycisk przy planie WAT) - inny plik to błąd, plan zostaje.
+  const importWatPage = useCallback(
+    async (file: File) => {
+      const wat = watPlanFromSavedPage(await file.text())
+      if (!wat) {
+        setStatus({
+          kind: 'error',
+          message: t('To nie jest zapisana strona planu grupy z planzajec.wcy.wat.edu.pl.'),
+        })
+        return
+      }
+      importWat(wat)
+    },
+    [importWat],
+  )
+
+  // Plan WAT z konta (wgrany na innym urządzeniu) - gdy to ta sama grupa i jest nowszy niż tutaj.
+  const adoptWat = useCallback(
+    (shared: SharedWatPlan) => {
+      const current = planRef.current
+      if (current.source?.kind !== 'url' || watGroupFromUrl(current.source.url) !== shared.group) return
+      if (newerWat(shared.updatedAt, current.watUpdatedAt)) applyWatPlan(shared.group, shared.ics, shared.updatedAt)
+    },
+    [applyWatPlan],
   )
 
   const reset = useCallback(() => {
@@ -96,7 +167,7 @@ export function usePlan() {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [refresh])
 
-  return { ...plan, status, refresh, connectUrl, importFile, reset }
+  return { ...plan, status, refresh, connectUrl, importFile, importWatPage, adoptWat, lastWatImport, reset }
 }
 
 export type PlanApi = ReturnType<typeof usePlan>

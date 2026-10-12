@@ -146,7 +146,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
           {t('Nie. Planer jest nieoficjalny - korzysta z Twojego linku do planu z USOSweb (PW) albo z publicznego planu grup WAT. W razie wątpliwości co do terminu zajęć rozstrzyga USOS albo plan na stronie WAT.')}
         </Question>
         <Question q={t('Studiuję na WAT - jak dodać plan?')}>
-          {t('Zamiast linku z USOS wpisz kod swojej grupy, np. WCY26IY4S1 (jest na planzajec.wcy.wat.edu.pl). Działa wszystko poza „Dobierz grupy”, które korzysta z USOS PW. Na razie tylko Wydział Cybernetyki - plany innych wydziałów WAT są w osobnych systemach. Plan odświeża się co noc, po aktualizacji planów przez WAT.')}
+          {t('Zamiast linku z USOS wpisz kod swojej grupy, np. WCY26IY4S1 (jest na planzajec.wcy.wat.edu.pl). Działa wszystko poza „Dobierz grupy”, które korzysta z USOS PW. Na razie tylko Wydział Cybernetyki - plany innych wydziałów WAT są w osobnych systemach. Od października 2026 WAT blokuje automatyczne pobieranie planów, więc plan może być nieaktualny - datę widać pod zakładkami. Aktualny plan wgrasz sam: otwórz plan grupy na stronie WAT, zapisz stronę i wgraj ją w Planerze („Wgraj zapisaną stronę”).')}
         </Question>
         <Question q={t('Czy muszę zakładać konto?')}>
           {t('Nie. Sam plan działa bez konta - wystarczy wkleić link z USOSweb albo kod grupy WAT. Konto przydaje się do notatek, terminów, przypomnień, wspólnych plików i do tego, żeby ten sam plan był na telefonie i komputerze.')}
@@ -167,7 +167,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
           {t('iPhone: otwórz stronę w Safari → Udostępnij → „Do ekranu początkowego”. Android: w Chrome menu ⋮ → „Zainstaluj aplikację” albo „Dodaj do ekranu głównego”. Planer otwiera się wtedy jak zwykła aplikacja.')}
         </Question>
         <Question q={t('Plan się zmienił w USOS - co z Planerem?')}>
-          {t('Planer pobiera plan z USOS przy każdym otwarciu, więc zmiany pojawią się same. Twoje ręczne zmiany i notatki zostają. Stan widać pod zakładkami („Zaktualizowano…”), tam też jest „Odśwież”. Plan WAT zmienia się w Planerze następnej nocy.')}
+          {t('Planer pobiera plan z USOS przy każdym otwarciu, więc zmiany pojawią się same. Twoje ręczne zmiany i notatki zostają. Stan widać pod zakładkami („Zaktualizowano…”), tam też jest „Odśwież”. Plan WAT - zobacz pytanie o WAT.')}
         </Question>
         <Question q={t('Skąd Planer wie, który tydzień jest parzysty?')}>
           {t('Liczy tygodnie po kolei od pierwszego tygodnia z zajęciami, także przez przerwy - tak samo, jak USOS układa zajęcia „co dwa tygodnie”. Jeśli numer nie zgadza się z kalendarzem uczelni, daj znać.')}

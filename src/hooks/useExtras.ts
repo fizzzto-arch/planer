@@ -24,6 +24,7 @@ import { parsePrefs, type Prefs } from '../lib/prefs'
 import { parseCourseScores, type CourseScores, type Grade } from '../lib/scoring'
 import { parseTesterTasks } from '../lib/testerTasks'
 import { parseTypeColors, type TypeColors } from '../lib/typeColors'
+import { parseSharedWatPlan, type SharedWatPlan } from '../lib/wat'
 import { RETRY_AFTER_MS } from './useCloud'
 
 const COLLECTIONS: CollectionName[] = ['courses', 'deadlines', 'meetingEdits', 'seriesEdits', 'customMeetings', 'settings', 'scores', 'grades']
@@ -33,6 +34,7 @@ const COLORS_DOC = 'colors'
 const PREFS_DOC = 'prefs'
 const OPTIMIZER_DOC = 'optimizer'
 const TESTER_TASKS_DOC = 'testerTasks'
+const WAT_PLAN_DOC = 'watPlan'
 
 export type RawCollections = Partial<Record<CollectionName, CloudDoc[]>>
 
@@ -57,6 +59,7 @@ function toExtras(raw: RawCollections): Extras {
     prefs: prefsDoc ? parsePrefs(prefsDoc.data) : null,
     optimizer: optimizerDoc ? parseOptimizerSettings(optimizerDoc.data) : null,
     testerTasks: parseTesterTasks(raw.settings?.find((d) => d.id === TESTER_TASKS_DOC)?.data),
+    watPlan: parseSharedWatPlan(raw.settings?.find((d) => d.id === WAT_PLAN_DOC)?.data),
     scores: new Map((raw.scores ?? []).flatMap((d) => {
       const scores = parseCourseScores(d.data)
       return scores ? [[d.id, scores] as const] : []
@@ -238,6 +241,11 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [write],
   )
 
+  const saveWatPlan = useCallback(
+    (plan: SharedWatPlan) => write((c, u) => c.setItem(u, 'settings', WAT_PLAN_DOC, { ...plan })),
+    [write],
+  )
+
   const saveTesterTasks = useCallback(
     (done: string[]) =>
       write(async (c, u) => {
@@ -313,6 +321,7 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     savePrefs,
     saveOptimizer,
     saveTesterTasks,
+    saveWatPlan,
     savePushDevice,
     deletePushDevice,
     exportBackup,

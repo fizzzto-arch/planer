@@ -92,7 +92,7 @@ export function SettingsView({
           <dd>
             {source?.kind === 'url'
               ? watGroupFromUrl(source.url)
-                ? t('Plan grupy {group} (WAT, odświeżany co noc)', { group: watGroupFromUrl(source.url) ?? '' })
+                ? t('Plan grupy {group} (WAT)', { group: watGroupFromUrl(source.url) ?? '' })
                 : t('Link iCal z USOS (klucz ukryty)')
               : t('Plik {name}', { name: source?.name ?? '' })}
           </dd>
