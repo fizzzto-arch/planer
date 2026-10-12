@@ -101,18 +101,29 @@ const BASE: Record<string, CourseAssessment> = {
       'Laboratorium bez limitu nieobecności; odrobić można tylko w uzasadnionych przypadkach, ocen nie da się poprawić',
     ],
   }),
-  'Laboratorium elektrotechniki': {
-    ...a(
-      [{ form: 'LAB', text: '5 ćwiczeń; każde: praca domowa 20%, wejściówka 30%, sprawozdanie 50%' }],
-      'Średnia z ćwiczeń: 51–60% → 3; 61–70% → 4; 71–80% → 4,5; 81–90% → 5',
-    ),
-    // Ze skryptu do laboratorium (M. Nałęcz, M. Rupniewski, wyd. 2021) - bez punktów, te są w regulaminie.
-    notes: [
-      'Ćwiczenia po kolei: 1. prawa Kirchhoffa i opór zastępczy · 2. źródła Thévenina i Nortona · 3. obwody nieliniowe, prostowniki · 4. prąd sinusoidalny, rezonans, wzmacniacz operacyjny · 5. filtry i stany nieustalone',
-      'Przed każdym ćwiczeniem praca domowa ze skryptu (podrozdział „Praca domowa” danego ćwiczenia)',
-      'Pracuje się w parach; sprawozdanie na formatce z końca rozdziału w skrypcie',
+  'Laboratorium elektrotechniki': r({
+    rows: [
+      { form: 'LAB', text: 'LAB0 – godzinne wprowadzenie bez oceny, podział na dwuosobowe zespoły' },
+      { form: 'LAB', text: '5 ćwiczeń (LAB1–LAB5) po 5 pkt: kartkówka 1,5 + praca domowa 0,3 + wykonanie i sprawozdanie 3,2' },
+      { form: 'LAB', text: 'kartkówka za najwyżej 0,3 pkt – punkty z całego ćwiczenia o połowę' },
     ],
-  },
+    grading: 'Suma z ćwiczeń (do 25 pkt): od 12,5 → 3; od 15 → 3,5; od 17,5 → 4; od 20 → 4,5; od 22,5 → 5',
+    scoring: {
+      parts: [{ id: 'lab', label: 'Ćwiczenia', form: 'LAB', items: numbered('lab', 5, 5) }],
+      scale: steps([12.5, 15, 17.5, 20, 22.5]),
+    },
+    // Z regulaminu oraz ze skryptu do laboratorium (M. Nałęcz, M. Rupniewski, preskrypt z 7.10.2026).
+    notes: [
+      'Kartkówka (15 min) na początku każdego ćwiczenia – bez notatek i jakichkolwiek materiałów',
+      'Obecność obowiązkowa – najwyżej 1 nieusprawiedliwiona nieobecność; pod koniec semestru jeden termin odrabiania (z usprawiedliwieniem)',
+      'Poprawa ćwiczenia tylko przy wolnych terminach i za zgodą koordynatora; niezaliczenie – powtarzanie całego przedmiotu',
+      'Ćwiczenia po kolei: 1. prawa Kirchhoffa i opór zastępczy · 2. źródła Thévenina i Nortona · 3. obwody nieliniowe, analiza małosygnałowa, prostowniki · 4. prąd sinusoidalny: rezonans, dopasowanie mocy, wzmacniacz operacyjny · 5. filtry i stany nieustalone (w teorii też szeregi Fouriera)',
+      'Przed każdym ćwiczeniem indywidualna praca domowa ze skryptu (podrozdział „Praca domowa” danego ćwiczenia)',
+      'Sprawozdanie na formatce z końca rozdziału w skrypcie; harmonogram i oceny z ćwiczeń na stronie przedmiotu w studia3.elka.pw.edu.pl',
+      'Programu z Windowsa (TOiS_Toy) nie trzeba instalować – w skrypcie z 7.10.2026 już go nie ma; w laboratorium jest oscyloskop RIGOL i MATLAB, a w domu MATLAB zastąpi darmowe Octave',
+      'Wymaga wcześniejszego udziału we „Wstępie do elektrotechniki” (nie musi być zaliczony)',
+    ],
+  }),
   'Podstawy Automatyki': r({
     rows: [
       { form: 'WYK', text: 'egzamin pisemny – 55 pkt, zalicza 27,5 pkt', add: exam },
@@ -346,7 +357,7 @@ const SHORT: Record<string, string> = {
   'Mechanika i Wytrzymałość materiałów': 'kolokwia 50% · egzamin 50%',
   'Wstęp do elektrotechniki': 'kolokwia 40 pkt · egzamin 50 pkt',
   'Grafika komputerowa': 'kolokwium 20 pkt · lab. 30 pkt',
-  'Laboratorium elektrotechniki': '5 ćwiczeń laboratoryjnych',
+  'Laboratorium elektrotechniki': '5 ćwiczeń po 5 pkt',
   'Podstawy Automatyki': 'egzamin 55 pkt · lab. 35 pkt',
   'Podstawy elementów i układów elektronicznych': 'tylko egzamin (60 pkt)',
   Radiologia: 'egzamin 30 pkt · lab. 40 pkt',

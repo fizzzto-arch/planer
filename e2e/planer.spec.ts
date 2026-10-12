@@ -193,8 +193,8 @@ test('zaliczenie: rozpiska na liście i na stronie przedmiotu, data kolokwium je
   })
   await page.reload()
   await tab(page, 'Przedmioty').click()
-  // Na liście: skrót z regulaminu; przedmiot bez regulaminu - z sylabusa.
-  await expect(page.locator('.course-row', { hasText: 'Laboratorium elektrotechniki' }).getByText('Zaliczenie: 5 ćwiczeń laboratoryjnych')).toBeVisible()
+  // Na liście: skrót z regulaminu.
+  await expect(page.locator('.course-row', { hasText: 'Laboratorium elektrotechniki' }).getByText('Zaliczenie: 5 ćwiczeń po 5 pkt')).toBeVisible()
   const row = page.locator('.course-row', { hasText: 'Rachunek prawdopodobieństwa' })
   await expect(row.getByText('Zaliczenie: 2 kolokwia · egzamin / zwolnienie')).toBeVisible()
   await row.click()

@@ -22,13 +22,14 @@ describe('zaliczenie przedmiotu', () => {
     expect(all).not.toMatch(/sprawdzian/i)
   })
 
-  it('semestr 3: zasady z regulaminów 2026/27 (poza Laboratorium elektrotechniki - bez regulaminu)', () => {
+  it('semestr 3: zasady z regulaminów 2026/27', () => {
     const fromRegulations = Object.entries(ASSESSMENTS)
       .filter(([, a]) => a.source.kind === 'regulamin')
       .map(([name]) => name)
       .sort()
     expect(fromRegulations).toEqual([
       'Grafika komputerowa',
+      'Laboratorium elektrotechniki',
       'Matematyka - Rachunek prawdopodobieństwa i statystyka',
       'Podstawy Automatyki',
       'Podstawy elementów i układów elektronicznych',
@@ -38,7 +39,6 @@ describe('zaliczenie przedmiotu', () => {
     // Regulamin poprawia sylabus: elektronika bez kolokwiów, rachunek - 2 kolokwia, nie 3.
     expect(ASSESSMENTS['Podstawy elementów i układów elektronicznych'].rows.some((r) => r.add?.kind === 'kolokwium')).toBe(false)
     expect(ASSESSMENTS['Matematyka - Rachunek prawdopodobieństwa i statystyka'].rows[0].add?.count).toBe(2)
-    expect(ASSESSMENTS['Laboratorium elektrotechniki'].source.kind).toBe('sylabus')
   })
 
   it('kolejne terminy numerowane, pojedynczy bez numeru', () => {

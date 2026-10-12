@@ -37,6 +37,13 @@ describe('kalkulator punktów', () => {
     expect(r.next).toEqual({ grade: 3, missing: 9, reachable: true })
   })
 
+  it('Laboratorium elektrotechniki: 5 ćwiczeń po 5 pkt, progi od 12,5 do 22,5 (włącznie)', () => {
+    const s = scoring('Laboratorium elektrotechniki')
+    expect(scoreResult(s, lab('lab', [2.5, 2.5, 2.5, 2.5, 2.5]))).toMatchObject({ value: 12.5, max: 25, grade: 3 })
+    expect(scoreResult(s, lab('lab', [5, 5, 5, 4, 3.5]))).toMatchObject({ value: 22.5, grade: 5 })
+    expect(scoreResult(s, lab('lab', [4, 4, 4, 4, 3.9])).grade).toBe(4)
+  })
+
   it('nic nie wpisane - bez prognozy', () => {
     const r = scoreResult(scoring('Grafika komputerowa'), {})
     expect(r).toMatchObject({ value: 0, filled: 0, forecast: null, grade: 2 })
@@ -141,6 +148,7 @@ describe('zapis punktów', () => {
     expect(withScoring.map(([name]) => name).sort()).toEqual(
       [
         'Grafika komputerowa',
+        'Laboratorium elektrotechniki',
         'Matematyka - Rachunek prawdopodobieństwa i statystyka',
         'Podstawy Automatyki',
         'Podstawy elementów i układów elektronicznych',
