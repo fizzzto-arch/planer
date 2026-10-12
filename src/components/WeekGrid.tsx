@@ -187,7 +187,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                 details.join(' · '),
                 ...deadlines.map((d) => `📌 ${d.title || deadlineKindLabel(d.kind)}`),
                 note ? t('Notatka: {note}', { note }) : null,
-                m.edited ? t('Zmienione ręcznie') : null,
+                m.changedOnce ? t('Zmienione ręcznie') : null,
               ]
                 .filter(Boolean)
                 .join('\n')
@@ -232,11 +232,11 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                       </span>
                     </>
                   )}
-                  {(deadlines.length > 0 || note || m.edited) && (
+                  {(deadlines.length > 0 || note || m.changedOnce) && (
                     <span className="grid-event-flags" aria-hidden="true">
                       {deadlines.length > 0 && <span className="flag flag-deadline" />}
                       {note && <span className="flag flag-note" />}
-                      {m.edited && <span className="flag flag-edited" />}
+                      {m.changedOnce && <span className="flag flag-edited" />}
                     </span>
                   )}
                 </button>

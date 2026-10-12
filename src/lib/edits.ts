@@ -10,6 +10,8 @@ export interface PlanMeeting extends Meeting {
   custom: boolean // dodane ręcznie, nie ma ich w USOS
   note: string
   original: Meeting | null // wersja sprzed zmian (tylko gdy edited)
+  // Jednorazowa zmiana tych zajęć (kropka i "zmienione"); stała zmiana grupy to nie wyjątek - bez oznaczenia.
+  changedOnce?: boolean
 }
 
 // Własne cotygodniowe zajęcia nie mogą się rozwinąć w nieskończoność.
@@ -202,6 +204,7 @@ export function applyEdits(
         custom,
         note: edit?.note ?? '',
         original: edited && !custom && !generated ? m : null,
+        changedOnce: !!edit?.override && !custom,
       }
     })
     .sort((a, b) => a.start.getTime() - b.start.getTime())

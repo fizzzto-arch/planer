@@ -1,4 +1,4 @@
-import { midSentence, t } from '../lib/i18n'
+import { locale, midSentence, t } from '../lib/i18n'
 import { useState, type FormEvent } from 'react'
 import type { ExtrasApi } from '../hooks/useExtras'
 import { formatDay, formatTime, toDateKey, toTimeKey } from '../lib/dates'
@@ -9,6 +9,8 @@ import { typeLabel } from '../lib/usos'
 import { Dialog } from './Dialog'
 import { ClassDatesField } from './ClassDatesField'
 import { datesError, datesFromDraft, draftFromDates, type WeekOf } from '../lib/classDates'
+import { usePlanUi } from '../hooks/planUi'
+import { withHidden } from '../lib/hiddenClasses'
 
 interface Props {
   meeting: PlanMeeting // zajęcia z USOS (dla własnych jest CustomMeetingEditor)
@@ -21,6 +23,7 @@ interface Props {
 type Scope = 'single' | 'series'
 
 export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }: Props) {
+  const { prefs, setHiddenClasses } = usePlanUi()
   const original = meeting.original ?? meeting
   const key = seriesKey(original)
   const [scope, setScope] = useState<Scope>('single')
@@ -114,6 +117,24 @@ export function MeetingEditor({ meeting, extras, seriesDates, weekOf, onClose }:
                 day: midSentence(weekdayName(weekdayOf(original.start))),
               })}
         </p>
+
+        {scope === 'series' && (
+          <p className="hint">
+            {t('Te zajęcia w ogóle się nie odbywają?')}{' '}
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => {
+                const kind = typeLabel(meeting.type).toLocaleLowerCase(locale())
+                if (!window.confirm(t('Usunąć z planu wszystkie zajęcia „{kind}” z przedmiotu {course}? Przywrócisz je w Przedmiotach, na dole („Usunięte z planu”).', { kind, course: meeting.courseName }))) return
+                setHiddenClasses(withHidden(prefs.hiddenClasses, { course: meeting.courseName, type: meeting.type }))
+                onClose()
+              }}
+            >
+              {t('Usuń je z planu')}
+            </button>
+          </p>
+        )}
 
         {scope === 'series' && (
           <label className="field">

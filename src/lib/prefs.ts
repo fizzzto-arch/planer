@@ -181,10 +181,11 @@ export function displayName(courseName: string, prefs: Pick<Prefs, 'courseAliase
   return prefs.courseAliases[courseName]?.trim() || courseName
 }
 
-// Siatka na telefonie (wąskie kolumny): wpisany skrót albo automatyczny z pierwszych liter.
-export function compactName(courseName: string, prefs: Pick<Prefs, 'courseAliases' | 'useAliases'>): string {
+// Siatka na telefonie (wąskie kolumny): wpisany skrót, a bez niego automatyczny - z kodu przedmiotu
+// w USOS (auto, np. "LAEL") albo z pierwszych liter.
+export function compactName(courseName: string, prefs: Pick<Prefs, 'courseAliases' | 'useAliases'>, auto?: string): string {
   if (!prefs.useAliases) return courseName
-  return prefs.courseAliases[courseName]?.trim() || suggestAlias(courseName)
+  return prefs.courseAliases[courseName]?.trim() || auto || suggestAlias(courseName)
 }
 
 // Podpowiedź skrótu: pierwsze litery słów dłuższych niż 2 znaki

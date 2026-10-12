@@ -81,6 +81,17 @@ describe('skróty tylko w siatce tygodnia', () => {
     expect(compactName('Radiologia', prefs)).toBe('Radiologia') // jedno słowo - bez skrótu
     expect(compactName('Grafika komputerowa', { ...prefs, useAliases: false })).toBe('Grafika komputerowa')
   })
+
+  it('skrót z kodu przedmiotu w USOS (PW kończy nim kod), gdy nie ma wpisanego', async () => {
+    const { compactName } = await import('./prefs')
+    const { codeShort } = await import('./courseCodes')
+    expect(codeShort('103B-IBxxx-ISP-LAEL')).toBe('LAEL')
+    expect(codeShort('103A-IBxxx-ISP-PELEL')).toBe('PELEL')
+    expect(codeShort('SJO-ANG-B2')).toBeNull() // bez skrótu na końcu - z pierwszych liter
+    const prefs = { ...DEFAULT_PREFS, courseAliases: { 'Grafika komputerowa': 'GK' } }
+    expect(compactName('Radiologia', prefs, 'RAD')).toBe('RAD')
+    expect(compactName('Grafika komputerowa', prefs, 'GRK')).toBe('GK') // wpisany ma pierwszeństwo
+  })
 })
 
 describe('widok tygodnia i powiadomienia w ustawieniach', () => {

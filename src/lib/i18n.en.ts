@@ -650,6 +650,9 @@ export const EN: Record<string, string> = {
   'Przedmiot →': 'Course →',
 
   // src/components/MeetingEditor.tsx
+  'Te zajęcia w ogóle się nie odbywają?': 'These classes do not take place at all?',
+  'Usuń je z planu': 'Remove them from the timetable',
+  'Usunąć z planu wszystkie zajęcia „{kind}” z przedmiotu {course}? Przywrócisz je w Przedmiotach, na dole („Usunięte z planu”).': 'Remove all "{kind}" classes of {course} from the timetable? You can bring them back in Courses, at the bottom ("Removed from timetable").',
   'Zajęcia online': 'Online class',
   'Koniec zajęć musi być po początku.': 'The class must end after it starts.',
   'Zmień zajęcia': 'Change class',

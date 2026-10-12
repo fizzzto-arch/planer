@@ -44,7 +44,8 @@ import { useSharedMaterials } from './hooks/useSharedMaterials'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
 import { isHiddenClass, isHiddenUsosClass, type HiddenClass } from './lib/hiddenClasses'
-import { compactName, displayName } from './lib/prefs'
+import { compactName, displayName, suggestAlias } from './lib/prefs'
+import { useCourseShorts } from './hooks/useCourseShorts'
 import { useNow } from './hooks/useNow'
 import { usePlan, type PlanApi } from './hooks/usePlan'
 import { formatUpdatedAt, startOfWeek, toDateKey, toTimeKey } from './lib/dates'
@@ -265,6 +266,8 @@ function App() {
   const plan = usePlan()
   const cloud = useCloud(plan)
   const extrasApi = useExtras(cloud.client, cloud.uid)
+  // Skróty przedmiotów z kodów USOS (np. LAEL) - do siatki tygodnia i wyszukiwania.
+  const courseShorts = useCourseShorts(plan.meetings)
   // Plan WAT wgrany ręcznie: z tego urządzenia - na konto, z innego (konto) - tutaj, gdy nowszy.
   const sharedWat = extrasApi?.extras.watPlan ?? null
   const saveWatPlan = extrasApi?.saveWatPlan
@@ -722,7 +725,9 @@ function App() {
       notesOn,
       // Pełna nazwa wszędzie (np. w Dziś); skróty z ustawień tylko tam, gdzie mało miejsca (siatka tygodnia).
       displayName: (name: string) => name,
-      shortName: (name: string, compact = false) => (compact ? compactName(name, prefs) : displayName(name, prefs)),
+      shortName: (name: string, compact = false) =>
+        compact ? compactName(name, prefs, courseShorts.get(name)) : displayName(name, prefs),
+      autoShort: (name: string) => courseShorts.get(name) ?? suggestAlias(name),
       setHiddenClasses: (hiddenClasses: HiddenClass[]) => prefsApi.update({ hiddenClasses }, true),
       openSearch: () => openSearch(true),
       skipFirstStep: markFirstStep,
@@ -752,6 +757,7 @@ function App() {
       openSearch,
       markFirstStep,
       notesOn,
+      courseShorts,
     ],
   )
 

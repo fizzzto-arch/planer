@@ -557,9 +557,10 @@ test('program studiów: plan innego kierunku - bez przycisku', async ({ page }) 
 test('plany grup pobierają się raz - potem tylko po "Odśwież"', async ({ page }) => {
   let requests = 0
   await page.route('https://apps.usos.pw.edu.pl/services/**', async (route) => {
-    requests++
     const url = new URL(route.request().url())
     const q = url.searchParams
+    // Kody przedmiotów (skróty w siatce) Planer pobiera osobno, raz - tu liczą się plany grup.
+    if (!(url.pathname.endsWith('/courses/unit') && q.get('fields') === 'course_id')) requests++
     const json = (body: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
     if (url.pathname.endsWith('/courses/unit')) {
       const unit = q.get('unit_id') ?? ''
@@ -865,6 +866,64 @@ test('powiadomienia: Wyczyść przenosi do archiwum', async ({ page }) => {
   // Archiwum: wyczyszczone zostają (do 60 dni).
   await page.locator('.notification-archive summary').click()
   await expect(page.locator('.notification-archive').getByText('Kolokwium z Fizyki za tydzień')).toBeVisible()
+})
+
+test('skróty z kodów przedmiotów w USOS: w siatce na telefonie i jako podpowiedź w ustawieniach', async ({ page }, info) => {
+  // PW kończy kod przedmiotu jego skrótem (103B-IBxxx-ISP-LAEL).
+  const codes: Record<string, string> = { 'U-an-w': '103A-IBxxx-ISP-ANMAT', 'U-an-c': '103A-IBxxx-ISP-ANMAT', 'U-graf': '103A-IBxxx-ISP-GRK' }
+  await page.route('https://apps.usos.pw.edu.pl/services/courses/unit**', (route) => {
+    const code = codes[new URL(route.request().url()).searchParams.get('unit_id') ?? '']
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(code ? { course_id: code } : {}) })
+  })
+  await page.reload()
+  await tab(page, 'Ustawienia').click()
+  await expect(page.locator('#settings-aliases').getByLabel('Grafika komputerowa')).toHaveAttribute('placeholder', 'np. GRK')
+  if (info.project.name === 'komputer') return
+  await page.getByRole('radiogroup', { name: 'Tydzień na telefonie' }).getByRole('radio', { name: 'Siatka' }).click()
+  await tab(page, 'Tydzień').click()
+  const titles = page.locator('.week-grid .grid-event-title')
+  await expect(titles.filter({ hasText: /^GRK$/ }).first()).toBeVisible()
+  await expect(titles.filter({ hasText: /^ANMAT$/ }).first()).toBeVisible()
+})
+
+test('cała grupa się nie odbywa: usunięcie z planu prosto z okna zmiany zajęć', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Analiza matematyczna' }).click()
+  const cards = page.locator('.course-meetings .card')
+  await cards.filter({ hasText: 'Ćwiczenia' }).first().locator('summary').click()
+  await page.getByRole('button', { name: 'Zmień', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Zmień zajęcia' })
+  await dialog.getByRole('radio', { name: 'Cała grupa' }).click()
+  page.once('dialog', (d) => void d.accept())
+  await dialog.getByRole('button', { name: 'Usuń je z planu' }).click()
+  await expect(dialog).toBeHidden()
+  // Zostaje sam wykład; ćwiczenia do przywrócenia na liście przedmiotów.
+  await expect(cards.filter({ hasText: 'Ćwiczenia' })).toHaveCount(0)
+  await expect(cards.filter({ hasText: 'Wykład' }).first()).toBeVisible()
+  await page.goBack()
+  await expect(page.locator('.hidden-classes').getByText('Usunięte z planu (1)')).toBeVisible()
+})
+
+test('oznaczenie "zmienione" tylko przy jednorazowej zmianie, nie przy stałej zmianie grupy', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Grafika komputerowa' }).click()
+  const card = page.locator('.course-meetings .card').first()
+  const dialog = page.getByRole('dialog', { name: 'Zmień zajęcia' })
+  // Stała zmiana sali całej grupy - bez "zmienione".
+  await card.locator('summary').click()
+  await page.getByRole('button', { name: 'Zmień', exact: true }).click()
+  await dialog.getByRole('radio', { name: 'Cała grupa' }).click()
+  await dialog.getByLabel('Sala').fill('200')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(card.locator('.card-meta')).toContainText('s. 200')
+  await expect(card.locator('.card-badges').getByText('zmienione')).toHaveCount(0)
+  // Jednorazowa zmiana tych jednych zajęć - z oznaczeniem.
+  await page.getByRole('button', { name: 'Zmień', exact: true }).click()
+  await dialog.getByLabel('Sala').fill('300')
+  await dialog.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(card.locator('.card-badges').getByText('zmienione')).toBeVisible()
 })
 
 test('skróty nazw: wszędzie pełna nazwa, skrót tylko w siatce tygodnia', async ({ page }, info) => {

@@ -97,14 +97,14 @@ export function MeetingCard({ meeting: m, now, isNext = false, showCourseLink = 
             {placeLabel(m) && <span>{placeLabel(m)}</span>}
             {building && <span>{building}</span>}
           </div>
-          {(deadlines.length > 0 || note || m.edited || m.custom) && (
+          {(deadlines.length > 0 || note || m.changedOnce || m.custom) && (
             <div className="card-badges">
               {deadlines.map((d) => (
                 <span key={d.id} className={`badge badge-deadline kind-${d.kind}`}>
                   {d.title || deadlineKindLabel(d.kind)}
                 </span>
               ))}
-              {m.edited && <span className="badge">{t('zmienione')}</span>}
+              {m.changedOnce && <span className="badge">{t('zmienione')}</span>}
               {m.custom && <span className="badge">{t('własne')}</span>}
               {note && (
                 <span className="badge badge-note" title={t('Ma notatkę')}>

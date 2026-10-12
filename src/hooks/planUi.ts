@@ -48,6 +48,7 @@ export interface PlanUi {
   displayName: (courseName: string) => string // nazwa przedmiotu do pokazania - pełna (skróty tylko w siatce)
   // Skrót do siatki tygodnia i eksportu: wpisany w ustawieniach; compact (telefon) - albo automatyczny.
   shortName: (courseName: string, compact?: boolean) => string
+  autoShort: (courseName: string) => string // skrót bez wpisanego: z kodu USOS (np. "LAEL") albo z pierwszych liter
   setHiddenClasses: (hidden: HiddenClass[]) => void // zajęcia usunięte z planu (prefs.hiddenClasses)
   openSearch: () => void // pasek wyszukiwania (od razu do pisania)
   skipFirstStep: (id: string) => void // "Pierwsze kroki": krok zrobiony albo pominięty

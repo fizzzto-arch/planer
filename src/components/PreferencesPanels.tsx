@@ -1,7 +1,7 @@
 import { LANGUAGES, t } from '../lib/i18n'
 import { LANGUAGE_NAMES } from './LanguageSwitch'
 import type { PrefsApi } from '../hooks/usePrefs'
-import { GAP_OPTIONS, UPCOMING_OPTIONS, suggestAlias, type TextSize, type WeekLayout } from '../lib/prefs'
+import { GAP_OPTIONS, UPCOMING_OPTIONS, type TextSize, type WeekLayout } from '../lib/prefs'
 import { ChoiceSetting, SwitchSetting } from './SettingControls'
 import { usePlanUi } from '../hooks/planUi'
 
@@ -159,6 +159,7 @@ export function PlanPrefsPanel({ prefsApi }: Pick<Props, 'prefsApi'>) {
 
 export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> & { courseNames: string[] }) {
   const { prefs, update } = prefsApi
+  const { autoShort } = usePlanUi()
 
   function setAlias(courseName: string, alias: string) {
     const next = { ...prefs.courseAliases }
@@ -181,7 +182,7 @@ export function AliasesPanel({ prefsApi, courseNames }: Pick<Props, 'prefsApi'> 
       />
       <ul className={`alias-list${prefs.useAliases ? '' : ' is-disabled'}`}>
         {courseNames.map((name) => {
-          const suggestion = suggestAlias(name)
+          const suggestion = autoShort(name)
           return (
             <li key={name} className="alias-row">
               <label className="alias-name" htmlFor={`alias-${name}`}>

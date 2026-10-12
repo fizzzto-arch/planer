@@ -120,7 +120,8 @@ export function SearchPanel({ meetings, now, query, keys, onChoose }: Props) {
       now,
       meetings: notesOn ? meetings : meetings.map((m) => (m.note ? { ...m, note: '' } : m)),
       displayName,
-      shortName,
+      // Skrót wpisany albo automatyczny (np. "LAEL" z kodu USOS) - też do znalezienia.
+      shortName: (name) => shortName(name, true),
       deadlines: extras?.extras.deadlines ?? [],
       courseExtras,
       generalNote: notesOn ? (extras?.extras.courses.get(courseKey(GENERAL_NOTE))?.note ?? '') : '',
