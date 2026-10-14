@@ -35,6 +35,24 @@
   margin-bottom: 10px;
 }
 
+.panel > .section-head {
+  margin-bottom: 12px;
+}
+
+.panel > .section-head .panel-title {
+  margin-bottom: 0;
+}
+
+/* Mały nagłówek listy z przyciskiem (np. "Zajęcia" + "Dodaj zajęcia"): margines na całym wierszu,
+   inaczej napis wypadał niżej niż środek przycisku. */
+.section-head:has(> .section-title) {
+  margin: 20px 0 10px;
+}
+
+.section-head > .section-title {
+  margin: 0;
+}
+
 .section-title {
   font-size: 0.8rem;
   margin: 20px 0 10px;
@@ -607,8 +625,16 @@ input[type="time"].text-input {
 }
 
 .course-header {
-  padding: 4px 0 12px 14px;
+  padding: 4px 0 12px;
   margin-bottom: 12px;
+}
+
+/* Strona przedmiotu: pasek w kolorze typu zajęć (optymalizator i program studiów - w kolorze akcentu).
+   Inne strony (eksport, pomoc, zgłoszenia) go nie mają, więc bez wcięcia - tytuł równo z "Wróć" i panelami. */
+.course-page .course-header,
+.course-header.opt-header,
+.course-header.program-header {
+  padding-left: 14px;
   border-left: 4px solid var(--c);
 }
 
@@ -1476,7 +1502,7 @@ label.setting-row {
 }
 
 .opt-header {
-  border-left-color: var(--accent);
+  --c: var(--accent);
 }
 
 .opt-progress {
@@ -1987,6 +2013,7 @@ button.link-like {
 
 .reminder-device .muted {
   margin: 0;
+  font-size: 0.88rem;
 }
 
 .reminder-state {

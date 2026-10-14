@@ -231,6 +231,11 @@ a {
   margin-bottom: 16px;
 }
 
+/* Równy odstęp na górze i na dole: margines ostatniego elementu dokładał się do wypełnienia panelu. */
+.panel > :last-child {
+  margin-bottom: 0;
+}
+
 .field-label {
   display: block;
   font-weight: 600;

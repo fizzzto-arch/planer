@@ -16,6 +16,7 @@ export function StaffSection({ meetings }: Props) {
   const { staff, people, status } = useCourseStaff(meetings, cloud)
   if (status.kind === 'none') return null
   const list = staff ? staffPeople(staff) : []
+  if (status.kind !== 'loading' && status.kind !== 'error' && list.length === 0) return null
 
   return (
     <div className="panel staff">
