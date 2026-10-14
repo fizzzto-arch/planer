@@ -7,6 +7,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { wipeIfSessionEnded } from './lib/deviceMemory'
 import { registerServiceWorker } from './lib/push'
 import { listenForErrors } from './lib/errorReport'
+import { detectLanguage, loadEnglish } from './lib/i18n'
+import { loadLocalPrefs } from './lib/prefs'
 
 // Service worker tylko do powiadomień o terminach.
 registerServiceWorker()
@@ -14,7 +16,9 @@ registerServiceWorker()
 listenForErrors()
 
 // Najpierw sprzątanie po sesji "bez zapamiętania urządzenia" - zanim cokolwiek wczyta dane.
-void wipeIfSessionEnded().then(() =>
+// Angielski interfejs: słownik przed pierwszym rysowaniem (polski go nie pobiera).
+const english = (loadLocalPrefs()?.language ?? detectLanguage()) === 'en'
+void Promise.all([wipeIfSessionEnded(), english ? loadEnglish().catch(() => undefined) : null]).then(() =>
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <ErrorBoundary>

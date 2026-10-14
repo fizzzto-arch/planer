@@ -1,7 +1,24 @@
 // Język interfejsu. Tekstem źródłowym jest polski - on jest zarazem kluczem słownika angielskiego
 // (i18n.en.ts). Nazwy przedmiotów, sale i dane z USOS zostają bez tłumaczenia (nazwy można skrócić
 // w ustawieniach). Bez importów przeglądarki - słownika używa też skrypt powiadomień w Node.
-import { EN } from './i18n.en.ts'
+
+// Słownik angielski: aplikacja pobiera go dopiero, gdy ktoś wybierze angielski (loadEnglish) -
+// polski interfejs go nie potrzebuje. Serwer powiadomień i testy podają go od razu (setEnglish).
+let EN: Record<string, string> = {}
+let englishLoaded = false
+
+export function setEnglish(dictionary: Record<string, string>): void {
+  EN = dictionary
+  englishLoaded = true
+}
+
+export function englishReady(): boolean {
+  return englishLoaded
+}
+
+export async function loadEnglish(): Promise<void> {
+  if (!englishLoaded) setEnglish((await import('./i18n.en.ts')).EN)
+}
 
 export type Language = 'pl' | 'en'
 export const LANGUAGES: readonly Language[] = ['pl', 'en']

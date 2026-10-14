@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
 import { PasswordField } from './PasswordField'
@@ -22,6 +22,9 @@ export function AuthForm({ cloud }: Props) {
   const [info, setInfo] = useState<string | null>(null)
 
   const isRegister = mode === 'register'
+  // Logowanie (Firebase) ładuje się dopiero tutaj, jeśli na tym urządzeniu nikt nie był zalogowany.
+  const { connect } = cloud
+  useEffect(() => connect(), [connect])
 
   function switchMode(next: Mode) {
     setMode(next)

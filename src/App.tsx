@@ -63,7 +63,7 @@ import { weekNumbers } from './lib/classDates'
 import { seriesKey } from './lib/extras'
 import { EMPTY_EXTRAS, notesEnabled, type Deadline } from './lib/extras'
 import { withLanguageClasses, type Meeting } from './lib/usos'
-import { locale, setLanguage, t } from './lib/i18n'
+import { englishReady, loadEnglish, locale, setLanguage, t } from './lib/i18n'
 
 type View = 'today' | 'week' | 'courses' | 'notifications' | 'report' | 'settings'
 
@@ -316,6 +316,13 @@ function App() {
   const { prefs } = prefsApi
   // Język przed narysowaniem czegokolwiek - teksty (t()) czytają go w trakcie renderowania.
   setLanguage(prefs.language)
+  // Angielski wybrany w trakcie (albo z konta na nowym urządzeniu): słownik dociągamy i rysujemy od nowa.
+  const [, setEnglishLoaded] = useState(englishReady)
+  const needsEnglish = prefs.language === 'en' && !englishReady()
+  useEffect(() => {
+    if (needsEnglish) void loadEnglish().then(() => setEnglishLoaded(true))
+  }, [needsEnglish])
+  const languageKey = needsEnglish ? 'pl' : prefs.language
   const now = useNow()
   const [view, setView] = useState<View>(() => prefs.startView)
   const [page, setPage] = useState<Page>(readPageFromHistory)
@@ -961,7 +968,7 @@ function App() {
             <div
               // Język w kluczu: zmiana języka rysuje widok od nowa (także teksty zapamiętane w useMemo),
               // a element z gestami (wyżej) zostaje ten sam - inaczej przesuwanie palcem by się odpięło.
-              key={`${prefs.language}:${page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}`}
+              key={`${languageKey}:${page ? (page.kind === 'course' ? `course:${page.name}` : page.kind) : view}`}
               className={ENTER_CLASS[enter]}
             >
               <ErrorBoundary>
@@ -999,7 +1006,7 @@ function App() {
         {page && (
           <div ref={underWrapRef} className="swipe-under" aria-hidden="true">
             <div ref={underRef} className="swipe-under-inner">
-              <Suspense key={prefs.language} fallback={null}>
+              <Suspense key={languageKey} fallback={null}>
                 {mainView}
               </Suspense>
             </div>

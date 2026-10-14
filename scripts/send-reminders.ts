@@ -31,11 +31,15 @@ import { startOfDay } from '../src/lib/dates.ts'
 import { isAutoReport } from '../src/lib/feedback.ts'
 import { NOTIFICATION_KEEP_DAYS, type NotificationKind } from '../src/lib/notifications.ts'
 import { USOSWEB_PERSON_URL, isPersonId, parsePersonPage } from '../src/lib/usosPeople.ts'
-import { translate, type Language } from '../src/lib/i18n.ts'
+import { setEnglish, translate, type Language } from '../src/lib/i18n.ts'
+import { EN } from '../src/lib/i18n.en.ts'
 import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
 import { parseHiddenClasses } from '../src/lib/hiddenClasses.ts'
 import { parseSharedWatPlan, watGroupFromUrl, watUpdatedFromIcs } from '../src/lib/wat.ts'
+
+// Powiadomienia po angielsku - słownik od razu (aplikacja pobiera go tylko w razie potrzeby).
+setEnglish(EN)
 
 // Język powiadomień: z ustawień odbiorcy (brak = polski, jak przed wersją angielską).
 function userLanguage(prefs: DocumentData): Language {

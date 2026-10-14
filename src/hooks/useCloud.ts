@@ -20,6 +20,66 @@ function loadCloud(): Promise<Cloud> | null {
   return import('../lib/cloud').then((m) => m.getCloud(config))
 }
 
+// Czy na tym urządzeniu ktoś jest zalogowany: "1" - tak, "0" - nie (wtedy Firebase, największa część
+// Planera, ładuje się dopiero przy formularzu logowania); brak - starsza wersja Planera, sprawdzamy sesję.
+const ACCOUNT_KEY = 'planer.account'
+
+function accountHint(): string | null {
+  try {
+    return localStorage.getItem(ACCOUNT_KEY)
+  } catch {
+    return null
+  }
+}
+
+function saveAccountHint(signedIn: boolean): void {
+  try {
+    localStorage.setItem(ACCOUNT_KEY, signedIn ? '1' : '0')
+  } catch {
+    // bez zapamiętania - następnym razem sprawdzimy sesję jeszcze raz
+  }
+}
+
+// Zapamiętana sesja Firebase (zalogowani przed tą wersją Planera): baza w przeglądarce albo zapis sesji.
+async function hasFirebaseSession(): Promise<boolean> {
+  const stored = (store: Storage) => Object.keys(store).some((k) => k.startsWith('firebase:authUser:'))
+  try {
+    if (stored(localStorage) || stored(sessionStorage)) return true
+  } catch {
+    return true
+  }
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open('firebaseLocalStorageDb')
+      // Bazy nie było - nie zakładamy jej (przerwane tworzenie), sesji nie ma.
+      request.onupgradeneeded = () => {
+        request.transaction?.abort()
+        resolve(false)
+      }
+      request.onerror = () => resolve(false)
+      request.onsuccess = () => {
+        const db = request.result
+        try {
+          const keys = db.transaction('firebaseLocalStorage', 'readonly').objectStore('firebaseLocalStorage').getAllKeys()
+          keys.onsuccess = () => {
+            resolve(keys.result.some((k) => String(k).startsWith('firebase:authUser:')))
+            db.close()
+          }
+          keys.onerror = () => {
+            resolve(true)
+            db.close()
+          }
+        } catch {
+          resolve(true) // nieznany układ bazy - na wszelki wypadek ładujemy logowanie
+          db.close()
+        }
+      }
+    } catch {
+      resolve(true)
+    }
+  })
+}
+
 function isAdminEmail(email: string | null): boolean {
   if (!email) return false
   const normalized = email.toLowerCase()
@@ -37,9 +97,29 @@ export type AccessState = 'none' | 'unverified' | 'checking' | 'pending' | 'reje
 
 export function useCloud(plan: PlanApi) {
   const [cloud, setCloud] = useState<Cloud | null>(null)
-  const [state, setState] = useState<CloudState>(
-    firebaseConfig || useMock ? { kind: 'loading' } : { kind: 'disabled' },
+  // Firebase od razu tylko tam, gdzie ktoś może być zalogowany; inaczej - przy formularzu logowania (connect).
+  const [wanted, setWanted] = useState(() => useMock || accountHint() === '1')
+  const [state, setState] = useState<CloudState>(() =>
+    !firebaseConfig && !useMock ? { kind: 'disabled' } : !useMock && accountHint() === '0' ? { kind: 'signedOut' } : { kind: 'loading' },
   )
+  const connect = useCallback(() => setWanted(true), [])
+
+  // Starsza wersja Planera (bez zapamiętanej odpowiedzi): Firebase tylko przy zapisanej sesji.
+  useEffect(() => {
+    if (useMock || !firebaseConfig || accountHint() !== null) return
+    let cancelled = false
+    void hasFirebaseSession().then((has) => {
+      if (cancelled) return
+      if (has) setWanted(true)
+      else {
+        saveAccountHint(false)
+        setState((s) => (s.kind === 'loading' ? { kind: 'signedOut' } : s))
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
   // Dane konta zapamiętane razem z uid - po wylogowaniu same przestają pasować.
   const [cloudData, setCloudData] = useState<{ uid: string; icalUrl: string | null } | null>(null)
   const [accessData, setAccessData] = useState<{ uid: string; status: AccessStatus | null; optimizer: boolean } | null>(null)
@@ -47,6 +127,7 @@ export function useCloud(plan: PlanApi) {
 
   // 1. Ładujemy Firebase w tle i słuchamy, kto jest zalogowany.
   useEffect(() => {
+    if (!wanted) return
     const loading = loadCloud()
     if (!loading) return
     let unsubscribe = () => {}
@@ -55,7 +136,10 @@ export function useCloud(plan: PlanApi) {
       .then((c) => {
         if (cancelled) return
         setCloud(c)
-        unsubscribe = c.watchUser((user) => setState(user ? { kind: 'signedIn', user } : { kind: 'signedOut' }))
+        unsubscribe = c.watchUser((user) => {
+          if (!useMock) saveAccountHint(user !== null)
+          setState(user ? { kind: 'signedIn', user } : { kind: 'signedOut' })
+        })
       })
       .catch(() => {
         if (cancelled) return
@@ -66,7 +150,7 @@ export function useCloud(plan: PlanApi) {
       cancelled = true
       unsubscribe()
     }
-  }, [])
+  }, [wanted])
 
   const user = state.kind === 'signedIn' ? state.user : null
   const userUid = user?.uid ?? null
@@ -233,6 +317,7 @@ export function useCloud(plan: PlanApi) {
     accessRequestError,
     // Na koncie jest plan, którego ta przeglądarka jeszcze nie ma (trwa pobieranie).
     isAdopting: !!uid && !!cloudUrl && cloudUrl !== localUrl,
+    connect,
     signIn,
     signUp,
     resetPassword,

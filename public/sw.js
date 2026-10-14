@@ -1,6 +1,7 @@
-// Service worker Planera: powiadomienia (przypomnienia o terminach) i start bez internetu.
-// Strona ładuje się zawsze z sieci, jak dotąd - kopia w pamięci telefonu służy tylko wtedy, gdy sieci
-// nie ma (sale w piwnicach, metro). Dane konta (Firebase) i plan z USOS to inne domeny - tych nie ruszamy.
+// Service worker Planera: powiadomienia (przypomnienia o terminach) i szybki start, także bez internetu.
+// Pliki programu (z odciskiem w nazwie) prosto z pamięci telefonu; sama strona z sieci, a przy braku
+// albo bardzo wolnej sieci (sale w piwnicach, metro) - z pamięci. Dane konta (Firebase) i plan z USOS
+// to inne domeny - tych nie ruszamy.
 
 const CACHE = 'planer-offline-v1'
 const MAX_ENTRIES = 80 // stare pliki po aktualizacjach wypadają z pamięci
@@ -39,22 +40,55 @@ async function trim(cache) {
   }
 }
 
+// Pliki programu z odciskiem w nazwie (assets/index-AbC123.js): nowa wersja ma nowe nazwy, więc
+// zapisany plik nigdy się nie zmienia - bierzemy go z pamięci od razu, bez pytania sieci.
+const IMMUTABLE = /\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.(?:js|css)$/
+// Strona (index.html): z sieci, ale przy wolnej sieci po tylu ms kopia z pamięci (nowa zapisze się w tle).
+const PAGE_TIMEOUT_MS = 3000
+
+async function save(cache, key, response) {
+  // Tylko pełne odpowiedzi z tej strony (206 przy wideo nie da się zapisać).
+  if (response.status === 200 && response.type === 'basic') {
+    await cache.put(key, response.clone())
+    void trim(cache)
+  }
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE)
-  const key = request.mode === 'navigate' ? SHELL : request
   try {
     const response = await fetch(request)
-    // Tylko pełne odpowiedzi z tej strony (206 przy wideo nie da się zapisać).
-    if (response.status === 200 && response.type === 'basic') {
-      await cache.put(key, response.clone())
-      void trim(cache)
-    }
+    await save(cache, request, response)
     return response
   } catch (error) {
-    const cached = await cache.match(key)
+    const cached = await cache.match(request)
     if (cached) return cached
     throw error
   }
+}
+
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE)
+  const cached = await cache.match(request)
+  if (cached) return cached
+  const response = await fetch(request)
+  await save(cache, request, response)
+  return response
+}
+
+// Wolna sieć (sala w piwnicy, metro) nie może wstrzymać startu: po PAGE_TIMEOUT_MS kopia z pamięci.
+async function page(request) {
+  const cache = await caches.open(CACHE)
+  const cached = await cache.match(SHELL)
+  const network = fetch(request).then(async (response) => {
+    await save(cache, SHELL, response)
+    return response
+  })
+  if (!cached) return network
+  return Promise.race([
+    network.catch(() => cached),
+    new Promise((resolve) => setTimeout(() => resolve(cached), PAGE_TIMEOUT_MS)),
+  ])
 }
 
 self.addEventListener('fetch', (event) => {
@@ -63,7 +97,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return // Firebase, USOS - bez zmian
   if (url.pathname.endsWith('/version.json')) return // sprawdzanie nowej wersji zawsze z sieci
-  event.respondWith(networkFirst(request))
+  if (request.mode === 'navigate') event.respondWith(page(request))
+  else if (IMMUTABLE.test(url.pathname)) event.respondWith(cacheFirst(request))
+  else event.respondWith(networkFirst(request)) // plany WAT, kalendarz, ikony - świeże, gdy jest sieć
 })
 
 self.addEventListener('push', (event) => {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { EN } from './i18n.en'
-import { pluralIn, setLanguage, t, translate } from './i18n'
+import { pluralIn, setEnglish, setLanguage, t, translate } from './i18n'
+
+setEnglish(EN)
 
 // Wszystkie pliki źródłowe (bez testów i samego słownika) - z nich wyciągamy teksty do tłumaczenia.
 const FILES = import.meta.glob(['/src/**/*.{ts,tsx}', '/scripts/*.ts', '!**/*.test.{ts,tsx}', '!**/i18n.ts', '!**/i18n.en.ts', '!**/i18nReact.tsx'], {
