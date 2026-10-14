@@ -43,6 +43,7 @@ function createMockCloud(): Cloud {
     setTimeout(() => collectionListeners.get(name)?.forEach((cb) => cb(docsOf(name))), 0)
   }
 
+  const ownChunks = new Map<string, Uint8Array>() // "id:nr" -> kawałek własnego pliku
   const materials = new Map<string, { data: Record<string, unknown>; chunks: Uint8Array[] }>()
   const materialListeners = new Set<(docs: CloudDoc[]) => void>()
   const materialDocs = (): CloudDoc[] => [...materials.entries()].map(([id, m]) => ({ id, data: { ...m.data } }))
@@ -285,6 +286,37 @@ function createMockCloud(): Cloud {
     async deleteMaterial(id) {
       materials.delete(id)
       emitMaterials()
+    },
+
+    // Własne pliki: metadane w zwykłej kolekcji (jak w bazie), kawałki tylko w pamięci karty.
+    async uploadOwnFile(_uid, meta, chunks, onProgress) {
+      const id = Math.random().toString(36).slice(2, 12)
+      store = { ...store, files: { ...store.files, [id]: { ...meta, chunkCount: chunks.length, complete: false, createdAt: Date.now() } } }
+      emit('files')
+      for (let i = 0; i < chunks.length; i++) {
+        await new Promise((r) => setTimeout(r, 100))
+        ownChunks.set(`${id}:${i}`, chunks[i].slice())
+        onProgress(i + 1)
+      }
+      store = { ...store, files: { ...store.files, [id]: { ...store.files[id], complete: true } } }
+      emit('files')
+    },
+    async downloadOwnFile(_uid, id, chunkCount, onProgress) {
+      const chunks: Uint8Array[] = []
+      for (let i = 0; i < chunkCount; i++) {
+        const chunk = ownChunks.get(`${id}:${i}`)
+        if (!chunk) throw new Error('Plik jest niekompletny.')
+        chunks.push(chunk)
+        onProgress(i + 1)
+      }
+      return chunks
+    },
+    async deleteOwnFile(_uid, id, chunkCount) {
+      for (let i = 0; i < chunkCount; i++) ownChunks.delete(`${id}:${i}`)
+      const rest = { ...store.files }
+      delete rest[id]
+      store = { ...store, files: rest }
+      emit('files')
     },
   }
 }

@@ -6,6 +6,9 @@ import { courseKey, isSafeUrl, type CourseLink } from '../lib/extras'
 import { formatSize } from '../lib/localFiles'
 import { QUOTA_BYTES } from '../lib/materials'
 import type { SharedMaterialsApi } from '../hooks/useSharedMaterials'
+import type { OwnFilesApi } from '../hooks/useOwnFiles'
+import { OWN_QUOTA_BYTES, type OwnFile } from '../lib/ownFiles'
+import { Dialog } from './Dialog'
 
 interface Props {
   courseName: string
@@ -372,8 +375,119 @@ function LocalFiles({ courseName, materials }: Props & { materials: SharedMateri
   )
 }
 
+// Własne zdjęcia (np. tablicy, strony podręcznika) i pliki - tylko dla siebie, na każdym swoim urządzeniu.
+// Zdjęcia jako miniatury; stuknięcie otwiera zdjęcie w Planerze, plik - w przeglądarce.
+function OwnFiles({ courseName, files }: Props & { files: OwnFilesApi }) {
+  const key = courseKey(courseName)
+  const input = useRef<HTMLInputElement>(null)
+  const [viewing, setViewing] = useState<{ file: OwnFile; url: string } | null>(null)
+  const list = files.forCourse(key)
+  const photos = list.filter((f) => f.thumb)
+  const others = list.filter((f) => !f.thumb)
+  const canShare = typeof navigator.share === 'function'
+
+  async function open(file: OwnFile) {
+    const url = await files.download(file)
+    if (!url) return
+    if (file.thumb) setViewing({ file, url })
+    else window.open(url, '_blank', 'noopener')
+  }
+
+  function remove(file: OwnFile) {
+    if (!window.confirm(t('Usunąć „{name}”?', { name: file.name }))) return
+    void files.remove(file)
+    setViewing(null)
+  }
+
+  return (
+    <>
+      {photos.length > 0 && (
+        <ul className="own-photos">
+          {photos.map((f) => (
+            <li key={f.id}>
+              <button type="button" className="own-photo" onClick={() => void open(f)} aria-label={t('Otwórz {name}', { name: f.name })}>
+                <img src={f.thumb!} alt="" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {others.length > 0 && (
+        <ul className="material-list">
+          {others.map((f) => (
+            <li key={f.id} className="material-item">
+              <FileIcon />
+              <button type="button" className="material-name link-like" onClick={() => void open(f)}>
+                {f.name}
+                <span className="material-meta">{formatSize(f.size)}</span>
+              </button>
+              <button
+                type="button"
+                className="material-delete"
+                aria-label={t('Usuń {name}', { name: f.name })}
+                onClick={() => remove(f)}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {files.uploading?.courseKey === key && (
+        <div className="upload-progress" role="status">
+          <span>{t('Wysyłanie „{name}”…', { name: files.uploading.name })}</span>
+          <progress value={files.uploading.done} max={files.uploading.total} />
+        </div>
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept="image/*,application/pdf"
+        multiple
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.length) void files.upload(key, courseName, e.target.files)
+          e.target.value = ''
+        }}
+      />
+      <div className="material-footer">
+        <button type="button" className="button small secondary" disabled={!!files.uploading} onClick={() => input.current?.click()}>
+          {t('+ Dodaj zdjęcie lub plik')}
+        </button>
+        <span className="muted small">
+          {t('Zajęte {used} z {total}', { used: formatSize(files.usedBytes), total: formatSize(OWN_QUOTA_BYTES) })}
+        </span>
+      </div>
+      {files.error && (
+        <p className="error" role="alert">
+          {files.error}
+        </p>
+      )}
+      {viewing && (
+        <Dialog title={viewing.file.name} onClose={() => setViewing(null)} wide>
+          <img className="own-photo-full" src={viewing.url} alt={viewing.file.name} />
+          <div className="dialog-actions">
+            <button type="button" className="button danger" onClick={() => remove(viewing.file)}>
+              {t('Usuń')}
+            </button>
+            <span className="spacer" />
+            {canShare && (
+              <button type="button" className="button secondary" onClick={() => void files.share(viewing.file)}>
+                {t('Udostępnij / zapisz')}
+              </button>
+            )}
+            <button type="button" className="button" onClick={() => setViewing(null)}>
+              {t('Zamknij')}
+            </button>
+          </div>
+        </Dialog>
+      )}
+    </>
+  )
+}
+
 export function MaterialsSection({ courseName }: Props) {
-  const { materials } = usePlanUi()
+  const { materials, ownFiles } = usePlanUi()
 
   return (
     <div className="panel">
@@ -382,6 +496,13 @@ export function MaterialsSection({ courseName }: Props) {
         <h4 className="material-heading">{t('Linki')}</h4>
         <Links courseName={courseName} />
       </div>
+      {ownFiles && (
+        <div className="material-group">
+          <h4 className="material-heading">{t('Moje zdjęcia i pliki')}</h4>
+          <p className="muted small">{t('Widzisz je tylko Ty - na każdym swoim urządzeniu. Np. zdjęcie tablicy albo strony podręcznika.')}</p>
+          <OwnFiles courseName={courseName} files={ownFiles} />
+        </div>
+      )}
       {materials && (
         <div className="material-group">
           <h4 className="material-heading">{t('Pliki wspólne dla grupy')}</h4>

@@ -41,6 +41,7 @@ import { setErrorSender } from './lib/errorReport'
 import { useExtras } from './hooks/useExtras'
 import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
+import { useOwnFiles } from './hooks/useOwnFiles'
 import { useTypeColors } from './hooks/useTypeColors'
 import { usePrefs } from './hooks/usePrefs'
 import { isHiddenClass, isHiddenUsosClass, type HiddenClass } from './lib/hiddenClasses'
@@ -310,6 +311,7 @@ function App() {
     cloud.uid,
     cloud.state.kind === 'signedIn' ? cloud.state.user.email : null,
   )
+  const ownFiles = useOwnFiles(cloud.client, cloud.uid)
   const prefsApi = usePrefs(extrasApi)
   const { prefs } = prefsApi
   // Język przed narysowaniem czegokolwiek - teksty (t()) czytają go w trakcie renderowania.
@@ -691,6 +693,7 @@ function App() {
     () => ({
       extras: extrasApi,
       materials,
+      ownFiles,
       openCourse,
       openOptimizer,
       openProgram,
@@ -736,6 +739,7 @@ function App() {
     [
       extrasApi,
       materials,
+      ownFiles,
       openCourse,
       openOptimizer,
       openProgram,

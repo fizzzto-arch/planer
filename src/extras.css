@@ -896,7 +896,13 @@ button.grid-event {
 .material-action:active,
 .material-delete:active {
   background: var(--border);
-  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .material-action:active,
+  .material-delete:active {
+    transform: scale(0.94);
+  }
 }
 
 .material-action svg {
@@ -1871,6 +1877,54 @@ label.setting-row {
 
 .view-enter-left {
   animation: slide-from-left 260ms ease-out both;
+}
+
+/* ---------- Własne zdjęcia przedmiotu ---------- */
+
+.own-photos {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.own-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.own-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.own-photo-full {
+  display: block;
+  max-width: 100%;
+  max-height: 65dvh;
+  margin: 0 auto 12px;
+  border-radius: 8px;
+}
+
+button.link-like {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
 }
 
 /* ---------- Plan WAT: może być nieaktualny ---------- */
@@ -3419,14 +3473,14 @@ label.setting-row {
   text-overflow: ellipsis;
 }
 
-/* Godziny drobnym drukiem, zawsze w jednej linii - czcionka zmniejsza się do szerokości okienka
-   (--time-em: szerokość napisu w em zmierzona w tej przeglądarce, WeekGrid). */
+/* Godziny drobnym drukiem w jednej linii - czcionka zmniejsza się do szerokości okienka (--time-em:
+   szerokość napisu w em zmierzona w tej przeglądarce, WeekGrid). W bardzo wąskim okienku (zajęcia
+   obok siebie) koniec przechodzi do drugiej linii zamiast się uciąć. */
 .grid-event-time {
   display: block;
   font-size: 0.6rem;
-  font-size: clamp(0.45rem, calc(96cqi / var(--time-em, 6.4)), 0.6rem);
+  font-size: clamp(0.5rem, calc(96cqi / var(--time-em, 6.4)), 0.6rem);
   color: var(--muted);
-  white-space: nowrap;
   overflow: hidden;
 }
 

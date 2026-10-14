@@ -7,6 +7,7 @@ import type { Cloud } from '../lib/cloudTypes'
 import type { CalendarEvent } from '../lib/academicCalendar'
 import type { ExtrasApi } from './useExtras'
 import type { SharedMaterialsApi } from './useSharedMaterials'
+import type { OwnFilesApi } from './useOwnFiles'
 import type { SharedBusyApi } from './useSharedBusy'
 
 // Termin do edycji: bez id = nowy (pola mogą być wstępnie wypełnione).
@@ -25,6 +26,7 @@ export interface ExportSource {
 export interface PlanUi {
   extras: ExtrasApi | null // null = niezalogowany
   materials: SharedMaterialsApi | null // wspólne pliki przedmiotów; null = niezalogowany
+  ownFiles: OwnFilesApi | null // własne zdjęcia i pliki (tylko dla zalogowanego)
   openCourse: (courseName: string) => void
   openOptimizer: () => void // "Dobierz grupy"
   openProgram: (course?: string) => void // program studiów; course - od razu ten przedmiot

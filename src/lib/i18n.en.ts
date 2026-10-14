@@ -598,6 +598,13 @@ export const EN: Record<string, string> = {
   'Skopiowano - wklej je w wiadomości.': 'Copied - paste it into your message.',
 
   // src/components/MaterialsSection.tsx
+  'Usunąć „{name}”?': 'Delete "{name}"?',
+  'Otwórz {name}': 'Open {name}',
+  'Wysyłanie „{name}”…': 'Uploading "{name}"…',
+  '+ Dodaj zdjęcie lub plik': '+ Add a photo or file',
+  'Udostępnij / zapisz': 'Share / save',
+  'Moje zdjęcia i pliki': 'My photos and files',
+  'Widzisz je tylko Ty - na każdym swoim urządzeniu. Np. zdjęcie tablicy albo strony podręcznika.': 'Only you can see them - on each of your devices. E.g. a photo of the board or a textbook page.',
   'Zaloguj się, żeby dodawać linki - będą wtedy na każdym Twoim urządzeniu.': 'Sign in to add links - they will then be on all your devices.',
   'Wklej pełny adres zaczynający się od https://': 'Paste the full address starting with https://',
   'Usuń link {name}': 'Remove link {name}',
@@ -1195,6 +1202,7 @@ export const EN: Record<string, string> = {
   'Nie udało się zapisać pliku na urządzeniu.': 'Could not save the file on this device.',
 
   // src/lib/materials.ts
+  'Brak miejsca na Twoje pliki ({mb} MB) - usuń niepotrzebne.': 'No space left for your files ({mb} MB) - delete the ones you do not need.',
   'ktoś': 'someone',
   'Plik jest za duży (limit {mb} MB na plik).': 'The file is too large (limit {mb} MB per file).',
   'Brak miejsca na wspólne materiały - usuńcie niepotrzebne pliki.': 'No space left for shared materials - delete files you no longer need.',

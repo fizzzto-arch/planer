@@ -1,6 +1,7 @@
 // Wspólny interfejs chmury - prawdziwej (Firebase, cloud.ts) i udawanej do testów (cloudMock.ts).
 import type { FeedbackAttachment, FeedbackFile, FeedbackStatus, NewFeedback } from './feedback'
 import type { NewMaterial } from './materials'
+import type { NewOwnFile } from './ownFiles'
 import type { PersonInfo } from './usosPeople'
 
 export interface CloudUser {
@@ -45,6 +46,7 @@ export const COLLECTION_NAMES = [
   'grades', // oceny końcowe z programu studiów
   'push',
   'notifications', // historia powiadomień - zapisuje ją serwer przypomnień
+  'files', // własne zdjęcia i pliki przedmiotów (kawałki w podkolekcji chunks - usuwane razem z kontem)
 ] as const
 export type CollectionName = (typeof COLLECTION_NAMES)[number]
 
@@ -108,6 +110,10 @@ export interface Cloud {
   uploadMaterial(meta: NewMaterial, chunks: Uint8Array[], onProgress: (chunksDone: number) => void): Promise<void>
   downloadMaterial(id: string, chunkCount: number, onProgress: (chunksDone: number) => void): Promise<Uint8Array[]>
   deleteMaterial(id: string, chunkCount: number): Promise<void>
+  // Własne pliki (users/{uid}/files/{id} + kawałki) - jak wspólne materiały, ale tylko dla właściciela.
+  uploadOwnFile(uid: string, meta: NewOwnFile, chunks: Uint8Array[], onProgress: (chunksDone: number) => void): Promise<void>
+  downloadOwnFile(uid: string, id: string, chunkCount: number, onProgress: (chunksDone: number) => void): Promise<Uint8Array[]>
+  deleteOwnFile(uid: string, id: string, chunkCount: number): Promise<void>
   // Usuwa konto i wszystkie dane użytkownika (wymaga hasła - potwierdzenie tożsamości).
   deleteAccount(password: string): Promise<void>
 

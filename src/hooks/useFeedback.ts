@@ -4,6 +4,7 @@ import type { Cloud, CloudDoc } from '../lib/cloudTypes'
 import { errorMessage } from '../lib/errors'
 import { isAutoReport, parseFeedback, type Feedback, type FeedbackFile, type FeedbackStatus, type NewFeedback } from '../lib/feedback'
 import { joinChunks } from '../lib/materials'
+import { shrinkImage } from '../lib/images'
 import { safeBlobType } from '../lib/safeBlob'
 
 const toList = (docs: CloudDoc[]) =>
@@ -82,27 +83,5 @@ export type FeedbackApi = ReturnType<typeof useFeedback>
 // Zdjęcie do zgłoszenia: najwyżej 1920 px, JPEG - z kilku MB robi się kilkaset kB.
 // Nagrania i pliki, których przeglądarka nie odczyta jako obraz, idą bez zmian.
 export async function prepareAttachment(file: File): Promise<FeedbackFile> {
-  const original = async (): Promise<FeedbackFile> => ({
-    name: file.name,
-    type: file.type || 'application/octet-stream',
-    bytes: new Uint8Array(await file.arrayBuffer()),
-  })
-  if (!file.type.startsWith('image/') || file.type === 'image/gif') return original()
-  try {
-    const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(bitmap.width * scale)
-    canvas.height = Math.round(bitmap.height * scale)
-    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
-    if (!blob || blob.size >= file.size) return original()
-    return {
-      name: file.name.replace(/\.[^.]+$/, '') + '.jpg',
-      type: 'image/jpeg',
-      bytes: new Uint8Array(await blob.arrayBuffer()),
-    }
-  } catch {
-    return original()
-  }
+  return shrinkImage(file)
 }

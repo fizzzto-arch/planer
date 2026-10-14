@@ -672,6 +672,25 @@ test('eksport: Excel i kalendarz się pobierają i mają poprawny format', async
   expect(ics).toContain('SUMMARY:Grafika komputerowa (Wykład)')
 })
 
+test('własne zdjęcie przedmiotu: miniatura, podgląd w Planerze, usunięcie', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  const own = page.locator('.material-group', { hasText: 'Moje zdjęcia i pliki' })
+  await expect(own.getByText('Widzisz je tylko Ty')).toBeVisible()
+  // Zdjęcie tablicy (mały PNG) - na liście jako miniatura.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+  await own.locator('input[type=file]').setInputFiles({ name: 'tablica.png', mimeType: 'image/png', buffer: png })
+  const thumb = own.getByRole('button', { name: 'Otwórz tablica.png' })
+  await expect(thumb).toBeVisible()
+  await thumb.click()
+  const dialog = page.getByRole('dialog', { name: 'tablica.png' })
+  await expect(dialog.locator('img.own-photo-full')).toHaveAttribute('src', /^blob:/)
+  page.once('dialog', (d) => void d.accept())
+  await dialog.getByRole('button', { name: 'Usuń' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(thumb).toHaveCount(0)
+})
+
 test('zgłoszenie ze zdjęciem trafia do skrzynki administratora', async ({ page }) => {
   await tab(page, 'Ustawienia').click()
   await page.getByText('Zgłoszenia od testerów').click()

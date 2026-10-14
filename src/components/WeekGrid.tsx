@@ -32,11 +32,13 @@ interface Props {
 
 // Co zmieści się w okienku na telefonie: nazwa zawsze, potem godziny, potem rodzaj (gdyby zajęcia były
 // krótsze niż 45 min - bez rodzaju, jest jeszcze kolor), a nazwa dostaje tyle linii, ile zostało (najwyżej 3).
-function compactFit(heightPx: number): { time: boolean; type: boolean; titleLines: number } {
+// timeLines: godziny w dwóch liniach, gdy zajęcia dzielą kolumnę z innymi (wąskie okienko).
+function compactFit(heightPx: number, timeLines = 1): { time: boolean; type: boolean; titleLines: number } {
   const room = heightPx - COMPACT_CHROME
-  const time = room >= COMPACT_TITLE_LINE + COMPACT_TIME_LINE
-  const type = room >= COMPACT_TITLE_LINE + COMPACT_TYPE_LINE + COMPACT_TIME_LINE
-  const left = room - (time ? COMPACT_TIME_LINE : 0) - (type ? COMPACT_TYPE_LINE : 0)
+  const timeHeight = COMPACT_TIME_LINE * timeLines
+  const time = room >= COMPACT_TITLE_LINE + timeHeight
+  const type = room >= COMPACT_TITLE_LINE + COMPACT_TYPE_LINE + timeHeight
+  const left = room - (time ? timeHeight : 0) - (type ? COMPACT_TYPE_LINE : 0)
   return { time, type, titleLines: Math.max(1, Math.min(3, Math.floor(left / COMPACT_TITLE_LINE))) }
 }
 
@@ -171,7 +173,7 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
               ].filter(Boolean)
               const durationMin = minuteOfDay(m.end) - minuteOfDay(m.start)
               const height = Math.max(durationMin, 20) * px
-              const fit = compactFit(height)
+              const fit = compactFit(height, laneCount > 1 ? 2 : 1)
               const classes = ['grid-event', `type-${typeSlug(m.type)}`]
               if (durationMin < SHORT_EVENT_MIN) classes.push('is-short')
               if (m.end <= now) classes.push('is-past')
@@ -220,7 +222,8 @@ export function WeekGrid({ days, meetings, now, readOnly = false, highlightIds, 
                           className="grid-event-time"
                           style={{ '--time-em': textEm(`${formatTime(m.start)}–${formatTime(m.end)}`) } as CSSProperties}
                         >
-                          {formatTime(m.start)}–{formatTime(m.end)}
+                          {formatTime(m.start)}–<wbr />
+                          {formatTime(m.end)}
                         </span>
                       )}
                     </span>

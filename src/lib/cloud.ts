@@ -362,6 +362,40 @@ function createCloud(config: FirebaseOptions): Cloud {
         await deleteDoc(doc(db, 'materials', id))
       }),
 
+    // Własne pliki: metadane, kawałki, na końcu "complete" - przerwane wysyłanie da się usunąć.
+    uploadOwnFile: (uid, meta, chunks, onProgress) =>
+      wrap(async () => {
+        const ref = doc(collection(db, 'users', uid, 'files'))
+        await setDoc(ref, { ...meta, chunkCount: chunks.length, complete: false, createdAt: serverTimestamp() })
+        for (let i = 0; i < chunks.length; i++) {
+          await setDoc(doc(db, 'users', uid, 'files', ref.id, 'chunks', chunkId(i)), { data: Bytes.fromUint8Array(chunks[i]) })
+          onProgress(i + 1)
+        }
+        await setDoc(ref, { complete: true }, { merge: true })
+      }),
+
+    async downloadOwnFile(uid, id, chunkCount, onProgress) {
+      const chunks: Uint8Array[] = []
+      try {
+        for (let i = 0; i < chunkCount; i++) {
+          const snap = await getDoc(doc(db, 'users', uid, 'files', id, 'chunks', chunkId(i)))
+          const data = snap.data()?.data
+          if (!(data instanceof Bytes)) throw new Error(t('Plik jest niekompletny.'))
+          chunks.push(data.toUint8Array())
+          onProgress(i + 1)
+        }
+      } catch (e) {
+        throw new Error(e instanceof FirebaseError ? describeError(e) : errorText(e))
+      }
+      return chunks
+    },
+
+    deleteOwnFile: (uid, id, chunkCount) =>
+      wrap(async () => {
+        for (let i = 0; i < chunkCount; i++) await deleteDoc(doc(db, 'users', uid, 'files', id, 'chunks', chunkId(i)))
+        await deleteDoc(doc(db, 'users', uid, 'files', id))
+      }),
+
     // Zgłoszenie: najpierw treść (reguły sprawdzają autora), potem kawałki załączników,
     // na końcu "complete" - administrator widzi tylko dokończone.
     submitFeedback: (uid, email, feedback, files, onProgress) =>
@@ -448,6 +482,13 @@ function createCloud(config: FirebaseOptions): Cloud {
         const uid = user.uid
         for (const name of ACCOUNT_COLLECTIONS) {
           const snap = await getDocs(collection(db, 'users', uid, name))
+          // Własne pliki mają kawałki w podkolekcji - same nie znikną z dokumentem.
+          if (name === 'files') {
+            for (const d of snap.docs) {
+              const chunks = await getDocs(collection(d.ref, 'chunks'))
+              await Promise.all(chunks.docs.map((c) => deleteDoc(c.ref)))
+            }
+          }
           await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)))
         }
         await deleteDoc(doc(db, 'users', uid))

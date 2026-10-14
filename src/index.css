@@ -761,10 +761,14 @@ a {
     color 200ms ease;
 }
 
-.button:active:not(:disabled),
-.icon-button:active,
-.tab:active {
-  transform: scale(0.96);
+/* Tylko z myszką: na ekranie dotykowym palec na przycisku na początku przewijania też go "wciska"
+   (zmniejszenie i powrót) - przy przewijaniu przyciski drgały. */
+@media (hover: hover) and (pointer: fine) {
+  .button:active:not(:disabled),
+  .icon-button:active,
+  .tab:active {
+    transform: scale(0.96);
+  }
 }
 
 .is-spinning {
