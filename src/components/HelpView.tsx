@@ -83,11 +83,11 @@ export function HelpView({ onBack, onFeedback }: Props) {
           </dd>
           <dt>{t('Na Twoim koncie (Google Firebase)')}</dt>
           <dd>
-            {t('Adres e-mail, link do planu z USOS, notatki, terminy, zmiany w planie, własne zajęcia, ustawienia, lista urządzeń z włączonymi przypomnieniami i historia powiadomień z ostatnich 60 dni. Tylko dla Ciebie.')}
+            {t('Adres e-mail, link do planu z USOS (albo plan wgrany ze strony WAT), notatki, linki, Twoje zdjęcia i pliki przedmiotów, terminy, zmiany w planie, własne zajęcia, ustawienia, lista urządzeń z włączonymi przypomnieniami i historia powiadomień z ostatnich 60 dni. Tylko dla Ciebie.')}
           </dd>
           <dt>{t('Widoczne dla innych')}</dt>
           <dd>
-            {t('Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem.')}
+            {t('Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem. Jeśli włączysz „Wspólne okienka”, osoby, które też je włączyły, widzą godziny Twoich zajęć (bez nazw i sal) i wybrany przez Ciebie podpis.')}
           </dd>
           <dt>{t('Widoczne dla administratora')}</dt>
           <dd>

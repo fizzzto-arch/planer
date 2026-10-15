@@ -1,6 +1,7 @@
 import { t } from '../lib/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AccessStatus, Cloud, CloudUser } from '../lib/cloudTypes'
+import { isStaleChunkError, reloadForNewVersion } from '../lib/errorReport'
 import { errorMessage } from '../lib/errors'
 import { ADMIN_EMAILS, firebaseConfig } from '../lib/firebaseConfig'
 import { isEphemeralDevice, setRememberDevice, wipeLocalData } from '../lib/deviceMemory'
@@ -141,8 +142,10 @@ export function useCloud(plan: PlanApi) {
           setState(user ? { kind: 'signedIn', user } : { kind: 'signedOut' })
         })
       })
-      .catch(() => {
+      .catch((e) => {
         if (cancelled) return
+        // Otwarta stara wersja, a na serwerze już nowa (stary plik logowania zniknął) - odświeżamy.
+        if (isStaleChunkError(e) && navigator.onLine && reloadForNewVersion()) return
         setState({ kind: 'signedOut' })
         setSyncError(t('Nie udało się załadować logowania. Sprawdź internet.'))
       })

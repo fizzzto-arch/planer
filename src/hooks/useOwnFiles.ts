@@ -133,7 +133,7 @@ export function useOwnFiles(client: Cloud | null, uid: string | null) {
 
   if (!client || !uid) return null
 
-  return { forCourse, usedBytes, uploading, error, upload, download, share, remove }
+  return { forCourse, usedBytes, uploading, error, urls, upload, download, share, remove }
 }
 
 export type OwnFilesApi = NonNullable<ReturnType<typeof useOwnFiles>>

@@ -270,9 +270,11 @@ for (const person of pendingPeople) {
 }
 
 // Zapamiętany plan trzymamy tylko u osób z włączonymi powiadomieniami - po wyłączeniu
-// powiadomień albo usunięciu konta znika też z serwera.
-for (const watch of (await db.collection('planWatch').listDocuments())) {
-  if (!byUser.has(watch.id)) await watch.delete()
+// powiadomień albo usunięciu konta znika też z serwera. Raz na godzinę - lista też zużywa odczyty.
+if (now.getMinutes() < 15) {
+  for (const watch of await db.collection('planWatch').listDocuments()) {
+    if (!byUser.has(watch.id)) await watch.delete()
+  }
 }
 
 console.log(`Urządzenia: ${devices.size}, wysłane: ${sent}, usunięte nieaktualne: ${removed}`)
@@ -323,7 +325,8 @@ async function planNotices(
     const url = user.get('icalUrl')
     if (typeof url === 'string' && url.startsWith('https://')) {
       try {
-        const response = await fetch(url)
+        // Limit czasu: zawieszony USOS nie może zatrzymać przypomnień dla wszystkich (całe zadanie ma 5 minut).
+        const response = await fetch(url, { signal: AbortSignal.timeout(20_000) })
         if (!response.ok) throw new Error(`USOS ${response.status}`)
         let text = await response.text()
         // Plan WAT wgrany przez użytkownika ze strony WAT (konto) - gdy nowszy niż pobrany przez nasz serwer

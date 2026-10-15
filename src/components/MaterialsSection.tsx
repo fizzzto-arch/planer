@@ -381,9 +381,11 @@ function OwnFiles({ courseName, files }: Props & { files: OwnFilesApi }) {
   const key = courseKey(courseName)
   const input = useRef<HTMLInputElement>(null)
   const [viewing, setViewing] = useState<{ file: OwnFile; url: string } | null>(null)
-  const list = files.forCourse(key)
-  const photos = list.filter((f) => f.thumb)
-  const others = list.filter((f) => !f.thumb)
+  const uploadingHere = files.uploading?.courseKey === key
+  // Niedokończone (przerwane wysyłanie) - na liście z możliwością usunięcia; to wysyłane teraz pokazuje pasek postępu.
+  const list = files.forCourse(key).filter((f) => f.complete || !uploadingHere)
+  const photos = list.filter((f) => f.thumb && f.complete)
+  const others = list.filter((f) => !f.thumb || !f.complete)
   const canShare = typeof navigator.share === 'function'
 
   async function open(file: OwnFile) {
@@ -415,12 +417,24 @@ function OwnFiles({ courseName, files }: Props & { files: OwnFilesApi }) {
       {others.length > 0 && (
         <ul className="material-list">
           {others.map((f) => (
-            <li key={f.id} className="material-item">
+            <li key={f.id} className={`material-item${f.complete ? '' : ' is-broken'}`}>
               <FileIcon />
-              <button type="button" className="material-name link-like" onClick={() => void open(f)}>
-                {f.name}
-                <span className="material-meta">{formatSize(f.size)}</span>
-              </button>
+              {/* Pobrany plik jako zwykły link - iPhone nie otworzy nowej karty po pobieraniu, tylko po stuknięciu. */}
+              {files.urls[f.id] ? (
+                <a className="material-name" href={files.urls[f.id]} target="_blank" rel="noreferrer">
+                  {f.name}
+                  <span className="material-meta">
+                    {formatSize(f.size)} · {t('pobrany, kliknij, aby otworzyć')}
+                  </span>
+                </a>
+              ) : (
+                <button type="button" className="material-name link-like" disabled={!f.complete} onClick={() => void open(f)}>
+                  {f.name}
+                  <span className="material-meta">
+                    {f.complete ? formatSize(f.size) : `${formatSize(f.size)} · ${t('wysyłanie przerwane')}`}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 className="material-delete"
@@ -433,7 +447,7 @@ function OwnFiles({ courseName, files }: Props & { files: OwnFilesApi }) {
           ))}
         </ul>
       )}
-      {files.uploading?.courseKey === key && (
+      {uploadingHere && files.uploading && (
         <div className="upload-progress" role="status">
           <span>{t('Wysyłanie „{name}”…', { name: files.uploading.name })}</span>
           <progress value={files.uploading.done} max={files.uploading.total} />

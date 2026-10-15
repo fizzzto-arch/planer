@@ -691,6 +691,32 @@ test('własne zdjęcie przedmiotu: miniatura, podgląd w Planerze, usunięcie', 
   await expect(thumb).toHaveCount(0)
 })
 
+test('własne pliki: PDF otwiera się linkiem, przerwane wysyłanie da się usunąć', async ({ page }) => {
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  const own = page.locator('.material-group', { hasText: 'Moje zdjęcia i pliki' })
+  await own.locator('input[type=file]').setInputFiles({ name: 'notatki.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%%EOF') })
+  // Po pobraniu nazwa jest zwykłym linkiem (iPhone otwiera nową kartę tylko po stuknięciu w link).
+  await own.getByRole('button', { name: /^notatki\.pdf/ }).click()
+  await expect(own.getByRole('link', { name: /notatki\.pdf/ })).toHaveAttribute('href', /^blob:/)
+
+  // Wysyłanie przerwane w połowie (np. zamknięta aplikacja): oznaczone, bez otwierania, do usunięcia.
+  await page.evaluate(`(() => {
+    const store = JSON.parse(localStorage.getItem('planer.mock-cloud'))
+    for (const file of Object.values(store.files)) file.complete = false
+    localStorage.setItem('planer.mock-cloud', JSON.stringify(store))
+  })()`)
+  await page.reload()
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  const broken = own.locator('.material-item.is-broken', { hasText: 'notatki.pdf' })
+  await expect(broken).toContainText('wysyłanie przerwane')
+  await expect(broken.getByRole('button', { name: /^notatki\.pdf/ })).toBeDisabled()
+  page.once('dialog', (d) => void d.accept())
+  await broken.getByRole('button', { name: 'Usuń notatki.pdf' }).click()
+  await expect(broken).toHaveCount(0)
+})
+
 test('zgłoszenie ze zdjęciem trafia do skrzynki administratora', async ({ page }) => {
   await tab(page, 'Ustawienia').click()
   await page.getByText('Zgłoszenia od testerów').click()

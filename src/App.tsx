@@ -37,7 +37,7 @@ import { useNotifications } from './hooks/useNotifications'
 import { useSharedBusy } from './hooks/useSharedBusy'
 import { useAcademicCalendar } from './hooks/useAcademicCalendar'
 import { NotificationsView } from './components/NotificationsView'
-import { setErrorSender } from './lib/errorReport'
+import { isStaleChunkError, reloadForNewVersion, setErrorSender } from './lib/errorReport'
 import { useExtras } from './hooks/useExtras'
 import { isFling, slideElement, useHorizontalSwipe, type SwipeHandlers } from './hooks/useHorizontalSwipe'
 import { useSharedMaterials } from './hooks/useSharedMaterials'
@@ -320,7 +320,14 @@ function App() {
   const [, setEnglishLoaded] = useState(englishReady)
   const needsEnglish = prefs.language === 'en' && !englishReady()
   useEffect(() => {
-    if (needsEnglish) void loadEnglish().then(() => setEnglishLoaded(true))
+    // Nieudane pobranie: stara wersja po wdrożeniu nowej - odświeżamy; bez sieci zostaje polski do następnego startu.
+    if (needsEnglish) {
+      loadEnglish()
+        .then(() => setEnglishLoaded(true))
+        .catch((e) => {
+          if (isStaleChunkError(e) && navigator.onLine) reloadForNewVersion()
+        })
+    }
   }, [needsEnglish])
   const languageKey = needsEnglish ? 'pl' : prefs.language
   const now = useNow()
