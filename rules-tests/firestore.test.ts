@@ -98,13 +98,48 @@ describe('prośby o dostęp (access)', () => {
   })
 
   it('nową prośbę zakłada się tylko dla siebie, jako "pending", z potwierdzonym e-mailem', async () => {
-    const who = { uid: 'nowa', email: 'nowa@pw.edu.pl' }
+    const who = { uid: 'nowa', email: 'nowa@gmail.com' }
     const ok = { email: who.email, status: 'pending', requestedAt: serverTimestamp() }
     await assertFails(setDoc(doc(as(who), 'access', who.uid), { ...ok, status: 'approved' }))
     await assertFails(setDoc(doc(as(who), 'access', who.uid), { ...ok, email: 'ktos@inny.pl' }))
     await assertFails(setDoc(doc(as(who), 'access', 'ktos-inny'), ok))
     await assertFails(setDoc(doc(as(UNVERIFIED, false), 'access', UNVERIFIED.uid), { ...ok, email: UNVERIFIED.email }))
+    // Bez dopisanych uprawnień i z prawdziwą datą zgłoszenia.
+    await assertFails(setDoc(doc(as(who), 'access', who.uid), { ...ok, optimizer: true }))
+    await assertFails(setDoc(doc(as(who), 'access', who.uid), { ...ok, requestedAt: new Date(2020, 0, 1) }))
     await assertSucceeds(setDoc(doc(as(who), 'access', who.uid), ok))
+  })
+
+  it('potwierdzony mail uczelniany (PW, WAT) - dostęp od razu, bez administratora', async () => {
+    const request = (who: Who, status = 'approved') => ({ email: who.email, status, requestedAt: serverTimestamp() })
+    for (const email of ['01234567@pw.edu.pl', 'jan.kowalski@ee.pw.edu.pl', 'Student@Student.WAT.edu.pl']) {
+      const who = { uid: email.slice(0, 8), email }
+      await assertSucceeds(setDoc(doc(as(who), 'access', who.uid), request(who)))
+    }
+    // Inne domeny, podróbki i niepotwierdzony mail czekają na administratora.
+    for (const email of ['ktos@gmail.com', 'ktos@pw.edu.pl.evil.com', 'ktos@xpw.edu.pl', 'ktos@pwedu.pl']) {
+      const who = { uid: email.slice(0, 8), email }
+      await assertFails(setDoc(doc(as(who), 'access', who.uid), request(who)))
+    }
+    const fresh = { uid: 'swiezy', email: 'swiezy@pw.edu.pl' }
+    await assertFails(setDoc(doc(as(fresh, false), 'access', fresh.uid), request(fresh)))
+    // Z mailem uczelnianym też bez optymalizatora.
+    await assertFails(setDoc(doc(as(fresh), 'access', fresh.uid), { ...request(fresh), optimizer: true }))
+  })
+
+  it('licznik otwarć: zatwierdzony zapisuje u siebie dni otwarć i ostatnie otwarcie', async () => {
+    const mine = doc(as(ALICE), 'access', ALICE.uid)
+    await assertSucceeds(setDoc(mine, { visits: { '2026-10-15': 1 }, lastSeenAt: serverTimestamp() }, { merge: true }))
+    await assertSucceeds(updateDoc(mine, { 'visits.2026-10-15': 2, lastSeenAt: serverTimestamp() }))
+    // Lista zadań dalej działa, gdy w prośbie jest już licznik.
+    await assertSucceeds(setDoc(mine, { testerTasks: ['plan'] }, { merge: true }))
+    // Bez zmyślonej daty, bez dziesiątek dni i nie przy cudzej ani niezatwierdzonej prośbie.
+    await assertFails(setDoc(mine, { lastSeenAt: new Date(2030, 0, 1) }, { merge: true }))
+    const tooMany = Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`2026-10-${String(i + 1).padStart(2, '0')}`, 1]))
+    await assertFails(setDoc(mine, { visits: tooMany }, { merge: true }))
+    await assertFails(setDoc(mine, { visits: 5 }, { merge: true }))
+    await assertFails(setDoc(doc(as(BOB), 'access', ALICE.uid), { visits: {} }, { merge: true }))
+    await assertFails(setDoc(doc(as(PENDING), 'access', PENDING.uid), { visits: { '2026-10-15': 1 } }, { merge: true }))
   })
 
   it('zatwierdzony tester zapisuje w swojej prośbie tylko listę zadań - nic więcej', async () => {
@@ -131,6 +166,15 @@ describe('prośby o dostęp (access)', () => {
   it('własną prośbę można usunąć (usuwanie konta), cudzej nie', async () => {
     await assertFails(deleteDoc(doc(as(BOB), 'access', ALICE.uid)))
     await assertSucceeds(deleteDoc(doc(as(ALICE), 'access', ALICE.uid)))
+  })
+
+  it('odebrany dostęp zostaje - nie da się usunąć prośby i założyć jej od nowa', async () => {
+    const banned = { uid: 'banned', email: 'banned@pw.edu.pl' }
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'access', banned.uid), { email: banned.email, status: 'rejected' }),
+    )
+    await assertFails(deleteDoc(doc(as(banned), 'access', banned.uid)))
+    await assertFails(setDoc(doc(as(banned), 'access', banned.uid), { email: banned.email, status: 'approved', requestedAt: serverTimestamp() }))
   })
 
   it('administrator tylko z właściwego adresu, i to bez względu na wielkość liter', async () => {

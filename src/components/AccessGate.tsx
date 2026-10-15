@@ -124,6 +124,7 @@ export function AccessGate({ cloud, onHelp }: Props) {
             ) : (
               <p className="hint">{t('Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.')}</p>
             )}
+            <p className="hint">{t('Masz mail uczelniany (PW albo WAT)? Konto założone na niego działa od razu, bez czekania.')}</p>
           </>
         )}
 

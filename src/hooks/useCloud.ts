@@ -1,11 +1,13 @@
 import { t } from '../lib/i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AccessStatus, Cloud, CloudUser } from '../lib/cloudTypes'
+import type { AccessInfo, Cloud, CloudUser } from '../lib/cloudTypes'
 import { isStaleChunkError, reloadForNewVersion } from '../lib/errorReport'
 import { errorMessage } from '../lib/errors'
 import { ADMIN_EMAILS, firebaseConfig } from '../lib/firebaseConfig'
 import { isEphemeralDevice, setRememberDevice, wipeLocalData } from '../lib/deviceMemory'
 import { decideSync, type SyncSnapshot } from '../lib/sync'
+import { toDateKey } from '../lib/dates'
+import { isNewVisit, staleVisitDays, type Visits } from '../lib/visits'
 import type { PlanApi } from './usePlan'
 
 export const RETRY_AFTER_MS = 15_000
@@ -81,6 +83,26 @@ async function hasFirebaseSession(): Promise<boolean> {
   })
 }
 
+// Kiedy Planer był ostatnio widoczny na tym urządzeniu - otwarcie w ciągu 30 minut to dalej ta sama wizyta.
+const SEEN_KEY = 'planer.seenAt'
+
+function lastSeenHere(): number | null {
+  try {
+    const value = Number(localStorage.getItem(SEEN_KEY))
+    return value > 0 ? value : null
+  } catch {
+    return null
+  }
+}
+
+function markSeenHere(at: number): void {
+  try {
+    localStorage.setItem(SEEN_KEY, String(at))
+  } catch {
+    // bez zapamiętania - najwyżej policzymy otwarcie więcej
+  }
+}
+
 function isAdminEmail(email: string | null): boolean {
   if (!email) return false
   const normalized = email.toLowerCase()
@@ -123,7 +145,7 @@ export function useCloud(plan: PlanApi) {
   }, [])
   // Dane konta zapamiętane razem z uid - po wylogowaniu same przestają pasować.
   const [cloudData, setCloudData] = useState<{ uid: string; icalUrl: string | null } | null>(null)
-  const [accessData, setAccessData] = useState<{ uid: string; status: AccessStatus | null; optimizer: boolean } | null>(null)
+  const [accessData, setAccessData] = useState<({ uid: string } & AccessInfo) | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   // 1. Ładujemy Firebase w tle i słuchamy, kto jest zalogowany.
@@ -246,6 +268,32 @@ export function useCloud(plan: PlanApi) {
     }
   }, [cloud, uid, retry])
   const cloudUrl = uid && cloudData?.uid === uid ? cloudData.icalUrl : undefined
+
+  // Licznik otwarć dla administratora (kto korzysta): start Planera i powrót po co najmniej 30 minutach.
+  // Najpierw wczytana prośba o dostęp - stare dni (sprzed tygodnia) usuwamy przy zapisie.
+  const visits = accessData && accessData.uid === userUid ? accessData.visits : null
+  const latestVisits = useRef<Visits>({})
+  useEffect(() => {
+    latestVisits.current = visits ?? {}
+  }, [visits])
+  const countVisits = !!cloud && !!uid && !isAdmin && visits !== null
+  useEffect(() => {
+    if (!countVisits || !cloud || !uid) return
+    const count = () => {
+      const now = new Date()
+      if (!isNewVisit(lastSeenHere(), now.getTime())) return
+      markSeenHere(now.getTime())
+      // Bez komunikatu przy błędzie (np. stare reguły bazy) - licznik nie może przeszkadzać.
+      cloud.recordVisit(uid, toDateKey(now), staleVisitDays(latestVisits.current, now)).catch(() => undefined)
+    }
+    count()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') count()
+      else markSeenHere(Date.now())
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [countVisits, cloud, uid])
 
   // 4. Uzgadniamy link w tej przeglądarce z linkiem na koncie.
   const localUrl = plan.source?.kind === 'url' ? plan.source.url : null

@@ -2,7 +2,9 @@ import { t, tk } from '../lib/i18n'
 import { useSyncExternalStore } from 'react'
 import type { AccessRequestsApi } from '../hooks/useAccessRequests'
 import type { AccessRequest } from '../lib/cloudTypes'
-import { formatUpdatedAt } from '../lib/dates'
+import { addDays, formatUpdatedAt, startOfDay, toDateKey } from '../lib/dates'
+import { plural } from '../lib/plural'
+import { VISIT_DAYS, visitSummary } from '../lib/visits'
 import { tasksFor } from '../lib/testerTasks'
 import { setSwipeDebug, swipeDebugStore } from '../lib/swipeDebug'
 import { SwitchSetting } from './SettingControls'
@@ -14,6 +16,33 @@ interface Props {
 }
 
 const STATUS_ORDER = { pending: 0, approved: 1, rejected: 2 } as const
+
+// Ostatnie 7 dni jako kratki (od najstarszego do dziś) - od razu widać, kto zagląda regularnie.
+function VisitDays({ visits, now }: { visits: AccessRequest['visits']; now: Date }) {
+  const days = Array.from({ length: VISIT_DAYS }, (_, i) => toDateKey(addDays(startOfDay(now), i - (VISIT_DAYS - 1))))
+  return (
+    <span className="visit-days" aria-hidden="true">
+      {days.map((day) => (
+        <i key={day} className={visits[day] ? 'is-on' : undefined} title={`${day}: ${visits[day] ?? 0}`} />
+      ))}
+    </span>
+  )
+}
+
+// "ostatnie 7 dni: 5 otwarć (3 dni) · ostatnio dziś 14:05"
+function visitsText(request: AccessRequest, now: Date): string {
+  const { opens, days } = visitSummary(request.visits, now)
+  const last = request.lastSeenAt ? ' · ' + t('ostatnio {when}', { when: formatUpdatedAt(new Date(request.lastSeenAt), now) }) : ''
+  if (opens === 0) return t('brak otwarć w ostatnich 7 dniach') + last
+  return (
+    t('ostatnie 7 dni: {opens} {openWord} ({days} {dayWord})', {
+      opens,
+      openWord: plural(opens, 'otwarcie', 'otwarcia', 'otwarć'),
+      days,
+      dayWord: plural(days, 'dzień', 'dni', 'dni'),
+    }) + last
+  )
+}
 
 function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<Props, 'onViewAsUser'>) {
   const { uid, email, status, requestedAt, optimizer } = request
@@ -36,6 +65,12 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<P
           >
             {t('zadania testera: {done}/{total}', { done: tasksDone.length, total: tasks.length })}
             {tasksDone.length === tasks.length && ' ✓'}
+          </span>
+        )}
+        {status === 'approved' && (
+          <span className="access-meta access-visits">
+            <VisitDays visits={request.visits} now={now} />
+            {visitsText(request, now)}
           </span>
         )}
       </span>
@@ -83,9 +118,15 @@ function RequestRow({ request, admin, now }: { request: AccessRequest } & Omit<P
 // Zatwierdzanie nowych kont - widoczne tylko dla administratora.
 export function AdminPanel({ admin, now, onViewAsUser }: Props) {
   const debugGestures = useSyncExternalStore(swipeDebugStore.subscribe, swipeDebugStore.enabled)
+  // Zatwierdzone: najpierw ci, którzy byli ostatnio - na dole ci, którzy nie zaglądają.
   const sorted = [...admin.requests].sort(
-    (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.email.localeCompare(b.email),
+    (a, b) =>
+      STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
+      (a.status === 'approved' ? (b.lastSeenAt ?? 0) - (a.lastSeenAt ?? 0) : 0) ||
+      a.email.localeCompare(b.email),
   )
+  const approved = admin.requests.filter((r) => r.status === 'approved')
+  const active = approved.filter((r) => visitSummary(r.visits, now).opens > 0).length
 
   return (
     <div className="panel">
@@ -94,8 +135,13 @@ export function AdminPanel({ admin, now, onViewAsUser }: Props) {
         {admin.pendingCount > 0 && <span className="count-pill">{admin.pendingCount}</span>}
       </h3>
       <p className="hint">
-        {t('Nowe konta pojawiają się tu po potwierdzeniu e-maila. Dostęp do synchronizacji i wspólnych materiałów mają tylko zatwierdzone. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”.')}
+        {t('Nowe konta pojawiają się tu po potwierdzeniu e-maila. Konta z mailem uczelnianym (PW, WAT) mają dostęp od razu, pozostałe czekają na Twoje zatwierdzenie. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”. Licznik otwarć liczy start Planera i powrót do niego po co najmniej 30 minutach.')}
       </p>
+      {approved.length > 0 && (
+        <p className="access-summary">
+          {t('Korzystało w ostatnich 7 dniach: {active} z {total} kont z dostępem.', { active, total: approved.length })}
+        </p>
+      )}
       <button type="button" className="button small secondary view-as-user" onClick={onViewAsUser}>
         {t('Zobacz Planera jako zwykły użytkownik')}
       </button>

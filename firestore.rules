@@ -13,7 +13,7 @@ service cloud.firestore {
       return signedIn() && request.auth.token.email.lower() in ['fizzz.to@gmail.com'];
     }
 
-    // Zwykły użytkownik: potwierdzony e-mail i konto zatwierdzone przez administratora.
+    // Zwykły użytkownik: potwierdzony e-mail i konto zatwierdzone (przez administratora albo mailem uczelnianym).
     function isApproved() {
       return signedIn()
         && request.auth.token.email_verified == true
@@ -24,23 +24,40 @@ service cloud.firestore {
       return isAdmin() || isApproved();
     }
 
-    // Prośby o dostęp: każdy widzi i zakłada tylko swoją (jako "pending"), decyduje administrator.
-    // Własną prośbę można usunąć - przy usuwaniu konta. Zatwierdzony tester zmienia w niej tylko
-    // listę odhaczonych zadań (testerTasks), żeby administrator widział postęp.
+    // Potwierdzony mail uczelniany (PW, WAT - też adresy wydziałów) daje dostęp bez czekania.
+    // Ten sam wzór co isUniversityEmail w src/lib/firebaseConfig.ts.
+    function isUniversityEmail() {
+      return request.auth.token.email.lower().matches('.*@([a-z0-9-]+[.])*(pw|wat)[.]edu[.]pl');
+    }
+
+    // Prośby o dostęp: każdy widzi i zakłada tylko swoją - jako "pending" (decyduje administrator),
+    // a z potwierdzonym mailem uczelnianym od razu jako "approved". Bez innych pól (np. optymalizatora).
+    // Własną prośbę można usunąć - przy usuwaniu konta; odebranego dostępu nie (nie założy jej od nowa).
+    // Zatwierdzony zmienia w niej tylko listę odhaczonych zadań testera (testerTasks) i licznik otwarć
+    // (visits, lastSeenAt) - administrator widzi postęp i to, kto korzysta.
     match /access/{uid} {
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
       allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
       allow create: if signedIn()
         && request.auth.uid == uid
         && request.auth.token.email_verified == true
-        && request.resource.data.status == 'pending'
-        && request.resource.data.email == request.auth.token.email;
+        && request.resource.data.keys().hasOnly(['email', 'status', 'requestedAt'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.requestedAt == request.time
+        && (request.resource.data.status == 'pending'
+            || (request.resource.data.status == 'approved' && isUniversityEmail()));
       allow update: if isAdmin()
         || (isApproved()
             && request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['testerTasks'])
-            && request.resource.data.testerTasks is list
-            && request.resource.data.testerTasks.size() <= 20);
-      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+            && changed().hasOnly(['testerTasks', 'visits', 'lastSeenAt'])
+            && (!changed().hasAny(['testerTasks'])
+                || (request.resource.data.testerTasks is list && request.resource.data.testerTasks.size() <= 20))
+            && (!changed().hasAny(['visits'])
+                || (request.resource.data.visits is map && request.resource.data.visits.size() <= 10))
+            && (!changed().hasAny(['lastSeenAt']) || request.resource.data.lastSeenAt == request.time));
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid && resource.data.status != 'rejected');
     }
 
     // Prywatne dane (plan, notatki, terminy, ustawienia, przypomnienia):

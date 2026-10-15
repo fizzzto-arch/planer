@@ -764,6 +764,32 @@ test('widok zwykłego użytkownika i powrót do administratora', async ({ page }
   await expect(page.getByText('Dostęp do Planera')).toBeVisible()
 })
 
+test('administrator: licznik otwarć - kto korzysta, a kto nie', async ({ page }) => {
+  await tab(page, 'Ustawienia').click()
+  const panel = page.locator('.panel', { has: page.getByRole('heading', { name: /^Dostęp do Planera/ }) })
+  await expect(panel.getByText('Korzystało w ostatnich 7 dniach: 1 z 2 kont z dostępem.')).toBeVisible()
+  // Najpierw ci, którzy byli ostatnio: Ala (otwarcia dziś, wczoraj i 3 dni temu), potem Ola.
+  const rows = panel.locator('.access-row.is-approved')
+  await expect(rows.nth(0)).toContainText('ala@gmail.com')
+  await expect(rows.nth(0)).toContainText('ostatnie 7 dni: 7 otwarć (3 dni) · ostatnio dziś 7:00')
+  await expect(rows.nth(0).locator('.visit-days i')).toHaveCount(7)
+  await expect(rows.nth(0).locator('.visit-days i.is-on')).toHaveCount(3)
+  await expect(rows.nth(1)).toContainText('ola@student.wat.edu.pl')
+  await expect(rows.nth(1)).toContainText('brak otwarć w ostatnich 7 dniach · ostatnio 5.10 9:00')
+})
+
+test('konto z mailem uczelnianym działa od razu, bez czekania na administratora', async ({ page }) => {
+  await page.goto('/?mock=uczelnia')
+  await tab(page, 'Ustawienia').click()
+  await expect(page.getByText('01234567@pw.edu.pl').first()).toBeVisible()
+  await expect(page.getByText('Konto utworzone ✓')).toHaveCount(0)
+  // Dodatki konta (notatki) dostępne, a otwarcie policzone (zapamiętany czas tej wizyty).
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Fizyka' }).click()
+  await expect(page.getByText('Zaloguj się, żeby dodawać linki')).toHaveCount(0)
+  await expect.poll(() => page.evaluate(`localStorage.getItem('planer.seenAt')`)).not.toBeNull()
+})
+
 test('pomoc: otwiera się i wraca gestem wstecz przeglądarki', async ({ page }) => {
   await tab(page, 'Ustawienia').click()
   await page.getByText('Pomoc i prywatność').click()

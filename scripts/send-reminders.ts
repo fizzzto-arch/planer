@@ -181,6 +181,22 @@ for (const request of pending.docs) {
   })
 }
 
+// Nowe konta z mailem uczelnianym - weszły same, bez zatwierdzania; administrator dostaje tylko wiadomość.
+const joined = await db
+  .collection('access')
+  .where('requestedAt', '>=', new Date(now.getTime() - LOOKBACK_MS))
+  .get()
+for (const account of joined.docs) {
+  if (account.get('status') !== 'approved' || account.get('decidedAt')) continue
+  if (!(await firstTime(`joined_${account.id}`, account.id))) continue
+  await notifyAdmins({
+    title: 'Nowa osoba w Planerze',
+    body: `${String(account.get('email') ?? 'Ktoś')} dołącza z mailem uczelnianym - bez czekania na zatwierdzenie.`,
+    tag: `joined-${account.id}`,
+    kind: 'access',
+  })
+}
+
 // Nowe zgłoszenia od testerów (tylko dokończone - z wszystkimi załącznikami).
 const newFeedback = await db.collection('feedback').where('status', '==', 'new').get()
 for (const f of newFeedback.docs) {

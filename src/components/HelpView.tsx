@@ -66,7 +66,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
             {t('Logowaniem zajmuje się Google Firebase. Hasło nie jest nigdzie zapisane wprost - tylko jego skrót (hasz scrypt), którego nie da się odwrócić. Nie zna go nikt, łącznie z administratorem.')}
           </Fact>
           <Fact icon={icon('M4 4l16 16M9.9 5.1A9 9 0 0 1 21 12a9 9 0 0 1-2 3.3M6.3 6.3A9 9 0 0 0 3 12a9 9 0 0 0 14 5.7')} title={t('Bez reklam i śledzenia')}>
-            {t('Planer nie ma reklam, analityki ani ciasteczek śledzących. Nic nie jest sprzedawane ani udostępniane dalej.')}
+            {t('Planer nie ma reklam, ciasteczek śledzących ani zewnętrznych narzędzi analitycznych. Nic nie jest sprzedawane ani udostępniane dalej. Administrator widzi tylko, ile razy w ostatnich 7 dniach otwierałeś Planer - nie to, co w nim robisz.')}
           </Fact>
           <Fact icon={icon('M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3')} title={t('Możesz wszystko usunąć')}>
             {t('Ustawienia → Konto → „Usuń konto” kasuje konto i wszystkie dane, od razu i na zawsze.')}
@@ -91,7 +91,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
           </dd>
           <dt>{t('Widoczne dla administratora')}</dt>
           <dd>
-            {t('Lista kont proszących o dostęp: e-mail i status (czeka / zatwierdzone), żeby mógł je zatwierdzać, oraz to, które zadania dla testerów odhaczyłeś. Do tego zgłoszenia, które sam wyślesz.')}
+            {t('Lista kont: e-mail i status (czeka / ma dostęp), żeby mógł zatwierdzać konta, to, które zadania dla testerów odhaczyłeś, oraz ile razy w ostatnich 7 dniach otwierałeś Planer i kiedy ostatnio. Do tego zgłoszenia, które sam wyślesz.')}
           </dd>
         </dl>
       </div>

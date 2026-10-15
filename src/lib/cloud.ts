@@ -23,6 +23,9 @@ import {
   Bytes,
   collection,
   deleteDoc,
+  deleteField,
+  FieldPath,
+  increment,
   documentId,
   doc,
   getDoc,
@@ -37,12 +40,15 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
   writeBatch,
   type Firestore,
 } from 'firebase/firestore'
 import { COLLECTION_NAMES, PLAN_EDIT_COLLECTIONS, type AccessStatus, type Cloud, type CollectionName } from './cloudTypes'
 import type { PersonInfo } from './usosPeople'
+import { isUniversityEmail } from './firebaseConfig'
+import { parseVisits } from './visits'
 
 // Wszystkie prywatne kolekcje konta (users/{uid}/...) - do usunięcia razem z kontem.
 const ACCOUNT_COLLECTIONS = COLLECTION_NAMES
@@ -187,7 +193,12 @@ function createCloud(config: FirebaseOptions): Cloud {
     watchAccess(uid, onAccess, onError) {
       return onSnapshot(
         doc(db, 'access', uid),
-        (snap) => onAccess({ status: parseAccessStatus(snap.data()?.status), optimizer: snap.data()?.optimizer === true }),
+        (snap) =>
+          onAccess({
+            status: parseAccessStatus(snap.data()?.status),
+            optimizer: snap.data()?.optimizer === true,
+            visits: parseVisits(snap.data()?.visits),
+          }),
         (e) => onError(describeError(e)),
       )
     },
@@ -197,7 +208,11 @@ function createCloud(config: FirebaseOptions): Cloud {
     requestAccess: (uid, email) =>
       wrap(async () => {
         await auth.currentUser?.getIdToken(true)
-        await setDoc(doc(db, 'access', uid), { email, status: 'pending', requestedAt: serverTimestamp() })
+        // Potwierdzony mail uczelniany - dostęp od razu (reguły sprawdzają to samo), inne czekają na administratora.
+        // Starsze reguły bazy tego nie znają - wtedy zwykła prośba, żeby nikt nie utknął.
+        const request = (status: 'approved' | 'pending') => setDoc(doc(db, 'access', uid), { email, status, requestedAt: serverTimestamp() })
+        if (!isUniversityEmail(email)) return request('pending')
+        await request('approved').catch(() => request('pending'))
       }),
 
     watchAccessRequests(onRequests, onError) {
@@ -210,6 +225,7 @@ function createCloud(config: FirebaseOptions): Cloud {
               const status = parseAccessStatus(data.status)
               if (!status) return []
               const requested = data.requestedAt as { toMillis?: () => number } | undefined
+              const seen = data.lastSeenAt as { toMillis?: () => number } | undefined
               return [
                 {
                   uid: d.id,
@@ -218,6 +234,8 @@ function createCloud(config: FirebaseOptions): Cloud {
                   requestedAt: typeof requested?.toMillis === 'function' ? requested.toMillis() : null,
                   optimizer: data.optimizer === true,
                   testerTasks: Array.isArray(data.testerTasks) ? data.testerTasks.filter((item): item is string => typeof item === 'string') : [],
+                  visits: parseVisits(data.visits),
+                  lastSeenAt: typeof seen?.toMillis === 'function' ? seen.toMillis() : null,
                 },
               ]
             }),
@@ -231,6 +249,18 @@ function createCloud(config: FirebaseOptions): Cloud {
 
     setOptimizerAccess: (uid, on) => wrap(() => setDoc(doc(db, 'access', uid), { optimizer: on }, { merge: true })),
     saveTesterProgress: (uid, done) => wrap(() => setDoc(doc(db, 'access', uid), { testerTasks: done }, { merge: true })),
+    // Pola dni jako FieldPath - klucze z myślnikami ("2026-10-15") bez kłopotów z zapisem przez kropki.
+    recordVisit: (uid, day, stale) =>
+      wrap(() =>
+        updateDoc(
+          doc(db, 'access', uid),
+          new FieldPath('visits', day),
+          increment(1),
+          'lastSeenAt',
+          serverTimestamp(),
+          ...stale.flatMap((old) => [new FieldPath('visits', old), deleteField()]),
+        ),
+      ),
 
     watchSharedBusy(onDocs, onError) {
       return onSnapshot(

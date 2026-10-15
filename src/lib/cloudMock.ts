@@ -4,15 +4,20 @@
 // ?mock=pending - konto czeka na zatwierdzenie.
 import type { AccessRequest, AccessStatus, Cloud, CloudDoc, CloudUser, CollectionName } from './cloudTypes'
 import type { PersonInfo } from './usosPeople'
+import { addDays, toDateKey } from './dates'
+import { isUniversityEmail } from './firebaseConfig'
 
 const STORAGE_KEY = 'planer.mock-cloud'
 const MOCK_ADMIN_EMAIL = 'test@planer.local' // useCloud traktuje go jako administratora
 
 const mode = new URLSearchParams(window.location.search).get('mock')
+// ?mock=uczelnia - student z potwierdzonym mailem PW (dostęp od razu, bez administratora).
 const MOCK_USER: CloudUser =
   mode === 'unverified' || mode === 'pending'
     ? { uid: 'mock-student', email: 'student@planer.local', emailVerified: mode === 'pending' }
-    : { uid: 'mock-user', email: MOCK_ADMIN_EMAIL, emailVerified: true }
+    : mode === 'uczelnia'
+      ? { uid: 'mock-student', email: '01234567@pw.edu.pl', emailVerified: true }
+      : { uid: 'mock-user', email: MOCK_ADMIN_EMAIL, emailVerified: true }
 
 type Store = Record<string, Record<string, Record<string, unknown>>> // kolekcja -> id -> dane
 
@@ -55,9 +60,36 @@ function createMockCloud(): Cloud {
   }
 
   // Prośby o dostęp - przykładowe dane do panelu administratora (tylko w pamięci karty).
+  // Ala korzysta (otwarcia dziś, wczoraj i 3 dni temu), Ola od ponad tygodnia nie zaglądała.
+  const day = (n: number) => toDateKey(addDays(new Date(), -n))
   const access = new Map<string, AccessRequest>([
-    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@pw.edu.pl', status: 'pending', requestedAt: Date.now() - 3_600_000, optimizer: false, testerTasks: [] }],
-    ['u-ala', { uid: 'u-ala', email: 'ala@gmail.com', status: 'approved', requestedAt: Date.now() - 86_400_000, optimizer: false, testerTasks: ['plan', 'week', 'note'] }],
+    ['u-kumpel', { uid: 'u-kumpel', email: 'kumpel@gmail.com', status: 'pending', requestedAt: Date.now() - 3_600_000, optimizer: false, testerTasks: [], visits: {}, lastSeenAt: null }],
+    [
+      'u-ala',
+      {
+        uid: 'u-ala',
+        email: 'ala@gmail.com',
+        status: 'approved',
+        requestedAt: Date.now() - 86_400_000,
+        optimizer: false,
+        testerTasks: ['plan', 'week', 'note'],
+        visits: { [day(0)]: 2, [day(1)]: 1, [day(3)]: 4 },
+        lastSeenAt: Date.now() - 2 * 3_600_000,
+      },
+    ],
+    [
+      'u-ola',
+      {
+        uid: 'u-ola',
+        email: 'ola@student.wat.edu.pl',
+        status: 'approved',
+        requestedAt: Date.now() - 20 * 86_400_000,
+        optimizer: false,
+        testerTasks: [],
+        visits: {},
+        lastSeenAt: Date.now() - 9 * 86_400_000,
+      },
+    ],
   ])
   const accessListeners = new Set<() => void>()
   const feedbackStore = new Map<string, { data: Record<string, unknown>; files: Uint8Array[] }>()
@@ -148,13 +180,15 @@ function createMockCloud(): Cloud {
     },
 
     watchAccess(uid, onAccess) {
-      const emitOwn = () => onAccess({ status: access.get(uid)?.status ?? null, optimizer: access.get(uid)?.optimizer ?? false })
+      const emitOwn = () =>
+        onAccess({ status: access.get(uid)?.status ?? null, optimizer: access.get(uid)?.optimizer ?? false, visits: access.get(uid)?.visits ?? {} })
       accessListeners.add(emitOwn)
       setTimeout(emitOwn, 0)
       return () => accessListeners.delete(emitOwn)
     },
     async requestAccess(uid, email) {
-      access.set(uid, { uid, email, status: 'pending', requestedAt: Date.now(), optimizer: false, testerTasks: [] })
+      const status = isUniversityEmail(email) ? 'approved' : 'pending'
+      access.set(uid, { uid, email, status, requestedAt: Date.now(), optimizer: false, testerTasks: [], visits: {}, lastSeenAt: null })
       emitAccess()
     },
     watchAccessRequests(onRequests) {
@@ -208,6 +242,14 @@ function createMockCloud(): Cloud {
         for (const id of ids) peopleStore.set(id, { title: 'dr inż.', position: 'adiunkt', unit: 'Wydział testowy' })
         peopleListeners.forEach((cb) => cb())
       }, 300)
+    },
+    async recordVisit(uid, visitDay, stale) {
+      const current = access.get(uid)
+      if (!current) return
+      const visits = { ...current.visits, [visitDay]: (current.visits[visitDay] ?? 0) + 1 }
+      for (const old of stale) delete visits[old]
+      access.set(uid, { ...current, visits, lastSeenAt: Date.now() })
+      emitAccess()
     },
     async saveTesterProgress(uid, done) {
       const current = access.get(uid)

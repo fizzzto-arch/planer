@@ -3,6 +3,7 @@ import type { FeedbackAttachment, FeedbackFile, FeedbackStatus, NewFeedback } fr
 import type { NewMaterial } from './materials'
 import type { NewOwnFile } from './ownFiles'
 import type { PersonInfo } from './usosPeople'
+import type { Visits } from './visits'
 
 export interface CloudUser {
   uid: string
@@ -20,12 +21,15 @@ export interface AccessRequest {
   requestedAt: number | null
   optimizer: boolean // dostęp do optymalizatora (wersja testowa), nadaje administrator
   testerTasks: string[] // odhaczone zadania dla testerów (kopia z konta, żeby administrator widział postęp)
+  visits: Visits // otwarcia Planera z ostatnich 7 dni (lib/visits.ts)
+  lastSeenAt: number | null // ostatnie otwarcie
 }
 
 // Własna prośba o dostęp: status i dodatkowe uprawnienia.
 export interface AccessInfo {
   status: AccessStatus | null
   optimizer: boolean
+  visits: Visits
 }
 
 export interface CloudData {
@@ -80,6 +84,8 @@ export interface Cloud {
   setOptimizerAccess(uid: string, on: boolean): Promise<void>
   // Kopia odhaczonych zadań testera w jego prośbie o dostęp (widzi ją administrator).
   saveTesterProgress(uid: string, done: string[]): Promise<void>
+  // Licznik otwarć: +1 w dniu day, dni sprzed tygodnia (stale) usunięte.
+  recordVisit(uid: string, day: string, stale: string[]): Promise<void>
   // Wspólne okienka: udostępnione godziny zajęć (sharedBusy/{uid}) - widzą je tylko udostępniający.
   watchSharedBusy(onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
   saveSharedBusy(uid: string, name: string, busy: number[]): Promise<void>

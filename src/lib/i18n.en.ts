@@ -80,7 +80,7 @@ export const EN: Record<string, string> = {
   'Cofnąć dostęp dla {email}? Straci synchronizację i wspólne materiały.': 'Revoke access for {email}? They will lose sync and shared materials.',
   'Cofnij dostęp': 'Revoke access',
   'Dostęp do Planera': 'Access to Planer',
-  'Nowe konta pojawiają się tu po potwierdzeniu e-maila. Dostęp do synchronizacji i wspólnych materiałów mają tylko zatwierdzone. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”.': 'New accounts appear here after confirming their email. Only approved accounts get sync and shared materials. “Optimizer” gives the chosen person the test version of “Find groups”.',
+  'Nowe konta pojawiają się tu po potwierdzeniu e-maila. Konta z mailem uczelnianym (PW, WAT) mają dostęp od razu, pozostałe czekają na Twoje zatwierdzenie. „Optymalizator” daje wybranej osobie wersję testową „Dobierz grupy”. Licznik otwarć liczy start Planera i powrót do niego po co najmniej 30 minutach.': 'New accounts appear here after confirming their email. Accounts with a university email (PW, WAT) get access right away, others wait for your approval. “Optimizer” gives the chosen person the test version of “Find groups”. The visit counter counts opening Planer and coming back to it after at least 30 minutes.',
   'Zobacz Planera jako zwykły użytkownik': 'View Planer as a regular user',
   'Nikt jeszcze nie prosił o dostęp.': 'Nobody has asked for access yet.',
   'Diagnostyka gestów': 'Gesture diagnostics',
@@ -536,7 +536,7 @@ export const EN: Record<string, string> = {
   'Hasło zna tylko Google': 'Only Google knows your password',
   'Logowaniem zajmuje się Google Firebase. Hasło nie jest nigdzie zapisane wprost - tylko jego skrót (hasz scrypt), którego nie da się odwrócić. Nie zna go nikt, łącznie z administratorem.': 'Sign-in is handled by Google Firebase. Your password is never stored as is - only its hash (scrypt), which cannot be reversed. Nobody knows it, including the administrator.',
   'Bez reklam i śledzenia': 'No ads, no tracking',
-  'Planer nie ma reklam, analityki ani ciasteczek śledzących. Nic nie jest sprzedawane ani udostępniane dalej.': 'Planer has no ads, analytics or tracking cookies. Nothing is sold or passed on.',
+  'Planer nie ma reklam, ciasteczek śledzących ani zewnętrznych narzędzi analitycznych. Nic nie jest sprzedawane ani udostępniane dalej. Administrator widzi tylko, ile razy w ostatnich 7 dniach otwierałeś Planer - nie to, co w nim robisz.': 'Planer has no ads, tracking cookies or third-party analytics. Nothing is sold or shared. The administrator only sees how many times you opened Planer in the last 7 days - not what you do in it.',
   'Możesz wszystko usunąć': 'You can delete everything',
   'Ustawienia → Konto → „Usuń konto” kasuje konto i wszystkie dane, od razu i na zawsze.': 'Settings → Account → “Delete account” deletes the account and all data, immediately and permanently.',
   'Co i gdzie jest zapisane': 'What is stored where',
@@ -547,7 +547,7 @@ export const EN: Record<string, string> = {
   'Widoczne dla innych': 'Visible to others',
   'Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem. Jeśli włączysz „Wspólne okienka”, osoby, które też je włączyły, widzą godziny Twoich zajęć (bez nazw i sal) i wybrany przez Ciebie podpis.': 'Only files you share with your group in course materials - people with access to Planer see them, with the start of your email (the part before @) as the author. If you turn on “Shared free time”, people who also turned it on see the hours of your classes (without names or rooms) and the name you chose.',
   'Widoczne dla administratora': 'Visible to the administrator',
-  'Lista kont proszących o dostęp: e-mail i status (czeka / zatwierdzone), żeby mógł je zatwierdzać, oraz to, które zadania dla testerów odhaczyłeś. Do tego zgłoszenia, które sam wyślesz.': 'The list of accounts requesting access: email and status (waiting / approved), so they can be approved, and which tester tasks you have ticked. Plus the reports you send yourself.',
+  'Lista kont: e-mail i status (czeka / ma dostęp), żeby mógł zatwierdzać konta, to, które zadania dla testerów odhaczyłeś, oraz ile razy w ostatnich 7 dniach otwierałeś Planer i kiedy ostatnio. Do tego zgłoszenia, które sam wyślesz.': 'The list of accounts: email and status (waiting / has access) so they can approve accounts, which tester tasks you ticked off, and how many times you opened Planer in the last 7 days and when you last did. Plus the reports you send yourself.',
   'Kto ma dostęp - uczciwie': 'Who has access - honestly',
   'Aplikacja nie pozwala nikomu czytać Twoich prywatnych danych': 'The app lets nobody read your private data',
   '- pilnują tego reguły bazy Firebase, a nie tylko kod strony.': '- this is enforced by the Firebase database rules, not just the website code.',
@@ -1349,4 +1349,12 @@ export const EN: Record<string, string> = {
 
   // scripts/send-reminders.ts
   'Próbne powiadomienie - przypomnienia działają.': 'Test notification - reminders are working.',
+  // AdminPanel - licznik otwarć
+  'ostatnio {when}': 'last seen {when}',
+  'brak otwarć w ostatnich 7 dniach': 'no visits in the last 7 days',
+  'ostatnie 7 dni: {opens} {openWord} ({days} {dayWord})': 'last 7 days: {opens} {openWord} ({days} {dayWord})',
+  'otwarcie|otwarcia|otwarć': 'visit|visits',
+  'dzień|dni|dni': 'day|days',
+  'Korzystało w ostatnich 7 dniach: {active} z {total} kont z dostępem.': 'Used in the last 7 days: {active} of {total} accounts with access.',
+  'Masz mail uczelniany (PW albo WAT)? Konto założone na niego działa od razu, bez czekania.': 'Have a university email (PW or WAT)? An account created with it works right away, no waiting.',
 }
