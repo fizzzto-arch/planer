@@ -109,10 +109,10 @@ export function HelpView({ onBack, onFeedback }: Props) {
             <strong>{t('Link do planu z USOS')}</strong> {t('pozwala tylko odczytać plan zajęć. Nie daje dostępu do konta USOS, ocen ani danych osobowych. Mimo to nie udostępniaj go publicznie.')}
           </li>
           <li>
-            <strong>{t('Przypomnienia:')}</strong> {t('jeśli je włączysz, serwer co kwadrans sprawdza Twoje terminy, żeby wysłać powiadomienie (tytuł, przedmiot i godzina) przez usługę powiadomień Apple albo Google.')}
+            <strong>{t('Przypomnienia:')}</strong> {t('jeśli je włączysz, serwer co kwadrans (w nocy co godzinę) sprawdza Twoje terminy, żeby wysłać powiadomienie (tytuł, przedmiot i godzina) przez usługę powiadomień Apple albo Google. Pamięta przy tym Twoje ustawienia i terminy z najbliższego tygodnia - nie musi ich czytać za każdym razem.')}
           </li>
           <li>
-            <strong>{t('Zmiany w planie, plan dnia:')}</strong> {t('przy włączonych powiadomieniach serwer co ok. 2 godziny pobiera Twój plan z USOS (przez Twój link) i pamięta najbliższe 3 tygodnie, żeby zauważyć zmiany. Po wyłączeniu powiadomień albo usunięciu konta ta kopia jest usuwana. Możesz to wyłączyć w Ustawieniach → Przypomnienia.')}
+            <strong>{t('Zmiany w planie, plan dnia:')}</strong> {t('przy włączonych powiadomieniach serwer co ok. 2 godziny pobiera Twój plan z USOS (przez Twój link) i pamięta najbliższe 3 tygodnie, żeby zauważyć zmiany. Po wyłączeniu powiadomień albo usunięciu konta ta kopia (razem z zapamiętanymi ustawieniami i terminami) jest usuwana. Możesz to wyłączyć w Ustawieniach → Przypomnienia.')}
           </li>
         </ul>
       </div>

@@ -45,7 +45,7 @@ import {
   writeBatch,
   type Firestore,
 } from 'firebase/firestore'
-import { COLLECTION_NAMES, PLAN_EDIT_COLLECTIONS, type AccessStatus, type Cloud, type CollectionName } from './cloudTypes'
+import { COLLECTION_NAMES, changeMarker, type AccessStatus, type Cloud, type CollectionName } from './cloudTypes'
 import type { PersonInfo } from './usosPeople'
 import { isUniversityEmail } from './firebaseConfig'
 import { parseVisits } from './visits'
@@ -96,15 +96,16 @@ function verificationSettings() {
   return { url: window.location.origin + window.location.pathname }
 }
 
-// Zapis (data) albo usunięcie (null) dokumentu użytkownika. Zmiana planu idzie razem ze znacznikiem
-// w users/{uid} - po nim serwer powiadomień poznaje, że ma wczytać zmiany od nowa.
+// Zapis (data) albo usunięcie (null) dokumentu użytkownika. Zmiana planu, terminu albo ustawień idzie razem ze znacznikiem
+// w users/{uid} (changeMarker) - po nim serwer powiadomień poznaje, że ma wczytać je od nowa.
 function writeItem(db: Firestore, uid: string, name: CollectionName, id: string, data: Record<string, unknown> | null) {
   const ref = doc(db, 'users', uid, name, id)
-  if (!PLAN_EDIT_COLLECTIONS.includes(name)) return data ? setDoc(ref, data) : deleteDoc(ref)
+  const marker = changeMarker(name, id)
+  if (!marker) return data ? setDoc(ref, data) : deleteDoc(ref)
   const batch = writeBatch(db)
   if (data) batch.set(ref, data)
   else batch.delete(ref)
-  batch.set(doc(db, 'users', uid), { planEditsAt: serverTimestamp() }, { merge: true })
+  batch.set(doc(db, 'users', uid), { [marker]: serverTimestamp() }, { merge: true })
   return batch.commit()
 }
 

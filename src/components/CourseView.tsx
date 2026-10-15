@@ -1,6 +1,6 @@
 import { locale, t } from '../lib/i18n'
 import { usePlanUi } from '../hooks/planUi'
-import { formatTypes, siblingCourses, summarizeCourses } from '../lib/courses'
+import { currentSemesterRange, formatTypes, siblingCourses, summarizeCourses } from '../lib/courses'
 import { daysBetween, formatDay, formatTime, isSameDay, parseDateKey } from '../lib/dates'
 import { sortDeadlines } from '../lib/deadlines'
 import type { PlanMeeting } from '../lib/edits'
@@ -50,7 +50,8 @@ function MeetingsByDay({ meetings, now }: { meetings: PlanMeeting[]; now: Date }
 export function CourseView({ courseName, meetings, now, onBack, onSwitch }: Props) {
   const { extras, editDeadline, addCustomMeeting, displayName, notesOn } = usePlanUi()
   const courseMeetings = meetings.filter((m) => m.courseName === courseName)
-  const summary = summarizeCourses(courseMeetings, now)[0]
+  // Grupy z bieżącego semestru według całego planu (jeden przedmiot sam nie wyznaczy semestru).
+  const summary = summarizeCourses(courseMeetings, now, currentSemesterRange(meetings, now))[0]
   const upcoming = courseMeetings.filter((m) => m.end > now)
   const past = courseMeetings.filter((m) => m.end <= now).reverse()
 

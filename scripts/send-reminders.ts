@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto'
 import { cert, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { FieldValue, getFirestore, type DocumentData, type DocumentReference } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type DocumentSnapshot } from 'firebase-admin/firestore'
 import webpush from 'web-push'
 import { ADMIN_EMAILS } from '../src/lib/firebaseConfig.ts'
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../src/lib/pushConfig.ts'
@@ -33,7 +33,8 @@ import { NOTIFICATION_KEEP_DAYS, type NotificationKind } from '../src/lib/notifi
 import { USOSWEB_PERSON_URL, isPersonId, parsePersonPage } from '../src/lib/usosPeople.ts'
 import { setEnglish, translate, type Language } from '../src/lib/i18n.ts'
 import { EN } from '../src/lib/i18n.en.ts'
-import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText } from '../src/lib/reminders.ts'
+import { dueReminders, parseReminderDeadline, parseReminderKinds, reminderText, type ReminderDeadline } from '../src/lib/reminders.ts'
+import { cacheRefresh } from '../src/lib/serverCache.ts'
 import { parseUsosCalendar } from '../src/lib/usos.ts'
 import { parseHiddenClasses } from '../src/lib/hiddenClasses.ts'
 import { parseSharedWatPlan, watGroupFromUrl, watUpdatedFromIcs } from '../src/lib/wat.ts'
@@ -101,8 +102,74 @@ for (const device of devices.docs) {
   byUser.set(uid, [...(byUser.get(uid) ?? []), device])
 }
 
+// Zapamiętane na serwerze (planWatch/{uid}): plan z USOS do wykrywania zmian i plan "jak w Planerze" (seen),
+// a do tego ustawienia i nadchodzące terminy - czytane od nowa tylko po zmianie (src/lib/serverCache.ts).
+interface CachedDeadline {
+  deadline: ReminderDeadline
+  updatedAt: number | null
+}
+interface Watch {
+  plan?: WatchedMeeting[]
+  until?: number
+  checkedAt?: number
+  seen?: WatchedMeeting[]
+  editsAt?: number | null
+  patterns?: WatchedMeeting[] // wzory grup z całego planu (do "co tydzień od–do")
+  cachedAt?: number
+  prefs?: DocumentData
+  prefsAt?: number | null
+  deadlines?: CachedDeadline[]
+  deadlinesAt?: number | null
+  deadlinesDay?: string
+}
+
+const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// Na osobę co kwadrans dwa odczyty: users/{uid} (link do planu i znaczniki zmian, które zostawia Planer)
+// i planWatch/{uid} (zapamiętane ustawienia, terminy i plan).
 for (const [uid, userDevices] of byUser) {
-  const prefs = (await db.doc(`users/${uid}/settings/prefs`).get()).data() ?? {}
+  const user = await db.doc(`users/${uid}`).get()
+  const watchRef = db.doc(`planWatch/${uid}`)
+  const watch = (await watchRef.get()).data() as Watch | undefined
+  const markers = { prefsAt: millis(user.get('prefsAt')), deadlinesAt: millis(user.get('deadlinesAt')) }
+  const refresh = cacheRefresh(
+    {
+      cachedAt: watch?.cachedAt,
+      prefsAt: watch?.prefsAt,
+      deadlinesAt: watch?.deadlinesAt,
+      deadlinesDay: watch?.deadlinesDay,
+      hasPrefs: watch?.prefs !== undefined,
+      hasDeadlines: watch?.deadlines !== undefined,
+    },
+    markers,
+    now.getTime(),
+    dayKey(now),
+  )
+  const cacheUpdate: Watch = {}
+  let prefs: DocumentData = watch?.prefs ?? {}
+  if (refresh.prefs) {
+    prefs = (await db.doc(`users/${uid}/settings/prefs`).get()).data() ?? {}
+    Object.assign(cacheUpdate, { prefs, prefsAt: markers.prefsAt })
+  }
+  // Tylko terminy od dziś do 8 dni naprzód - najdalsze przypomnienie jest tydzień wcześniej.
+  let cachedDeadlines: CachedDeadline[] = watch?.deadlines ?? []
+  if (refresh.deadlines) {
+    const inEightDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 8)
+    const deadlineDocs = await db
+      .collection(`users/${uid}/deadlines`)
+      .where('date', '>=', dayKey(now))
+      .where('date', '<=', dayKey(inEightDays))
+      .get()
+    cachedDeadlines = deadlineDocs.docs.flatMap((doc) => {
+      const deadline = parseReminderDeadline(doc.id, doc.data())
+      return deadline ? [{ deadline, updatedAt: millis(doc.get('updatedAt')) }] : []
+    })
+    Object.assign(cacheUpdate, { deadlines: cachedDeadlines, deadlinesAt: markers.deadlinesAt, deadlinesDay: dayKey(now) })
+  }
+  if (refresh.full) cacheUpdate.cachedAt = now.getTime()
+  if (Object.keys(cacheUpdate).length > 0) await watchRef.set(cacheUpdate, { merge: true })
+  const deadlines = cachedDeadlines.map((d) => ({ deadline: d.deadline, updatedAt: d.updatedAt === null ? null : new Date(d.updatedAt) }))
+
   const kinds = parseReminderKinds(prefs.reminders)
   const lang = userLanguage(prefs)
   const aliases = (prefs.useAliases !== false && typeof prefs.courseAliases === 'object' ? prefs.courseAliases : {}) as Record<
@@ -111,32 +178,17 @@ for (const [uid, userDevices] of byUser) {
   >
   const courseLabel = (name: string) => (typeof aliases[name] === 'string' ? (aliases[name] as string) : name)
 
-  // Tylko terminy od dziś do 8 dni naprzód - najdalsze przypomnienie jest tydzień wcześniej.
-  // Czytanie wszystkich (także sprzed miesięcy) co kwadrans zjadałoby darmowy limit odczytów.
-  const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const inEightDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 8)
-  const deadlineDocs = await db
-    .collection(`users/${uid}/deadlines`)
-    .where('date', '>=', dayKey(now))
-    .where('date', '<=', dayKey(inEightDays))
-    .get()
-  const deadlines = deadlineDocs.docs.flatMap((doc) => {
-    const deadline = parseReminderDeadline(doc.id, doc.data())
-    const updatedAt = doc.get('updatedAt')
-    return deadline ? [{ deadline, updatedAt: updatedAt?.toDate ? (updatedAt.toDate() as Date) : null }] : []
-  })
-
   const notices: Notice[] = []
   for (const reminder of dueReminders(deadlines, kinds, now, LOOKBACK_MS)) {
     const key = `${uid}_${reminder.deadline.id}_${reminder.kind}_${reminder.at.getTime()}`
     if (!(await firstTime(key, uid))) continue
     notices.push({ ...reminderText(reminder, courseLabel, lang), tag: `${reminder.deadline.id}-${reminder.kind}`, kind: 'deadline' })
   }
-  notices.push(...(await planNotices(uid, prefs, courseLabel, lang)))
+  notices.push(...(await planNotices(uid, prefs, courseLabel, lang, user, watch, watchRef)))
   for (const notice of notices) await remember(uid, notice)
 
-  // Raz na godzinę: historia starsza niż NOTIFICATION_KEEP_DAYS znika.
-  if (now.getMinutes() < 15) {
+  // Raz na dobę (w nocy, gdy serwer działa co godzinę): historia starsza niż NOTIFICATION_KEEP_DAYS znika.
+  if (now.getHours() === 3) {
     const cutoff = new Date(now.getTime() - NOTIFICATION_KEEP_DAYS * 24 * 60 * 60 * 1000)
     const old = await db.collection(`users/${uid}/notifications`).where('createdAt', '<', cutoff).get()
     for (const doc of old.docs) await doc.ref.delete()
@@ -197,10 +249,14 @@ for (const account of joined.docs) {
   })
 }
 
-// Nowe zgłoszenia od testerów (tylko dokończone - z wszystkimi załącznikami).
-const newFeedback = await db.collection('feedback').where('status', '==', 'new').get()
+// Nowe zgłoszenia od testerów (tylko dokończone - z wszystkimi załącznikami). Tylko z ostatnich godzin -
+// nieprzeczytane sprzed tygodni nie są czytane co kwadrans (widać je w skrzynce w Planerze).
+const newFeedback = await db
+  .collection('feedback')
+  .where('createdAt', '>=', new Date(now.getTime() - LOOKBACK_MS))
+  .get()
 for (const f of newFeedback.docs) {
-  if (f.get('complete') !== true) continue
+  if (f.get('status') !== 'new' || f.get('complete') !== true) continue
   if (!(await firstTime(`feedback_${f.id}`, String(f.get('uid') ?? '')))) continue
   const email = String(f.get('email') ?? 'testera')
   const text = [f.get('bad'), f.get('text'), f.get('missing'), f.get('good')].find((t) => typeof t === 'string' && t.trim())
@@ -255,8 +311,8 @@ for (const f of replied.docs) {
 const PEOPLE_MAX_ATTEMPTS = 5 // potem odpuszczamy (np. usunięty profil) - bez ostrzeżeń co kwadrans
 const PEOPLE_REFRESH_MS = 180 * 24 * 60 * 60 * 1000 // stopnie się zmieniają (habilitacja, profesura)
 const pendingPeople = (await db.collection('people').where('pending', '==', true).limit(30).get()).docs
-// Raz na dobę (ok. 3:00) także kilka najstarszych - odświeżenie tytułów sprzed pół roku.
-if (now.getHours() === 3 && now.getMinutes() < 15) {
+// Raz na dobę (ok. 3:00 - w nocy serwer działa co godzinę) także kilka najstarszych - odświeżenie tytułów sprzed pół roku.
+if (now.getHours() === 3) {
   const stale = await db
     .collection('people')
     .where('fetchedAt', '<', new Date(now.getTime() - PEOPLE_REFRESH_MS))
@@ -303,6 +359,9 @@ async function planNotices(
   prefs: DocumentData,
   label: (course: string) => string,
   lang: Language,
+  user: DocumentSnapshot,
+  watch: Watch | undefined,
+  ref: DocumentReference,
 ): Promise<Notice[]> {
   const wantChanges = prefs.planChanges !== false
   const wantMorning = prefs.morningSummary === true
@@ -314,22 +373,10 @@ async function planNotices(
   // (do porównania z nową wersją), a plan "jak w Planerze" (seen) liczymy od nowa tylko po pobraniu planu
   // albo gdy użytkownik coś zmienił (znacznik planEditsAt w users/{uid}) - bez czytania zmian co kwadrans.
   const hidden = parseHiddenClasses(prefs.hiddenClasses)
-  const user = await db.doc(`users/${uid}`).get()
   const editsAt = millis(user.get('planEditsAt'))
   let edits: PlanEdits | null = null
   const loadEdits = async () => (edits ??= await readPlanEdits(uid))
 
-  const ref = db.doc(`planWatch/${uid}`)
-  const watch = (await ref.get()).data() as
-    | {
-        plan?: WatchedMeeting[]
-        until?: number
-        checkedAt?: number
-        seen?: WatchedMeeting[]
-        editsAt?: number | null
-        patterns?: WatchedMeeting[] // wzory grup z całego planu (do "co tydzień od–do")
-      }
-    | undefined
   let plan = watch?.plan ?? null
   let until = watch?.until ?? now.getTime() + WATCH_DAYS * 24 * 60 * 60 * 1000
   let seen = watch?.seen ?? null

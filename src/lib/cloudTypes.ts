@@ -58,6 +58,15 @@ export type CollectionName = (typeof COLLECTION_NAMES)[number]
 // czyta je dopiero, gdy znacznik się zmieni - bez czytania wszystkich zmian co kwadrans.
 export const PLAN_EDIT_COLLECTIONS: readonly CollectionName[] = ['meetingEdits', 'seriesEdits', 'customMeetings']
 
+// Znacznik zmiany w users/{uid} dla zapisu (null - bez znacznika): zmiany planu, terminy i ustawienia
+// (ustawienia powiadomień, skróty nazw) - serwer powiadomień czyta je od nowa tylko po zmianie.
+export function changeMarker(name: CollectionName, id: string): 'planEditsAt' | 'deadlinesAt' | 'prefsAt' | null {
+  if (PLAN_EDIT_COLLECTIONS.includes(name)) return 'planEditsAt'
+  if (name === 'deadlines') return 'deadlinesAt'
+  if (name === 'settings' && id === 'prefs') return 'prefsAt'
+  return null
+}
+
 export interface CloudDoc {
   id: string
   data: Record<string, unknown>

@@ -1,11 +1,15 @@
-# Co 15 minut sprawdza terminy wszystkich użytkowników i wysyła przypomnienia (scripts/send-reminders.ts).
+# Co 15 minut (w nocy co godzinę) sprawdza terminy wszystkich użytkowników i wysyła przypomnienia
+# (scripts/send-reminders.ts).
 # GitHub potrafi opóźnić zaplanowane uruchomienie o kilkanaście minut - dlatego skrypt patrzy
 # kilka godzin wstecz, a dziennik wysłanych pilnuje, żeby nic nie przyszło dwa razy.
 name: Przypomnienia o terminach
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Godziny w UTC: w dzień co kwadrans, w nocy (ok. 0-5 w Polsce) co godzinę - mniej odczytów bazy,
+    # a przypomnienie z nocy i tak wyjdzie (skrypt patrzy kilka godzin wstecz).
+    - cron: '*/15 4-22 * * *'
+    - cron: '7 23,0-3 * * *'
     # Raz w miesiącu: podtrzymanie harmonogramu (niżej, zadanie keepalive).
     - cron: '17 4 1 * *'
   workflow_dispatch:
