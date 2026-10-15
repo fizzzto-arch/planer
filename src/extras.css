@@ -2467,7 +2467,9 @@ button.link-like {
   width: 64px;
   height: 64px;
   border-radius: 15px;
-  box-shadow: 0 6px 18px rgb(0 0 0 / 0.14);
+  box-shadow:
+    0 6px 18px rgb(0 0 0 / 0.14),
+    0 0 0 1px rgb(0 0 0 / 0.05);
 }
 
 .welcome-title {

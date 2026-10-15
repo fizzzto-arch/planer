@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EEF1F5"/></linearGradient>
+    <linearGradient id="cardd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F6F8FB"/></linearGradient>
+    <linearGradient id="headd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF5A4F"/><stop offset="1" stop-color="#F0372C"/></linearGradient>
+    <filter id="shd" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#3b4a66" flood-opacity="0.22"/></filter>
+    <clipPath id="clipd"><rect x="106" y="118" width="300" height="290" rx="38"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="url(#bgd)"/>
+  <g filter="url(#shd)">
+    <rect x="106" y="118" width="300" height="290" rx="38" fill="url(#cardd)"/>
+  </g>
+  <g clip-path="url(#clipd)"><rect x="106" y="118" width="300" height="64" fill="url(#headd)"/></g>
+  <rect x="106" y="118" width="300" height="290" rx="38" fill="none" stroke="#E3E7ED" stroke-width="3"/>
+  <rect x="133" y="205" width="72" height="49" rx="12" fill="#E9ECF1"/>
+  <rect x="220" y="205" width="72" height="49" rx="12" fill="#E9ECF1"/>
+  <rect x="307" y="205" width="72" height="49" rx="12" fill="#0A84FF"/>
+  <rect x="133" y="268" width="72" height="49" rx="12" fill="#30C05A"/>
+  <rect x="220" y="268" width="72" height="49" rx="12" fill="#E9ECF1"/>
+  <rect x="307" y="268" width="72" height="49" rx="12" fill="#E9ECF1"/>
+  <rect x="133" y="332" width="72" height="49" rx="12" fill="#E9ECF1"/>
+  <rect x="220" y="332" width="72" height="49" rx="12" fill="#A855F7"/>
+  <rect x="307" y="332" width="72" height="49" rx="12" fill="#E9ECF1"/>
+  <rect x="175" y="92" width="23" height="60" rx="11.5" fill="#C9CFD9"/>
+  <rect x="314" y="92" width="23" height="60" rx="11.5" fill="#C9CFD9"/>
+  
+</svg>
