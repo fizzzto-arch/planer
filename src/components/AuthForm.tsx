@@ -2,6 +2,7 @@ import { t } from '../lib/i18n'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
+import { takeRegisterNext } from '../lib/authMode'
 import { isUniversityEmail } from '../lib/firebaseConfig'
 import { PasswordField } from './PasswordField'
 
@@ -13,8 +14,9 @@ type Mode = 'login' | 'register'
 
 const MIN_PASSWORD_LENGTH = 6
 
+
 export function AuthForm({ cloud }: Props) {
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(() => (takeRegisterNext() ? 'register' : 'login'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)

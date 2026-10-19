@@ -7,6 +7,7 @@
 import { createHmac, randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { dedupeEvents, parseUsosEvent, type AcademicCalendar, type CalendarEvent } from '../src/lib/academicCalendar.ts'
+import { SEMESTER_STARTS } from '../src/lib/semesterWeek.ts'
 
 const OUT = process.argv[2] ?? 'dist/calendar.json'
 const PUBLISHED = 'https://fizzzto-arch.github.io/planer/calendar.json'
@@ -81,6 +82,17 @@ if (!calendar) {
 }
 
 if (calendar) {
+  // Po każdym okresie rejestracyjnym zaczyna się semestr - jego pierwszy poniedziałek musi być w SEMESTER_STARTS
+  // (src/lib/semesterWeek.ts), inaczej osoby dołączające w trakcie semestru zobaczą zły numer tygodnia.
+  for (const event of calendar.events) {
+    if (!/rejestr/i.test(event.name)) continue
+    const [y, m, d] = event.end.split('-').map(Number)
+    const day = new Date(y, m - 1, d + 1)
+    while (day.getDay() !== 1) day.setDate(day.getDate() + 1)
+    if (!SEMESTER_STARTS.includes(iso(day))) {
+      console.log(`::warning::Dopisz ${iso(day)} do SEMESTER_STARTS (src/lib/semesterWeek.ts) - początek semestru po "${event.name}" (${event.start} - ${event.end}).`)
+    }
+  }
   writeFileSync(OUT, JSON.stringify(calendar))
   console.log(`Kalendarz akademicki: ${calendar.events.length} wydarzeń (pobrany ${calendar.fetchedAt}).`)
 }

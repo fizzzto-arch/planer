@@ -8,6 +8,26 @@ import { startOfWeek } from './dates.ts'
 import type { Meeting } from './usos.ts'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+// Początki semestrów PW (poniedziałek pierwszego tygodnia zajęć) - według kalendarza akademickiego USOS
+// (pierwszy poniedziałek po okresie rejestracyjnym). Link z USOS podaje tylko NADCHODZĄCE zajęcia, więc
+// u osoby, która dołącza w trakcie semestru, pierwszy tydzień w planie to nie pierwszy tydzień semestru -
+// wtedy liczymy od tej daty. Nowy rok akademicki: dopisać daty (wdrożenie ostrzega, gdy kalendarz
+// ma okres rejestracyjny, po którym data nie jest tu wpisana - scripts/usos-calendar.ts).
+export const SEMESTER_STARTS = ['2026-10-05', '2027-02-22']
+// Semestr trwa krócej - starszy początek nie dotyczy już tego planu.
+const MAX_SEMESTER_WEEKS = 22
+
+function knownStart(firstWeek: Date): Date | null {
+  let best: Date | null = null
+  for (const key of SEMESTER_STARTS) {
+    const [y, m, d] = key.split('-').map(Number)
+    const start = new Date(y, m - 1, d)
+    const weeks = (firstWeek.getTime() - start.getTime()) / WEEK_MS
+    if (weeks >= 0 && weeks < MAX_SEMESTER_WEEKS && (!best || start > best)) best = start
+  }
+  return best
+}
 const NEW_SEMESTER_GAP_WEEKS = 3 // pełnych tygodni bez zajęć
 const NOT_CLASSES = new Set(['EGZ']) // egzamin (typ z USOS)
 
@@ -35,6 +55,11 @@ export function semesters(meetings: SemesterMeeting[]): Semester[] {
     if (emptyWeeks >= NEW_SEMESTER_GAP_WEEKS) result.push({ firstWeek: new Date(weeks[i]), lastWeek: new Date(weeks[i]) })
     else result[result.length - 1].lastWeek = new Date(weeks[i])
   }
+  // Pierwszy semestr w planie bez jego początku (dołączenie w trakcie): od znanego początku semestru.
+  // Tylko wstecz - plan z pełną historią zostaje taki, jaki jest.
+  const first = result[0]
+  const start = first && knownStart(first.firstWeek)
+  if (first && start) first.firstWeek = startOfWeek(start)
   return result
 }
 

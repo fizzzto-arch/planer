@@ -39,6 +39,7 @@ export interface PlanUi {
   isAdmin: boolean // widok administratora (w podglądzie "jako zwykły użytkownik" - false)
   canOptimize: boolean // optymalizator: administrator albo osoba, której go przyznał
   cloud: Cloud | null // zalogowane konto z dostępem (np. tytuły prowadzących); null = bez konta
+  signedOut: boolean // na tym urządzeniu nikt nie jest zalogowany (nie: konto w trakcie łączenia)
   sharedBusy: SharedBusyApi // wspólne okienka ze znajomymi
   calendarEvents: CalendarEvent[] // kalendarz akademicki PW (dni wolne, przerwy, sesja)
   editDeadline: (draft: DeadlineDraft) => void

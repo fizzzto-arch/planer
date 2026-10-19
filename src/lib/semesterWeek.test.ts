@@ -59,3 +59,25 @@ describe('numer tygodnia semestru', () => {
     expect(semesterWeek(new Date(2026, 9, 19), only)?.number).toBe(3)
   })
 })
+
+describe('dołączenie w trakcie semestru (USOS podaje tylko nadchodzące zajęcia)', () => {
+  // Zajęcia co tydzień w środy od podanego dnia, n tygodni.
+  const weekly = (y: number, month: number, day: number, n: number) =>
+    Array.from({ length: n }, (_, i) => m(y, month, day + i * 7))
+
+  it('plan od 14.10.2026 (2. tydzień) - numer liczony od początku semestru, nie od pierwszych zajęć w planie', () => {
+    const plan = weekly(2026, 10, 14, 12)
+    expect(semesterWeek(new Date(2026, 9, 12), plan)).toEqual({ number: 2, odd: false })
+    expect(semesterWeek(new Date(2026, 9, 19), plan)).toEqual({ number: 3, odd: true })
+  })
+
+  it('semestr letni: plan od marca liczy od 22.02.2027', () => {
+    const plan = weekly(2027, 3, 10, 10)
+    expect(semesterWeek(new Date(2027, 2, 8), plan)).toEqual({ number: 3, odd: true })
+  })
+
+  it('plan z pełną historią (zajęcia już od 1.10) zostaje bez zmian', () => {
+    const plan = [m(2026, 10, 1), ...weekly(2026, 10, 7, 10)]
+    expect(semesters(plan)[0].firstWeek).toEqual(new Date(2026, 8, 28))
+  })
+})

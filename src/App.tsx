@@ -717,6 +717,7 @@ function App() {
       openFeedback,
       feedbackNew: feedback.newCount,
       openSettings: () => changeView('settings'),
+      signedOut: cloud.state.kind === 'signedOut' || cloud.state.kind === 'disabled',
       isAdmin: adminView,
       canOptimize,
       cloud: cloud.uid ? cloud.client : null,
@@ -767,6 +768,7 @@ function App() {
       canOptimize,
       cloud.uid,
       cloud.client,
+      cloud.state.kind,
       sharedBusy,
       calendarEvents,
       deadlinesByDay,
@@ -838,12 +840,21 @@ function App() {
                 </button>
               </p>
             )}
+            {/* Najpierw plan - nowa osoba od razu widzi swoje zajęcia; konto (np. na drugim urządzeniu) niżej. */}
+            <section className="panel view-enter">
+              <h2 className="day-title">{t('Dodaj swój plan')}</h2>
+              <p className="muted">
+                {t('Wystarczy raz wkleić link (albo kod grupy WAT). Potem plan będzie aktualizował się sam, także w kolejnych semestrach.')}
+                {cloud.state.kind === 'signedIn' && ' ' + t('Zapiszemy go też na Twoim koncie.')}
+              </p>
+              <SourceForm plan={plan} onDone={() => setView('today')} />
+            </section>
             {/* Karta konta jest od razu - w trakcie łączenia z kręciołkiem, żeby nic nie skakało. */}
             {(signedOut || cloud.state.kind === 'loading') && (
               <section className="panel view-enter">
-                <h2 className="day-title">{t('Konto w Planerze')}</h2>
+                <h2 className="day-title">{t('Masz już konto?')}</h2>
                 <p className="muted">
-                  {t('Zaloguj się albo załóż konto, a plan będzie na wszystkich Twoich urządzeniach.')}
+                  {t('Zaloguj się, a plan i notatki pobiorą się same. Nowe konto (najlepiej na mail uczelniany) możesz założyć tu albo później w Ustawieniach.')}
                 </p>
                 {signedOut ? (
                   <AuthForm cloud={cloud} />
@@ -855,14 +866,6 @@ function App() {
                 )}
               </section>
             )}
-            <section className="panel view-enter">
-              <h2 className="day-title">{signedOut ? t('Albo dodaj plan bez konta') : t('Dodaj swój plan')}</h2>
-              <p className="muted">
-                {t('Wystarczy raz wkleić link (albo kod grupy WAT). Potem plan będzie aktualizował się sam, także w kolejnych semestrach.')}
-                {cloud.state.kind === 'signedIn' && ' ' + t('Zapiszemy go też na Twoim koncie.')}
-              </p>
-              <SourceForm plan={plan} onDone={() => setView('today')} />
-            </section>
           </>
         )}
         <p className="gate-footer view-enter">

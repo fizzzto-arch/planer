@@ -31,7 +31,8 @@ function load(): Store {
 
 function createMockCloud(): Cloud {
   let store = load()
-  let user: CloudUser | null = MOCK_USER
+  // ?mock=nowy - nikt nie jest zalogowany (pierwsze wejście nowej osoby).
+  let user: CloudUser | null = mode === 'nowy' ? null : MOCK_USER
   const userListeners = new Set<(u: CloudUser | null) => void>()
   const collectionListeners = new Map<CollectionName, Set<(docs: CloudDoc[]) => void>>()
 

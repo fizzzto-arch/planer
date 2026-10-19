@@ -2,6 +2,7 @@ import { t } from '../lib/i18n'
 import { usePlanUi } from '../hooks/planUi'
 import { isIos, isStandalone } from '../lib/push'
 import { revealWhenReady } from '../lib/reveal'
+import { openRegisterNext } from '../lib/authMode'
 
 // Starsze "Ukryj" było zapamiętane tylko w przeglądarce - dalej je honorujemy.
 const OLD_HIDDEN_KEY = 'planer.first-steps-hidden'
@@ -28,14 +29,44 @@ interface Props {
 
 // "Pierwsze kroki" na ekranie Dziś: krótkie zapoznanie z Planerem, jeden krok naraz. Nic na siłę -
 // krok odhacza się sam, gdy go zrobisz (otworzysz przedmiot, wyszukasz), albo po "Pomiń".
-// Zrobione, pominięte i "Ukryj" - w ustawieniach na koncie, więc na wszystkich urządzeniach.
+// Zrobione, pominięte i "Ukryj" - w ustawieniach (z kontem na wszystkich urządzeniach). Bez konta zamiast
+// przypomnień (wymagają konta) - krok "Konto na mail uczelniany".
 export function FirstSteps({ courseName }: Props) {
-  const { extras, prefs, openCourse, openSearch, openSettings, skipFirstStep, hideFirstSteps } = usePlanUi()
-  // Dopóki ustawienia z konta się nie wczytały, kroki wyglądałyby na niezrobione - karta mignęłaby i znikła.
-  if (!extras || !extras.ready || prefs.firstSteps.hidden || hiddenBefore()) return null
+  const { extras, signedOut, prefs, openCourse, openSearch, openSettings, skipFirstStep, hideFirstSteps } = usePlanUi()
+  // Z kontem: dopóki ustawienia z konta się nie wczytały, kroki wyglądałyby na niezrobione - karta mignęłaby i znikła.
+  if (prefs.firstSteps.hidden || hiddenBefore()) return null
+  if (!signedOut && (!extras || !extras.ready)) return null
 
   const phone = window.matchMedia('(pointer: coarse)').matches
   const notificationsOn = 'Notification' in window && Notification.permission === 'granted'
+  // Bez konta: konto zaraz po dodaniu do telefonu - z nim notatki, terminy i przypomnienia.
+  const account: Step = {
+    id: 'account',
+    title: t('Konto na mail uczelniany'),
+    hint: t('Notatki, terminy z przypomnieniami i ten sam plan na komputerze. Z mailem uczelnianym (PW, WAT) działa od razu.'),
+    done: false,
+    action: {
+      label: t('Załóż konto'),
+      run: () => {
+        openRegisterNext()
+        openSettings()
+        revealWhenReady('settings-account')
+      },
+    },
+  }
+  const reminders: Step = {
+    id: 'reminders',
+    title: t('Przypomnienia o terminach'),
+    hint: t('Powiadomienie przed kolokwium czy egzaminem, także przy zamkniętym Planerze.'),
+    done: notificationsOn,
+    action: {
+      label: t('Włącz'),
+      run: () => {
+        openSettings()
+        revealWhenReady('settings-reminders')
+      },
+    },
+  }
   const steps: Step[] = [
     ...(phone
       ? [
@@ -49,6 +80,7 @@ export function FirstSteps({ courseName }: Props) {
           },
         ]
       : []),
+    ...(signedOut ? [account] : []),
     {
       id: 'course',
       title: t('Zajrzyj do przedmiotu'),
@@ -65,19 +97,7 @@ export function FirstSteps({ courseName }: Props) {
       done: false,
       action: { label: t('Spróbuj'), run: openSearch },
     },
-    {
-      id: 'reminders',
-      title: t('Przypomnienia o terminach'),
-      hint: t('Powiadomienie przed kolokwium czy egzaminem, także przy zamkniętym Planerze.'),
-      done: notificationsOn,
-      action: {
-        label: t('Włącz'),
-        run: () => {
-          openSettings()
-          revealWhenReady('settings-reminders')
-        },
-      },
-    },
+    ...(signedOut ? [] : [reminders]),
   ]
   const finished = (s: Step) => s.done || prefs.firstSteps.done.includes(s.id)
   const next = steps.find((s) => !finished(s))

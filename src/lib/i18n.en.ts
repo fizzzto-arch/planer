@@ -22,9 +22,7 @@ export const EN: Record<string, string> = {
   'Zalogowano jako': 'Signed in as',
   'Wyloguj': 'Sign out',
   'Konto w Planerze': 'Planer account',
-  'Zaloguj się albo załóż konto, a plan będzie na wszystkich Twoich urządzeniach.': 'Sign in or create an account and your timetable will be on all your devices.',
   'Łączenie…': 'Connecting…',
-  'Albo dodaj plan bez konta': 'Or add a timetable without an account',
   'Dodaj swój plan': 'Add your timetable',
   'Wystarczy raz wkleić link (albo kod grupy WAT). Potem plan będzie aktualizował się sam, także w kolejnych semestrach.': 'Paste the link (or a WAT group code) once. After that the timetable updates itself, in later semesters too.',
   'Zapiszemy go też na Twoim koncie.': 'It will also be saved to your account.',
@@ -1377,4 +1375,9 @@ export const EN: Record<string, string> = {
   'Powiadomienia o zmianach w planie uwzględniają Twoje ręczne zmiany.': 'Timetable change notifications take your manual changes into account.',
   'Plan WAT: widać, z kiedy jest, a aktualny wgrasz z zapisanej strony WAT.': 'WAT timetable: you can see how recent it is, and upload a current one from a saved WAT page.',
   'Szybsze otwieranie i nowa ikona.': 'Faster start and a new icon.',
+  // Pierwsze wejście nowej osoby
+  'Masz już konto?': 'Already have an account?',
+  'Zaloguj się, a plan i notatki pobiorą się same. Nowe konto (najlepiej na mail uczelniany) możesz założyć tu albo później w Ustawieniach.': 'Sign in and your timetable and notes will download by themselves. You can create a new account (ideally with your university email) here or later in Settings.',
+  'Konto na mail uczelniany': 'An account with your university email',
+  'Notatki, terminy z przypomnieniami i ten sam plan na komputerze. Z mailem uczelnianym (PW, WAT) działa od razu.': 'Notes, deadlines with reminders and the same timetable on your computer. With a university email (PW, WAT) it works right away.',
 }
