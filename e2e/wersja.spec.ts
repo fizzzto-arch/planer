@@ -48,3 +48,16 @@ test('pomoc: adres kontaktowy', async ({ page, errors }) => {
   const contact = page.locator('.panel', { has: page.getByRole('heading', { name: 'Kontakt' }) })
   await expect(contact.getByRole('link', { name: 'fizzz.to@gmail.com' })).toHaveAttribute('href', 'mailto:fizzz.to@gmail.com')
 })
+
+test('zakładanie konta: podpowiedź, że z mailem uczelnianym nie trzeba czekać', async ({ page, errors }) => {
+  void errors
+  await page.goto('/?mock')
+  await tab(page, 'Ustawienia').click()
+  await page.getByRole('button', { name: 'Wyloguj się' }).click()
+  await page.getByRole('tab', { name: 'Nowe konto' }).click()
+  const email = page.getByLabel('E-mail')
+  await email.fill('ktos@gmail.com')
+  await expect(page.getByText('Z mailem uczelnianym (PW, WAT) masz dostęp od razu')).toBeVisible()
+  await email.fill('jan.kowalski.stud@pw.edu.pl')
+  await expect(page.getByText('Mail uczelniany - po potwierdzeniu go linkiem masz dostęp od razu.')).toBeVisible()
+})

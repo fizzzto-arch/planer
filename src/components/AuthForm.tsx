@@ -2,6 +2,7 @@ import { t } from '../lib/i18n'
 import { useEffect, useState, type FormEvent } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
+import { isUniversityEmail } from '../lib/firebaseConfig'
 import { PasswordField } from './PasswordField'
 
 interface Props {
@@ -122,9 +123,12 @@ export function AuthForm({ cloud }: Props) {
         </span>
       </label>
 
+      {/* Podpowiedź pod wpisany adres: z mailem uczelnianym bez czekania na administratora. */}
       {isRegister && (
         <p className="hint">
-          {t('Po rejestracji potwierdzisz e-mail linkiem, a administrator Planera zatwierdzi konto.')}
+          {isUniversityEmail(email)
+            ? t('Mail uczelniany - po potwierdzeniu go linkiem masz dostęp od razu.')
+            : t('Po rejestracji potwierdzisz e-mail linkiem. Z mailem uczelnianym (PW, WAT) masz dostęp od razu, z innym - po zatwierdzeniu przez administratora.')}
         </p>
       )}
 
