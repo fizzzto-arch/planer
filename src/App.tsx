@@ -25,6 +25,7 @@ import { ShareAppButton } from './components/ShareAppButton'
 import { MeetingEditor } from './components/MeetingEditor'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { UpdateBanner } from './components/UpdateBanner'
+import { WhatsNewCard } from './components/WhatsNew'
 import { SourceForm } from './components/SourceForm'
 import { Tabs, type TabsControl } from './components/Tabs'
 import { TodayView } from './components/TodayView'
@@ -968,6 +969,8 @@ function App() {
             />
           </header>
           <SyncStatus plan={plan} now={now} extrasError={extrasApi?.error ?? null} />
+          {/* Raz po aktualizacji: co nowego (nie na podstronach - np. w otwartym przedmiocie). */}
+          {!page && <WhatsNewCard hasPlan={!!plan.source} />}
 
           {/* Stały element (bez key) - na nim nasłuchujemy gestów i to on jedzie za palcem. */}
           <div ref={pageRef} className={page ? 'swipe-page' : undefined}>

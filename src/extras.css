@@ -2607,6 +2607,24 @@ button.link-like {
   gap: 8px;
 }
 
+/* ---------- Co nowego (karta raz po aktualizacji i lista w Ustawieniach) ---------- */
+
+.whats-new {
+  border-left: 3px solid var(--accent);
+}
+
+.whats-new-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.whats-new-release h4 {
+  margin: 0 0 8px;
+}
+
 /* ---------- Nowa wersja Planera ---------- */
 
 .update-banner {

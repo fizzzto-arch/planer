@@ -19,6 +19,8 @@ import { RemindersPanel } from './RemindersPanel'
 import { SourceForm } from './SourceForm'
 import { SharingPanel } from './SharingPanel'
 import { watGroupFromUrl } from '../lib/wat'
+import { RELEASE } from '../lib/changelog'
+import { WhatsNewDialog } from './WhatsNew'
 
 interface Props {
   plan: PlanApi
@@ -47,6 +49,7 @@ export function SettingsView({
 }: Props) {
   const [changing, setChanging] = useState(false)
   const { openHelp, openFeedback, feedbackNew, isAdmin } = usePlanUi()
+  const [whatsNew, setWhatsNew] = useState(false)
   const { source, meetings, updatedAt } = plan
   const courseCount = new Set(meetings.map((m) => m.courseName)).size
   const first = meetings[0]
@@ -208,6 +211,22 @@ export function SettingsView({
         </svg>
       </button>
 
+      <button type="button" className="panel help-entry" onClick={() => setWhatsNew(true)}>
+        <span className="help-entry-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="m12 3 2.6 5.6 6.1.7-4.5 4.1 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.1 6.1-.7z" />
+          </svg>
+        </span>
+        <span className="help-entry-text">
+          <strong>{t('Co nowego')}</strong>
+          <span>{t('Zmiany w Planerze {release} i wcześniejszych wersjach', { release: RELEASE })}</span>
+        </span>
+        <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      </button>
+      {whatsNew && <WhatsNewDialog onClose={() => setWhatsNew(false)} />}
+
       <div className="panel">
         <p className="hint">
           {signedIn
@@ -220,7 +239,7 @@ export function SettingsView({
       </div>
 
       <p className="app-version">
-        {t('Planer · wersja {version}', { version: __APP_VERSION__ })}
+        {t('Planer {release} · wersja {version}', { release: RELEASE, version: __APP_VERSION__ })}
         {/* Administrator widzi funkcje w wersji alpha (np. optymalizator) - tu widać, że to konto je ma. */}
         {admin && t(' · administrator')}
       </p>

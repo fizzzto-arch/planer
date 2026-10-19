@@ -3,6 +3,7 @@ import { t } from '../lib/i18n'
 import { useEffect, useState } from 'react'
 import type { CloudApi } from '../hooks/useCloud'
 import { errorMessage } from '../lib/errors'
+import { CONTACT_EMAIL } from '../lib/firebaseConfig'
 
 interface Props {
   cloud: CloudApi
@@ -125,6 +126,7 @@ export function AccessGate({ cloud, onHelp }: Props) {
               <p className="hint">{t('Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.')}</p>
             )}
             <p className="hint">{t('Masz mail uczelniany (PW albo WAT)? Konto założone na niego działa od razu, bez czekania.')}</p>
+            <p className="hint">{tx('Pytania? Napisz: {email}', { email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> })}</p>
           </>
         )}
 
@@ -135,7 +137,10 @@ export function AccessGate({ cloud, onHelp }: Props) {
             </div>
             <h2 className="gate-title">{t('Brak dostępu')}</h2>
             <p>
-              {tx('Administrator nie zatwierdził konta {email}. Jeśli to pomyłka, odezwij się do niego bezpośrednio.', { email: <strong>{email}</strong> })}
+              {tx('Administrator nie zatwierdził konta {email}. Jeśli to pomyłka, napisz na {contact}.', {
+                email: <strong>{email}</strong>,
+                contact: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>,
+              })}
             </p>
           </>
         )}

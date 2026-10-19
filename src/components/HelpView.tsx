@@ -1,6 +1,8 @@
 import { t } from '../lib/i18n'
 import { useState, type ReactNode } from 'react'
 import { diagnostics } from '../lib/diagnostics'
+import { CONTACT_EMAIL } from '../lib/firebaseConfig'
+import { tx } from '../lib/i18nReact'
 
 interface Props {
   onBack: () => void
@@ -181,6 +183,15 @@ export function HelpView({ onBack, onFeedback }: Props) {
         <Question q={t('Ile to kosztuje?')}>{t('Nic - Planer jest darmowy, bez reklam i płatnych funkcji.')}</Question>
       </div>
 
+      <div className="panel">
+        <h3 className="panel-title">{t('Kontakt')}</h3>
+        <p className="hint">
+          {tx('Planer prowadzi student, nie uczelnia. Pytania, prośba o dostęp albo sprawy Twoich danych (kopia, poprawienie, usunięcie): {email}', {
+            email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>,
+          })}
+        </p>
+      </div>
+
       <ReportProblem onFeedback={onFeedback} />
     </section>
   )
@@ -216,7 +227,9 @@ function ReportProblem({ onFeedback }: { onFeedback?: () => void }) {
     <div className="panel help-report">
       <h3 className="panel-title">{t('Coś nie działa?')}</h3>
       <p className="hint">
-        {t('Napisz do osoby, która dała Ci dostęp do Planera, co się stało i kiedy. Dołącz informacje o urządzeniu - bez nich trudno powtórzyć problem. Nie zawierają żadnych Twoich danych, tylko wersję Planera i sprzęt.')}
+        {tx('Napisz na {email}, co się stało i kiedy. Dołącz informacje o urządzeniu - bez nich trudno powtórzyć problem. Nie zawierają żadnych Twoich danych, tylko wersję Planera i sprzęt.', {
+          email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>,
+        })}
       </p>
       <button type="button" className="button secondary" onClick={() => void copy()}>
         {t('Skopiuj informacje o urządzeniu')}

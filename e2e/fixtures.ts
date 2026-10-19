@@ -1,6 +1,10 @@
 // Wspólne przygotowanie testów: wymyślony plan semestru (nie prawdziwy plan z private/),
 // stała data i zegar, zbieranie błędów strony.
 import { test as base, expect, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+
+// Bieżąca wersja (src/lib/changelog.ts) - testy zaczynają z kartą "Co nowego" już obejrzaną.
+const RELEASE = /export const RELEASE = '([^']+)'/.exec(readFileSync(new URL('../src/lib/changelog.ts', import.meta.url), 'utf8'))![1]
 
 // Środa 14.10.2026, 9:00 czasu polskiego - 2. tydzień semestru, przed ćwiczeniami o 10:15.
 export const NOW = new Date('2026-10-14T09:00:00+02:00')
@@ -75,10 +79,11 @@ export function testPlan() {
   }
 }
 
-async function prepare(page: Page, seedPlan: boolean) {
+async function prepare(page: Page, seedPlan: boolean, seenRelease: boolean) {
   await page.clock.setFixedTime(NOW)
   await page.addInitScript(
-    ({ plan, series, seedPlan }) => {
+    ({ plan, series, seedPlan, seenRelease, release }) => {
+      if (seenRelease) localStorage.setItem('planer.release', release)
       // Plan tylko przy pierwszym wejściu - po przeładowaniu zostaje to, co zapisała aplikacja.
       if (seedPlan && !localStorage.getItem('planer.plan.v1')) {
         const build = new Function(`${series}; return (${plan})()`) as () => unknown
@@ -87,21 +92,23 @@ async function prepare(page: Page, seedPlan: boolean) {
       // Zapis pliku: bez arkusza "Udostępnij" (w teście go nie ma kto zamknąć) - zwykłe pobranie.
       Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined, configurable: true })
     },
-    { plan: testPlan.toString(), series: series.toString(), seedPlan },
+    { plan: testPlan.toString(), series: series.toString(), seedPlan, seenRelease, release: RELEASE },
   )
 }
 
-export const test = base.extend<{ errors: string[]; seedPlan: boolean }>({
+export const test = base.extend<{ errors: string[]; seedPlan: boolean; seenRelease: boolean }>({
   // false = pierwsze wejście nowej osoby, bez planu (test.use({ seedPlan: false })).
   seedPlan: [true, { option: true }],
+  // false = osoba po aktualizacji, która nie widziała jeszcze karty "Co nowego".
+  seenRelease: [true, { option: true }],
   // "provide" to zwykle "use" z dokumentacji Playwrighta - inna nazwa, bo lint bierze "use" za hook Reacta.
-  errors: async ({ page, seedPlan }, provide) => {
+  errors: async ({ page, seedPlan, seenRelease }, provide) => {
     const errors: string[] = []
     page.on('pageerror', (e) => errors.push(e.message))
     page.on('console', (m) => {
       if (m.type() === 'error' && !/Download the React DevTools|favicon/.test(m.text())) errors.push(m.text())
     })
-    await prepare(page, seedPlan)
+    await prepare(page, seedPlan, seenRelease)
     // Testy nie pytają prawdziwego USOS (nie zależą od serwera uczelni i go nie obciążają):
     // domyślnie pusta odpowiedź, a test może podstawić własną (page.route później ma pierwszeństwo).
     await page.route('https://apps.usos.pw.edu.pl/**', (route) =>

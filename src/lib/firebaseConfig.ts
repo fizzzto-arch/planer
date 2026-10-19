@@ -16,6 +16,9 @@ export const firebaseConfig: FirebaseOptions | null = {
 // (funkcja isAdmin) - tu służy tylko do pokazania panelu, prawdziwej ochrony pilnują reguły.
 export const ADMIN_EMAILS = ['fizzz.to@gmail.com']
 
+// Adres kontaktowy w Pomocy i na ekranie oczekiwania na dostęp (pytania, sprawy danych osobowych).
+export const CONTACT_EMAIL = 'fizzz.to@gmail.com'
+
 // Potwierdzony mail uczelniany (PW, WAT - także adresy wydziałów, np. @student.wat.edu.pl) daje dostęp od razu,
 // bez czekania na administratora. Ten sam wzór jest w regułach Firestore (isUniversityEmail).
 export function isUniversityEmail(email: string): boolean {

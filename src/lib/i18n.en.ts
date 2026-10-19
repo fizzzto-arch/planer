@@ -52,7 +52,6 @@ export const EN: Record<string, string> = {
   'Nie udało się jeszcze wysłać prośby do administratora ({error}). Ponawiam automatycznie - możesz też odświeżyć stronę.': 'Could not send the request to the administrator yet ({error}). Retrying automatically - you can also refresh the page.',
   'Gdy tylko je zatwierdzi, ta strona odświeży się sama - nie musisz nic robić.': 'As soon as it is approved, this page will refresh by itself - you do not need to do anything.',
   'Brak dostępu': 'No access',
-  'Administrator nie zatwierdził konta {email}. Jeśli to pomyłka, odezwij się do niego bezpośrednio.': 'The administrator did not approve the account {email}. If this is a mistake, contact them directly.',
   'Nie udało się sprawdzić dostępu - spróbuję ponownie za chwilę.': 'Could not check access - will try again in a moment.',
 
   // src/components/AccountPanel.tsx
@@ -593,7 +592,6 @@ export const EN: Record<string, string> = {
   'Wyślij zgłoszenie prosto z Planera - możesz dołączyć zrzut ekranu albo krótkie nagranie. Zgłoszenia są też zawsze pod czerwonym trójkątem na pasku zakładek, a odpowiedź zobaczysz przy swoim zgłoszeniu.': 'Send a report straight from Planer - you can attach a screenshot or a short video. Reports are always under the red triangle in the tab bar too, and you will see the reply next to your report.',
   'Napisz zgłoszenie': 'Write a report',
   'Coś nie działa?': 'Something not working?',
-  'Napisz do osoby, która dała Ci dostęp do Planera, co się stało i kiedy. Dołącz informacje o urządzeniu - bez nich trudno powtórzyć problem. Nie zawierają żadnych Twoich danych, tylko wersję Planera i sprzęt.': 'Write to the person who gave you access to Planer about what happened and when. Include the device info - without it the problem is hard to reproduce. It contains none of your data, only the Planer version and hardware.',
   'Skopiuj informacje o urządzeniu': 'Copy device info',
   'Skopiowano - wklej je w wiadomości.': 'Copied - paste it into your message.',
 
@@ -961,7 +959,6 @@ export const EN: Record<string, string> = {
   'Plan i link są zapisane tylko w tej przeglądarce.': 'The timetable and link are saved only in this browser.',
   'Wyloguj i usuń dane z tej przeglądarki': 'Sign out and remove data from this browser',
   'Usuń dane z tej przeglądarki': 'Remove data from this browser',
-  'Planer · wersja {version}': 'Planer · version {version}',
   ' · administrator': ' · administrator',
   'termin zajęć|terminy zajęć|terminów zajęć': 'class session|class sessions',
 
@@ -1357,4 +1354,26 @@ export const EN: Record<string, string> = {
   'dzień|dni|dni': 'day|days',
   'Korzystało w ostatnich 7 dniach: {active} z {total} kont z dostępem.': 'Used in the last 7 days: {active} of {total} accounts with access.',
   'Masz mail uczelniany (PW albo WAT)? Konto założone na niego działa od razu, bez czekania.': 'Have a university email (PW or WAT)? An account created with it works right away, no waiting.',
+  // Kontakt i wydanie 1.0 (Co nowego)
+  'Pytania? Napisz: {email}': 'Questions? Write to: {email}',
+  'Administrator nie zatwierdził konta {email}. Jeśli to pomyłka, napisz na {contact}.': 'The administrator did not approve the account {email}. If this is a mistake, write to {contact}.',
+  'Kontakt': 'Contact',
+  'Planer prowadzi student, nie uczelnia. Pytania, prośba o dostęp albo sprawy Twoich danych (kopia, poprawienie, usunięcie): {email}': 'Planer is run by a student, not the university. Questions, access requests or matters concerning your data (a copy, a correction, deletion): {email}',
+  'Napisz na {email}, co się stało i kiedy. Dołącz informacje o urządzeniu - bez nich trudno powtórzyć problem. Nie zawierają żadnych Twoich danych, tylko wersję Planera i sprzęt.': 'Write to {email} what happened and when. Attach the device information - without it the problem is hard to reproduce. It contains none of your data, only the Planer version and the device.',
+  'Co nowego': 'What’s new',
+  'Zmiany w Planerze {release} i wcześniejszych wersjach': 'Changes in Planer {release} and earlier versions',
+  'Planer {release} · wersja {version}': 'Planer {release} · build {version}',
+  'Co nowego w Planerze': 'What’s new in Planer',
+  'Wersja {version}': 'Version {version}',
+  'Nowość: Planer {version}': 'New: Planer {version}',
+  'OK': 'OK',
+  'Wszystkie zmiany': 'All changes',
+  'Konto z mailem uczelnianym (PW, WAT) działa od razu - bez czekania na zatwierdzenie.': 'An account with a university email (PW, WAT) works right away - no waiting for approval.',
+  'Własne zdjęcia i pliki przy przedmiocie (np. zdjęcie tablicy) - widzisz je tylko Ty, na każdym swoim urządzeniu.': 'Your own photos and files for each course (e.g. a photo of the board) - only you see them, on all your devices.',
+  'Zmiana terminów grupy: zajęcia online i liczba zajęć zamiast daty końca.': 'Changing a group’s dates: online classes and a number of classes instead of an end date.',
+  'Strzałki ‹ › na stronie przedmiotu - następny przedmiot bez wracania do listy.': '‹ › arrows on the course page - go to the next course without returning to the list.',
+  'Krótkie nazwy przedmiotów z kodów USOS (np. LAEL) w siatce tygodnia.': 'Short course names from USOS codes (e.g. LAEL) in the week grid.',
+  'Powiadomienia o zmianach w planie uwzględniają Twoje ręczne zmiany.': 'Timetable change notifications take your manual changes into account.',
+  'Plan WAT: widać, z kiedy jest, a aktualny wgrasz z zapisanej strony WAT.': 'WAT timetable: you can see how recent it is, and upload a current one from a saved WAT page.',
+  'Szybsze otwieranie i nowa ikona.': 'Faster start and a new icon.',
 }
