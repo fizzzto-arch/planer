@@ -247,6 +247,27 @@ async function seedIbPlan(page: import('@playwright/test').Page) {
   await page.reload()
 }
 
+test('punkty LAEL: kartkówka, praca domowa i sprawozdanie; słaba kartkówka - ćwiczenie w połowie', async ({ page }) => {
+  await seedIbPlan(page)
+  await tab(page, 'Przedmioty').click()
+  await page.locator('.course-row', { hasText: 'Laboratorium elektrotechniki' }).click()
+  await page.locator('.assessment-panel > summary').click()
+  const panel = page.locator('.score')
+  const rows = panel.locator('.score-table tbody tr')
+  await panel.getByRole('textbox', { name: 'Ćwiczenia 1: Kartkówka' }).fill('1,5')
+  await panel.getByRole('textbox', { name: 'Ćwiczenia 1: Praca domowa' }).fill('0,3')
+  await panel.getByRole('textbox', { name: 'Ćwiczenia 1: Wykonanie i sprawozdanie' }).fill('3')
+  await expect(rows.nth(0).locator('.score-table-total')).toHaveText('4,8')
+  // Kartkówka za 0,2 pkt: całe ćwiczenie w połowie - Planer to pokazuje i wyjaśnia.
+  await panel.getByRole('textbox', { name: 'Ćwiczenia 2: Kartkówka' }).fill('0,2')
+  await expect(rows.nth(1).locator('.score-table-total')).toHaveText('0,1 ½')
+  await expect(panel.getByText('Kartkówka za najwyżej 0,3 pkt - ćwiczenie liczy się w połowie (ćw. 2).')).toBeVisible()
+  await expect(panel.getByText('4,9 / 25 pkt')).toBeVisible()
+  // Za dużo punktów w części - pole na czerwono.
+  await panel.getByRole('textbox', { name: 'Ćwiczenia 3: Praca domowa' }).fill('1')
+  await expect(panel.getByRole('textbox', { name: 'Ćwiczenia 3: Praca domowa' })).toHaveAttribute('aria-invalid', 'true')
+})
+
 test('punkty: kalkulator według regulaminu - ile brakuje i jaka ocena', async ({ page }) => {
   await seedIbPlan(page)
   await tab(page, 'Przedmioty').click()

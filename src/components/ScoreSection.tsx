@@ -1,4 +1,4 @@
-import { t } from '../lib/i18n'
+import { t, tk } from '../lib/i18n'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { courseKey } from '../lib/extras'
@@ -6,13 +6,13 @@ import {
   customScoring,
   formatGrade,
   formatNumber,
+  itemValue,
   meets,
   parsePoints,
   scoreResult,
   type CustomScoring,
   type PartResult,
   type Points,
-  type ScoreItem,
   type ScoreResult,
   type Scoring,
 } from '../lib/scoring'
@@ -25,6 +25,9 @@ interface Props {
 }
 
 const SAVE_DELAY_MS = 600
+
+// Pole do wpisania punktów: pozycja (np. kolokwium) albo część ćwiczenia (np. kartkówka).
+type Field = { id: string; max: number }
 
 // "2,5 pkt" albo "10,1%" (części z wynikami w procentach i średnia ważona).
 const amount = (value: number, percent = false) =>
@@ -79,12 +82,19 @@ export function ScoreSection({ courseName, scoring: rules }: Props) {
     )
   }
 
-  const items = new Map(scoring.parts.flatMap((p) => p.items.map((i) => [i.id, i] as const)))
+  // Maksimum każdego pola: pozycje i ich części (np. kartkówka w ćwiczeniu).
+  const limits = new Map<string, number>()
+  for (const part of scoring.parts) {
+    for (const item of part.items) {
+      limits.set(item.id, item.max)
+      for (const c of item.components ?? []) limits.set(c.id, c.max)
+    }
+  }
   const invalid = (id: string) => {
     const text = drafts[id]
     if (text === undefined || text.trim() === '') return false
     const value = parsePoints(text)
-    return value === null || value > (items.get(id)?.max ?? 0)
+    return value === null || value > (limits.get(id) ?? 0)
   }
   const points: Points = { ...(saved?.points ?? {}) }
   for (const [id, text] of Object.entries(drafts)) {
@@ -93,15 +103,15 @@ export function ScoreSection({ courseName, scoring: rules }: Props) {
     else points[id] = value
   }
   // Tylko pozycje z obecnej rozpiski (po zmianie własnej rozpiski stare punkty nie liczą się).
-  for (const id of Object.keys(points)) if (!items.has(id)) delete points[id]
+  for (const id of Object.keys(points)) if (!limits.has(id)) delete points[id]
   const result = scoreResult(scoring, points)
 
-  const change = (item: ScoreItem, text: string) => {
-    setDrafts((d) => ({ ...d, [item.id]: text }))
+  const change = (field: Field, text: string) => {
+    setDrafts((d) => ({ ...d, [field.id]: text }))
     const value = parsePoints(text)
     const next = { ...points }
-    if (value === null || value > item.max) delete next[item.id]
-    else next[item.id] = value
+    if (value === null || value > field.max) delete next[field.id]
+    else next[field.id] = value
     pending.current = { points: next, custom }
     clearTimeout(timer.current)
     timer.current = setTimeout(flush, SAVE_DELAY_MS)
@@ -123,7 +133,8 @@ export function ScoreSection({ courseName, scoring: rules }: Props) {
           key={part.part.id}
           part={part}
           exempt={result.exemption?.ok === true && scoring.exemption?.part !== part.part.id}
-          value={(item) => drafts[item.id] ?? (points[item.id] !== undefined ? formatNumber(points[item.id]) : '')}
+          points={points}
+          value={(field) => drafts[field.id] ?? (points[field.id] !== undefined ? formatNumber(points[field.id]) : '')}
           invalid={invalid}
           onChange={change}
           onBlur={flush}
@@ -154,13 +165,14 @@ export function ScoreSection({ courseName, scoring: rules }: Props) {
 interface PartProps {
   part: PartResult
   exempt: boolean // zwolnienie z egzaminu - tej części nie trzeba zaliczać
-  value: (item: ScoreItem) => string
+  points: Points
+  value: (field: Field) => string
   invalid: (id: string) => boolean
-  onChange: (item: ScoreItem, text: string) => void
+  onChange: (field: Field, text: string) => void
   onBlur: () => void
 }
 
-function PartRow({ part: r, exempt, value, invalid, onChange, onBlur }: PartProps) {
+function PartRow({ part: r, exempt, points, value, invalid, onChange, onBlur }: PartProps) {
   const { part } = r
   const label = part.label || t('Razem') // własna rozpiska - jedna część bez nazwy
   const unit = part.percent ? '%' : t('pkt')
@@ -183,6 +195,9 @@ function PartRow({ part: r, exempt, value, invalid, onChange, onBlur }: PartProp
         </span>
         <PartStatus result={r} exempt={exempt} />
       </header>
+      {part.items.some((i) => i.components?.length) ? (
+        <ComponentTable part={r} label={label} points={points} value={value} invalid={invalid} onChange={onChange} onBlur={onBlur} />
+      ) : (
       <div className="score-items">
         {part.items.map((item) => (
           <label key={item.id} className={`score-item${single ? ' is-single' : ''}`}>
@@ -209,7 +224,76 @@ function PartRow({ part: r, exempt, value, invalid, onChange, onBlur }: PartProp
           </span>
         )}
       </div>
+      )}
     </section>
+  )
+}
+
+// Ćwiczenia z kilku ocen (np. LAEL: kartkówka, praca domowa, sprawozdanie): w wierszu ćwiczenie,
+// w kolumnach części i suma. Obniżone ćwiczenie (np. kartkówka za najwyżej 0,3 pkt) - z "½" i wyjaśnieniem.
+function ComponentTable({ part: r, label, points, value, invalid, onChange, onBlur }: Omit<PartProps, 'exempt'> & { label: string }) {
+  const { part } = r
+  const columns = part.items.find((i) => i.components?.length)?.components ?? []
+  const halved = part.items.filter((i) => itemValue(i, points)?.halved)
+  // Część, od której zależy obniżenie (np. kartkówka) - do wyjaśnienia pod tabelką.
+  const rule = halved[0]?.halveIf
+  const ruleComponent = halved[0]?.components?.find((c) => c.id === rule?.component)
+  return (
+    <>
+      <table className="score-table">
+        <thead>
+          <tr>
+            <th scope="col">{t('Ćw.')}</th>
+            {columns.map((c) => (
+              <th key={c.id} scope="col">
+                {tk(c.label)} <span className="score-item-max">/ {formatNumber(c.max)}</span>
+              </th>
+            ))}
+            <th scope="col">{t('Razem')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {part.items.map((item) => {
+            const v = itemValue(item, points)
+            return (
+              <tr key={item.id}>
+                <th scope="row">{item.label}</th>
+                {(item.components ?? []).map((c) => (
+                  <td key={c.id}>
+                    <input
+                      className={`text-input score-input${invalid(c.id) ? ' is-invalid' : ''}`}
+                      type="text"
+                      inputMode="decimal"
+                      enterKeyHint="done"
+                      autoComplete="off"
+                      aria-label={`${label} ${item.label}: ${tk(c.label)}`}
+                      aria-invalid={invalid(c.id) || undefined}
+                      placeholder="–"
+                      value={value(c)}
+                      onChange={(e) => onChange(c, e.target.value)}
+                      onBlur={onBlur}
+                    />
+                  </td>
+                ))}
+                <td className={`score-table-total${v?.halved ? ' is-halved' : ''}`}>
+                  {v ? formatNumber(v.value) : '–'}
+                  {v?.halved && ' ½'}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {halved.length > 0 && rule && (
+        <p className="score-note is-bad">
+          {t('{component} za najwyżej {limit} pkt - ćwiczenie liczy się w połowie (ćw. {list}).', {
+            component: ruleComponent ? tk(ruleComponent.label) : '',
+            limit: formatNumber(rule.atMost),
+            list: halved.map((i) => i.label).join(', '),
+          })}
+        </p>
+      )}
+    </>
   )
 }
 

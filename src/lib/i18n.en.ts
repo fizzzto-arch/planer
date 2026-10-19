@@ -1380,4 +1380,10 @@ export const EN: Record<string, string> = {
   'Zaloguj się, a plan i notatki pobiorą się same. Nowe konto (najlepiej na mail uczelniany) możesz założyć tu albo później w Ustawieniach.': 'Sign in and your timetable and notes will download by themselves. You can create a new account (ideally with your university email) here or later in Settings.',
   'Konto na mail uczelniany': 'An account with your university email',
   'Notatki, terminy z przypomnieniami i ten sam plan na komputerze. Z mailem uczelnianym (PW, WAT) działa od razu.': 'Notes, deadlines with reminders and the same timetable on your computer. With a university email (PW, WAT) it works right away.',
+  // Kalkulator LAEL (części ćwiczenia)
+  'Ćw.': 'Ex.',
+  '{component} za najwyżej {limit} pkt - ćwiczenie liczy się w połowie (ćw. {list}).': '{component} worth at most {limit} pts - the exercise counts at half (ex. {list}).',
+  'Kartkówka': 'Quiz',
+  'Praca domowa': 'Homework',
+  'Wykonanie i sprawozdanie': 'Lab work and report',
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ASSESSMENTS } from './programs/ibAssessment'
 import {
   customScoring,
+  itemValue,
   formatGrade,
   missingTo,
   parseCourseScores,
@@ -42,6 +43,25 @@ describe('kalkulator punktów', () => {
     expect(scoreResult(s, lab('lab', [2.5, 2.5, 2.5, 2.5, 2.5]))).toMatchObject({ value: 12.5, max: 25, grade: 3 })
     expect(scoreResult(s, lab('lab', [5, 5, 5, 4, 3.5]))).toMatchObject({ value: 22.5, grade: 5 })
     expect(scoreResult(s, lab('lab', [4, 4, 4, 4, 3.9])).grade).toBe(4)
+  })
+
+  it('LAEL: ćwiczenie z kartkówki, pracy domowej i sprawozdania; kartkówka do 0,3 pkt - ćwiczenie w połowie', () => {
+    const s = scoring('Laboratorium elektrotechniki')
+    const first = s.parts[0].items[0]
+    // Pełne ćwiczenie i ćwiczenie z kartkówką za 0,3: (0,3 + 0,3 + 3,2) / 2 = 1,9.
+    const r = scoreResult(s, { lab1k: 1.5, lab1d: 0.3, lab1s: 3.2, lab2k: 0.3, lab2d: 0.3, lab2s: 3.2 })
+    expect(r).toMatchObject({ value: 6.9, filled: 2 })
+    // Po samej kartkówce: liczy się to, co wpisane; reszta ćwiczenia w połowie, gdy kartkówka za słaba.
+    const quiz = itemValue(first, { lab1k: 0.2 })!
+    expect(quiz.halved).toBe(true)
+    expect(quiz.value).toBeCloseTo(0.1)
+    expect(quiz.cap).toBeCloseTo(1.85)
+    const fine = itemValue(first, { lab1k: 1.2 })!
+    expect(fine).toMatchObject({ halved: false })
+    expect(fine.cap).toBeCloseTo(4.7)
+    // Punkty wpisane wcześniej za całe ćwiczenie dalej się liczą; wpisane części mają pierwszeństwo.
+    expect(scoreResult(s, { lab1: 4.5 }).value).toBe(4.5)
+    expect(scoreResult(s, { lab1: 4.5, lab1k: 1 }).value).toBe(1)
   })
 
   it('nic nie wpisane - bez prognozy', () => {

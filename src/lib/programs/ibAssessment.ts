@@ -3,6 +3,7 @@
 // Samych regulaminów nie publikujemy (są dla zalogowanych w USOS) - tylko te zasady.
 // Klucz: nazwa przedmiotu w programie (src/lib/programs/ib.ts).
 import type { AssessmentRow, CourseAssessment } from '../assessment'
+import { msg } from '../i18n'
 import type { GradeStep, ScoreItem } from '../scoring'
 
 const SYLLABUS = { kind: 'sylabus', year: '2021/22' } as const
@@ -20,6 +21,23 @@ const steps = (from: number[], above = false): GradeStep[] =>
 const numbered = (prefix: string, count: number, max: number): ScoreItem[] =>
   Array.from({ length: count }, (_, i) => ({ id: `${prefix}${i + 1}`, label: String(i + 1), max }))
 const single = (id: string, label: string, max: number): ScoreItem[] => [{ id, label, max }]
+
+// Laboratorium elektrotechniki: ćwiczenie = kartkówka + praca domowa + wykonanie i sprawozdanie (razem 5 pkt);
+// kartkówka za najwyżej 0,3 pkt - całe ćwiczenie liczy się w połowie (regulamin). Etykiety tłumaczy tk().
+const laelExercises: ScoreItem[] = Array.from({ length: 5 }, (_, i) => {
+  const id = `lab${i + 1}`
+  return {
+    id,
+    label: String(i + 1),
+    max: 5,
+    components: [
+      { id: `${id}k`, label: msg('Kartkówka'), max: 1.5 },
+      { id: `${id}d`, label: msg('Praca domowa'), max: 0.3 },
+      { id: `${id}s`, label: msg('Wykonanie i sprawozdanie'), max: 3.2 },
+    ],
+    halveIf: { component: `${id}k`, atMost: 0.3 },
+  }
+})
 
 const a = (rows: AssessmentRow[], grading?: string): CourseAssessment => ({ rows, grading, source: SYLLABUS })
 const r = (assessment: Omit<CourseAssessment, 'source'>): CourseAssessment => ({ ...assessment, source: REGULATIONS })
@@ -109,7 +127,7 @@ const BASE: Record<string, CourseAssessment> = {
     ],
     grading: 'Suma z ćwiczeń (do 25 pkt): od 12,5 → 3; od 15 → 3,5; od 17,5 → 4; od 20 → 4,5; od 22,5 → 5',
     scoring: {
-      parts: [{ id: 'lab', label: 'Ćwiczenia', form: 'LAB', items: numbered('lab', 5, 5) }],
+      parts: [{ id: 'lab', label: 'Ćwiczenia', form: 'LAB', items: laelExercises }],
       scale: steps([12.5, 15, 17.5, 20, 22.5]),
     },
     // Z regulaminu oraz ze skryptu do laboratorium (M. Nałęcz, M. Rupniewski, preskrypt z 7.10.2026).

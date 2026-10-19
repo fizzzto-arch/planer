@@ -4287,6 +4287,69 @@ button.link-like {
   box-shadow: 0 0 0 1px var(--danger);
 }
 
+/* Ćwiczenia z kilku ocen (LAEL): wiersz = ćwiczenie, kolumny = części i suma. Pola dzielą szerokość. */
+.score-table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.score-table th {
+  padding: 0 4px 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--muted);
+  text-align: center;
+  vertical-align: bottom;
+}
+
+.score-table th:first-child,
+.score-table tbody th {
+  width: 2.2em;
+  text-align: left;
+}
+
+.score-table tbody th {
+  font-size: 0.85rem;
+  vertical-align: middle;
+}
+
+.score-table th:last-child {
+  width: 3.4em;
+}
+
+.score-table td {
+  padding: 3px 4px;
+}
+
+.score-table .score-input.text-input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 2px;
+}
+
+.score-table-total {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.score-table-total.is-halved {
+  color: var(--danger);
+}
+
+.score-note {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+}
+
+.score-note.is-bad {
+  color: var(--danger);
+}
+
 .score-summary {
   margin-top: 6px;
   padding-top: 12px;

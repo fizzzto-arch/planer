@@ -17,10 +17,27 @@ export interface GradeStep extends Threshold {
   grade: Exclude<Grade, 2>
 }
 
+export interface ScoreComponent {
+  id: string
+  label: string // np. "Kartkówka"
+  max: number
+}
+
 export interface ScoreItem {
   id: string
   label: string // np. "1" (kolejne ćwiczenie) albo "Kolokwium 1"
   max: number
+  // Ćwiczenie z kilku ocen (np. kartkówka, praca domowa, sprawozdanie) - punkty ćwiczenia to ich suma.
+  // Bez wpisanych części liczą się punkty wpisane za całe ćwiczenie (id pozycji).
+  components?: ScoreComponent[]
+  // Za słaba ocena jednej części (np. kartkówka za najwyżej 0,3 pkt) - całe ćwiczenie liczy się w połowie.
+  halveIf?: { component: string; atMost: number }
+}
+
+export interface ItemValue {
+  value: number // punkty pozycji (po obniżeniu)
+  cap: number // najwięcej, ile ta pozycja jeszcze może dać (z częściami, których brak)
+  halved: boolean
 }
 
 export interface ScorePart {
@@ -55,6 +72,8 @@ export type Points = Record<string, number> // id pozycji -> punkty; brak = jesz
 
 const EPS = 1e-9
 const round1 = (x: number) => Math.round(x * 10) / 10
+// Punkty do pokazania: do setnych (np. ćwiczenie w połowie: 0,25 pkt).
+const round2 = (x: number) => Math.round(x * 100) / 100
 
 export const meets = (value: number, t: Threshold) => (t.above ? value > t.from + EPS : value >= t.from - EPS)
 
@@ -96,15 +115,33 @@ export interface ScoreResult {
   exemption: { ok: boolean; grade: Grade | null; missing: number; reachable: boolean } | null
 }
 
-function partResult(part: ScorePart, points: Points): PartResult {
-  const filledItems = part.items.filter((i) => points[i.id] !== undefined)
-  const counted = (i: ScoreItem) => {
-    const v = points[i.id] ?? 0
-    return part.itemPass && !meets(v, part.itemPass) ? 0 : v
+// Punkty pozycji: z wpisanych części (po obniżeniu), a bez nich - wpisane za całość. null - nic nie wpisane.
+export function itemValue(item: ScoreItem, points: Points): ItemValue | null {
+  const parts = item.components ?? []
+  const entered = parts.filter((c) => points[c.id] !== undefined)
+  if (entered.length === 0) {
+    const whole = points[item.id]
+    return whole === undefined ? null : { value: whole, cap: whole, halved: false }
   }
-  const got = filledItems.reduce((sum, i) => sum + counted(i), 0)
+  const rule = item.halveIf
+  const halved = !!rule && points[rule.component] !== undefined && points[rule.component] <= rule.atMost + EPS
+  const factor = halved ? 0.5 : 1
+  const sum = entered.reduce((s, c) => s + points[c.id], 0)
+  const open = parts.filter((c) => points[c.id] === undefined).reduce((s, c) => s + c.max, 0)
+  return { value: sum * factor, cap: (sum + open) * factor, halved }
+}
+
+function partResult(part: ScorePart, points: Points): PartResult {
+  const values = part.items.map((item) => ({ item, v: itemValue(item, points) }))
+  const filledItems = values.flatMap(({ item, v }) => (v ? [{ item, v }] : []))
+  const counted = (v: ItemValue) => (part.itemPass && !meets(v.value, part.itemPass) ? 0 : v.value)
+  const got = filledItems.reduce((sum, { v }) => sum + counted(v), 0)
   const max = part.items.reduce((sum, i) => sum + i.max, 0)
-  const left = max - filledItems.reduce((sum, i) => sum + i.max, 0)
+  // Brakujące pozycje w całości i to, czego brakuje w częściowo wpisanych (np. sprawozdanie po kartkówce).
+  const left =
+    max -
+    filledItems.reduce((sum, { item }) => sum + item.max, 0) +
+    filledItems.reduce((sum, { v }) => sum + v.cap - v.value, 0)
   const percent = max > 0 ? (got / max) * 100 : 0
   let pass: PartResult['pass'] = null
   if (part.pass) {
@@ -113,7 +150,7 @@ function partResult(part: ScorePart, points: Points): PartResult {
     pass = { ok: meets(now, part.pass), missing: missingTo(now, part.pass, part.percent ? 0.1 : 0.5), reachable: meets(best, part.pass) }
   }
   const items = part.itemPass
-    ? { passed: filledItems.filter((i) => meets(points[i.id], part.itemPass!)).length, need: part.itemPass.count }
+    ? { passed: filledItems.filter(({ v }) => meets(v.value, part.itemPass!)).length, need: part.itemPass.count }
     : null
   return { part, got, max, left, filled: filledItems.length, percent, pass, items }
 }
@@ -186,9 +223,9 @@ export function scoreResult(scoring: Scoring, points: Points): ScoreResult {
   return {
     parts,
     unit,
-    value: round1(value),
+    value: round2(value),
     max,
-    potential: round1(potential),
+    potential: round2(potential),
     filled,
     total,
     conditionsMet,
@@ -278,7 +315,7 @@ export function parsePoints(text: string): number | null {
 }
 
 export function formatNumber(value: number): string {
-  return round1(value).toLocaleString(locale(), { maximumFractionDigits: 1 })
+  return round2(value).toLocaleString(locale(), { maximumFractionDigits: 2 })
 }
 
 // Ocena: "4", "3,5"; średnia: "4,21".
