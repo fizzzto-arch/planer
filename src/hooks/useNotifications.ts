@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { errorMessage } from '../lib/errors'
 import type { Cloud } from '../lib/cloudTypes'
 import { parseNotification, sortNotifications, unreadCount, type PlanerNotification } from '../lib/notifications'
 
@@ -19,11 +20,15 @@ function loadSeen(uid: string | null): number {
 }
 
 // Historia powiadomień z konta (zapisuje ją serwer przypomnień) i znacznik "przeczytane"
-// (na tym urządzeniu - kropka przy dzwonku znika po otwarciu zakładki).
-export function useNotifications(client: Cloud | null, uid: string | null) {
+// (na tym urządzeniu - kropka przy dzwonku znika po otwarciu zakładki). Poza zakładką (open = false)
+// czytamy tylko nieprzeczytane - do kropki; całą listę dopiero w zakładce (każde powiadomienie to odczyt z bazy).
+export function useNotifications(client: Cloud | null, uid: string | null, open: boolean) {
   const [data, setData] = useState<{ uid: string; list: PlanerNotification[] } | null>(null)
   const [seen, setSeen] = useState<{ uid: string | null; at: number }>(() => ({ uid, at: loadSeen(uid) }))
   const [all, setAll] = useState(false) // archiwum otwarte - czytamy całą historię
+  const [error, setError] = useState<string | null>(null)
+  const seenAt = seen.uid === uid ? seen.at : loadSeen(uid)
+  const since = open ? null : seenAt
 
   useEffect(() => {
     if (!client || !uid) return
@@ -34,11 +39,11 @@ export function useNotifications(client: Cloud | null, uid: string | null) {
       () => {
         // bez historii (np. brak sieci) - zakładka pokaże pustą listę, powiadomienia działają dalej
       },
+      since,
     )
-  }, [client, uid, all])
+  }, [client, uid, all, since])
 
   const list = useMemo(() => (data && data.uid === uid ? data.list : []), [data, uid])
-  const seenAt = seen.uid === uid ? seen.at : loadSeen(uid)
 
   const markSeen = useCallback(() => {
     if (!uid) return
@@ -53,7 +58,15 @@ export function useNotifications(client: Cloud | null, uid: string | null) {
 
   const loadAll = useCallback(() => setAll(true), [])
 
-  return { list, seenAt, unread: unreadCount(list, seenAt), markSeen, loadAll, signedIn: uid !== null }
+  // Usunięcie jednego powiadomienia z historii (na wszystkich urządzeniach).
+  const remove = useCallback(
+    (id: string) => {
+      if (client && uid) client.deleteItem(uid, 'notifications', id).catch((e) => setError(errorMessage(e)))
+    },
+    [client, uid],
+  )
+
+  return { list, seenAt, unread: unreadCount(list, seenAt), markSeen, loadAll, remove, error, signedIn: uid !== null }
 }
 
 export type NotificationsApi = ReturnType<typeof useNotifications>

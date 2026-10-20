@@ -119,14 +119,24 @@ export interface Cloud {
     onError: (message: string) => void,
   ): Unsubscribe
   // Historia powiadomień: tylko najnowsze (limit) - cała z 60 dni przy każdym otwarciu to zbędne odczyty.
-  watchNotifications(uid: string, max: number, onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
+  // Historia powiadomień (najnowsze najpierw); since - tylko nowsze niż ta chwila (do kropki przy dzwonku).
+  watchNotifications(
+    uid: string,
+    max: number,
+    onDocs: (docs: CloudDoc[]) => void,
+    onError: (message: string) => void,
+    since?: number | null,
+  ): Unsubscribe
   // Zastępuje cały dokument (dokumenty są małe, zapisujemy je w całości).
   setItem(uid: string, name: CollectionName, id: string, data: Record<string, unknown>): Promise<void>
   deleteItem(uid: string, name: CollectionName, id: string): Promise<void>
   newId(): string
 
   // Wspólne materiały przedmiotów (widoczne dla wszystkich z listy dostępu).
-  watchMaterials(onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
+  // Wspólne materiały tylko z podanych przedmiotów (klucze courseKey) - nie wszystkich plików wszystkich osób.
+  watchMaterials(courseKeys: string[], onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
+  // Ile miejsca zajmują wszystkie wspólne materiały (wspólny limit) - jeden odczyt zamiast listy plików.
+  materialsUsage(): Promise<number>
   uploadMaterial(meta: NewMaterial, chunks: Uint8Array[], onProgress: (chunksDone: number) => void): Promise<void>
   downloadMaterial(id: string, chunkCount: number, onProgress: (chunksDone: number) => void): Promise<Uint8Array[]>
   deleteMaterial(id: string, chunkCount: number): Promise<void>

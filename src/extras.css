@@ -3237,6 +3237,41 @@ button.link-like {
   align-items: baseline;
 }
 
+.notification-head strong {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Usunięcie jednego powiadomienia - mały krzyżyk przy godzinie (palcem łatwo trafić: 32 px). */
+.notification-remove {
+  flex: none;
+  align-self: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -8px -6px -4px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.notification-remove:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.notification-remove svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .notification-text p {
   margin: 2px 0 0;
   white-space: pre-wrap;

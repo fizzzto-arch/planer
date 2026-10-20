@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function CoursesView({ meetings, now }: Props) {
-  const { extras, editDeadline, prefs, notesOn, setHiddenClasses, displayName } = usePlanUi()
+  const { extras, editDeadline, prefs, notesOn, setHiddenClasses, displayName, openProgram } = usePlanUi()
   // Zaliczenie z programu studiów (na razie tylko Inżynieria Biomedyczna) - gdy plan do niego pasuje.
   const assessments = useMemo(() => programAssessments(meetings, now), [meetings, now])
   const [filter, setFilter] = useState<KindFilter>('all')
@@ -60,6 +60,23 @@ export function CoursesView({ meetings, now }: Props) {
       {/* Najpierw obecne przedmioty - po to zwykle wchodzi się do tej zakładki. */}
       <h2 className="day-title">{t('Przedmioty')}</h2>
       {rows(current)}
+      {/* Program studiów (na razie Inżynieria Biomedyczna) - gdy plan do niego pasuje. */}
+      {assessments && (
+        <button type="button" className="panel help-entry program-entry" onClick={() => openProgram()}>
+          <span className="help-entry-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z" />
+            </svg>
+          </span>
+          <span className="help-entry-text">
+            <strong>{t('Program studiów')}</strong>
+            <span>{t('Wszystkie semestry i przedmioty Twojego kierunku, z sylabusami, ocenami i średnią')}</span>
+          </span>
+          <svg className="course-row-chevron" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </button>
+      )}
 
       <div className="section-head">
         <h2 className="day-title secondary">{t('Nadchodzące terminy')}</h2>

@@ -1,5 +1,5 @@
 import { t } from '../lib/i18n'
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { usePlanUi } from '../hooks/planUi'
 import { useLocalFiles } from '../hooks/useLocalFiles'
 import { courseKey, isSafeUrl, type CourseLink } from '../lib/extras'
@@ -160,6 +160,9 @@ type WithMaterials = Props & { materials: SharedMaterialsApi }
 // Pliki wspólne dla wszystkich z listy dostępu, którzy mają ten przedmiot.
 function SharedFiles({ courseName, materials }: WithMaterials) {
   const key = courseKey(courseName)
+  // Zajęte miejsce (wspólny limit) - pobierane dopiero tutaj, nie przy każdym starcie Planera.
+  const { loadUsage } = materials
+  useEffect(() => loadUsage(), [loadUsage])
   const files = materials.forCourse(key)
   const uploading = materials.uploading?.courseKey === key ? materials.uploading : null
   const input = useRef<HTMLInputElement>(null)
@@ -267,9 +270,11 @@ function SharedFiles({ courseName, materials }: WithMaterials) {
         >
           {t('+ Wgraj plik (PDF)')}
         </button>
-        <span className="muted small">
-          {t('Zajęte {used} z {total}', { used: formatSize(materials.usedBytes), total: formatSize(QUOTA_BYTES) })}
-        </span>
+        {materials.usedBytes !== null && (
+          <span className="muted small">
+            {t('Zajęte {used} z {total}', { used: formatSize(materials.usedBytes), total: formatSize(QUOTA_BYTES) })}
+          </span>
+        )}
       </div>
       {materials.error && (
         <p className="error" role="alert">

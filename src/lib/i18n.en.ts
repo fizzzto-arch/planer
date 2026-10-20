@@ -1400,4 +1400,6 @@ export const EN: Record<string, string> = {
   'Wspólne terminy: pokaż kolokwium innym z przedmiotu, a od innych dostaniesz propozycję „Dodaj u siebie” - także gdy termin się przesunie.': 'Shared deadlines: show a test to others in the course, and get “Add to mine” suggestions from others - also when a date moves.',
   'Laboratorium elektrotechniki: kartkówka, praca domowa i sprawozdanie osobno - Planer sam liczy połowę za słabą kartkówkę.': 'Electrical engineering lab: quiz, homework and report separately - Planer halves the exercise for a weak quiz by itself.',
   'Dla nowych osób: prawdziwy numer tygodnia od pierwszego dnia i „Pierwsze kroki” także bez konta.': 'For newcomers: the right week number from day one and “First steps” also without an account.',
+  // Powiadomienia: usuwanie jednego
+  'Usuń powiadomienie „{title}”': 'Delete notification “{title}”',
 }

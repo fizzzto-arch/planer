@@ -13,10 +13,12 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getAggregateFromServer,
   getDocs,
   query,
   serverTimestamp,
   setDoc,
+  sum,
   updateDoc,
   where,
   type Firestore,
@@ -212,6 +214,14 @@ describe('wspólne materiały (materials)', () => {
     await assertSucceeds(getDoc(doc(as(BOB), 'materials', 'm1', 'chunks', '0000')))
     await assertFails(getDoc(doc(as(PENDING), 'materials', 'm1')))
     await assertFails(getDoc(doc(anon(), 'materials', 'm1')))
+  })
+
+  it('lista tylko z moich przedmiotów i suma zajętego miejsca - z dostępem tak, bez dostępu nie', async () => {
+    const mine = (db: Firestore) => query(collection(db, 'materials'), where('courseKey', 'in', ['Fizyka', 'Analiza']))
+    await assertSucceeds(getDocs(mine(as(BOB))))
+    await assertFails(getDocs(mine(as(PENDING))))
+    await assertSucceeds(getAggregateFromServer(collection(as(BOB), 'materials'), { total: sum('size') }))
+    await assertFails(getAggregateFromServer(collection(as(PENDING), 'materials'), { total: sum('size') }))
   })
 
   it('wgrywa się tylko jako autor, z limitem rozmiaru', async () => {

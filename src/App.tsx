@@ -168,8 +168,9 @@ function tabs(
   settingsAlert: boolean,
   unread: number,
   newReports: number,
+  showTesters: boolean,
 ): { id: View; label: string; icon?: ReactNode }[] {
-  return [
+  const all: { id: View; label: string; icon?: ReactNode }[] = [
     { id: 'today', label: t('Dziś') },
     { id: 'week', label: t('Tydzień') },
     { id: 'courses', label: t('Przedmioty') },
@@ -189,6 +190,7 @@ function tabs(
       icon: <GearIcon alert={settingsAlert} />,
     },
   ]
+  return showTesters ? all : all.filter((tab) => tab.id !== 'report')
 }
 
 function SyncStatus({ plan, now, extrasError }: { plan: PlanApi; now: Date; extrasError: string | null }) {
@@ -290,13 +292,16 @@ function App() {
   const [viewAsUser, setViewAsUser] = useState(loadViewAsUser)
   const adminView = cloud.isAdmin && !viewAsUser
   const canOptimize = adminView || (!cloud.isAdmin && cloud.optimizerAccess)
+  // Zakładka "Dla testerów" - tylko administrator i osoby z wersjami testowymi (optymalizator). Pozostali
+  // mają zgłoszenia w Ustawieniach i w Pomocy, a program studiów w Przedmiotach - pasek jest krótszy.
+  const showTesters = canOptimize
+  const viewOrder = showTesters ? VIEW_ORDER : VIEW_ORDER.filter((v) => v !== 'report')
   const switchView = useCallback((asUser: boolean) => {
     setViewAsUser(asUser)
     saveViewAsUser(asUser)
     window.scrollTo({ top: 0 })
   }, [])
   const admin = useAccessRequests(adminView ? cloud.adminClient : null)
-  const notifications = useNotifications(cloud.client, cloud.uid)
   const feedback = useFeedback(
     cloud.access === 'approved' ? cloud.client : null,
     cloud.uid,
@@ -310,10 +315,17 @@ function App() {
     setErrorSender(canReport ? (report) => submitFeedback(report, [], () => {}) : null)
     return () => setErrorSender(null)
   }, [canReport, submitFeedback])
+  // Wspólne pliki tylko z przedmiotów z mojego planu (także własnych zajęć) - nie wszystkich osób.
+  const customMeetings = extrasApi?.extras.customMeetings
+  const materialCourseKeys = useMemo(
+    () => [...plan.meetings.map((m) => m.courseName), ...(customMeetings ?? []).map((c) => c.courseName)].map(courseKey),
+    [plan.meetings, customMeetings],
+  )
   const materials = useSharedMaterials(
     cloud.client,
     cloud.uid,
     cloud.state.kind === 'signedIn' ? cloud.state.user.email : null,
+    materialCourseKeys,
   )
   const ownFiles = useOwnFiles(cloud.client, cloud.uid)
   const prefsApi = usePrefs(extrasApi)
@@ -342,6 +354,8 @@ function App() {
   const languageKey = needsEnglish ? 'pl' : prefs.language
   const now = useNow()
   const [view, setView] = useState<View>(() => prefs.startView)
+  // Poza zakładką powiadomień - tylko nieprzeczytane (do kropki przy dzwonku).
+  const notifications = useNotifications(cloud.client, cloud.uid, view === 'notifications')
   const [page, setPage] = useState<Page>(readPageFromHistory)
   // Jak wchodzi nowy widok: 'rise' - z dołu, 'left'/'right' - z tej strony, w którą przesuwamy zakładki,
   // 'none' - po geście "wstecz" plan już widać.
@@ -594,12 +608,12 @@ function App() {
       closeSearchNow() // inna zakładka - pasek wyszukiwania się chowa
       if (next === view && !page) return
       if (page) closePage()
-      const step = VIEW_ORDER.indexOf(next) - VIEW_ORDER.indexOf(view)
+      const step = viewOrder.indexOf(next) - viewOrder.indexOf(view)
       setEnter(step > 0 ? 'right' : step < 0 ? 'left' : 'rise')
       if (next !== view) setSelectedWeek(null)
       setView(next)
     },
-    [view, page, closePage, closeSearchNow],
+    [view, page, closePage, closeSearchNow, viewOrder],
   )
 
   // Wybrany wynik wyszukiwania.
@@ -624,14 +638,14 @@ function App() {
         case 'help':
           return openHelp()
         case 'feedback':
-          return changeView('report')
+          return showTesters ? changeView('report') : openFeedback()
         case 'addDeadline':
           return setDeadlineDraft({})
         case 'addMeeting':
           return setCustomDraft({})
       }
     },
-    [openCourse, changeView, openProgram, openExport, openOptimizer, openHelp],
+    [openCourse, changeView, openProgram, openExport, openOptimizer, openHelp, openFeedback, showTesters],
   )
 
   // Gest "wstecz": przesunięcie w prawo na podstronie. Aplikacja z ekranu początkowego nie ma paska Safari,
@@ -672,7 +686,7 @@ function App() {
 
   // Na planie przesunięcie w bok zmienia zakładkę: widok jedzie za palcem, a razem z nim niebieski suwak.
   const tabsControl = useRef<TabsControl>(null)
-  const neighbourView = (dx: number) => VIEW_ORDER[VIEW_ORDER.indexOf(view) + (dx < 0 ? 1 : -1)]
+  const neighbourView = (dx: number) => viewOrder[viewOrder.indexOf(view) + (dx < 0 ? 1 : -1)]
 
   const tabSwipe: SwipeHandlers = {
     onMove: (dx) => {
@@ -942,7 +956,7 @@ function App() {
           onClear={() => prefsApi.update({ notificationsClearedAt: Date.now() }, true)}
         />
       )}
-      {view === 'report' && (
+      {view === 'report' && showTesters && (
         <TestersView meetings={meetings} now={now} feedback={cloud.uid ? feedback : null} admin={adminView} />
       )}
       {view === 'settings' && (
@@ -1012,7 +1026,7 @@ function App() {
               </div>
             </div>
             <Tabs
-              tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount)}
+              tabs={tabs((admin?.pendingCount ?? 0) > 0, notifications.unread, feedback.newCount, showTesters)}
               value={view}
               onChange={changeView}
               controlRef={tabsControl}

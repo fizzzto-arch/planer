@@ -303,12 +303,12 @@ function createMockCloud(): Cloud {
     },
     saveIcalUrl: async () => {},
 
-    watchNotifications(_uid, max, onDocs) {
+    watchNotifications(_uid, max, onDocs, _onError, since) {
       const listeners = collectionListeners.get('notifications') ?? new Set()
       collectionListeners.set('notifications', listeners)
       const emit = (docs: CloudDoc[]) => {
         const created = (d: CloudDoc) => (typeof d.data.createdAt === 'number' ? d.data.createdAt : 0)
-        onDocs([...docs].sort((a, b) => created(b) - created(a)).slice(0, max))
+        onDocs([...docs].filter((d) => !since || created(d) > since).sort((a, b) => created(b) - created(a)).slice(0, max))
       }
       listeners.add(emit)
       setTimeout(() => emit(docsOf('notifications')), 0)
@@ -334,10 +334,14 @@ function createMockCloud(): Cloud {
     newId: () => Math.random().toString(36).slice(2, 12),
 
     // Wspólne materiały - tylko w pamięci karty (pliki są za duże na localStorage).
-    watchMaterials(onDocs) {
-      materialListeners.add(onDocs)
-      setTimeout(() => onDocs(materialDocs()), 0)
-      return () => materialListeners.delete(onDocs)
+    watchMaterials(courseKeys, onDocs) {
+      const mine = (docs: CloudDoc[]) => onDocs(docs.filter((d) => courseKeys.includes(String(d.data.courseKey))))
+      materialListeners.add(mine)
+      setTimeout(() => mine(materialDocs()), 0)
+      return () => materialListeners.delete(mine)
+    },
+    async materialsUsage() {
+      return [...materials.values()].reduce((total, m) => total + Number(m.data.size ?? 0), 0)
     },
     async uploadMaterial(meta, chunks, onProgress) {
       const id = Math.random().toString(36).slice(2, 12)

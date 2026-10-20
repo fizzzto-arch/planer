@@ -44,7 +44,7 @@ const clock = (ms: number) => new Date(ms).toLocaleTimeString(locale(), { hour: 
 // Historia powiadomień: to samo, co przyszło na telefon, także gdy zniknęło z ekranu blokady.
 export function NotificationsView({ notifications, now, clearedAt, onClear }: Props) {
   const { openSettings } = usePlanUi()
-  const { list, seenAt, markSeen, loadAll, signedIn } = notifications
+  const { list, seenAt, markSeen, loadAll, remove, signedIn } = notifications
   // Co było nowe w chwili otwarcia - podświetlenie zostaje do wyjścia z zakładki.
   const [newSince] = useState(seenAt)
   useEffect(() => {
@@ -74,7 +74,7 @@ export function NotificationsView({ notifications, now, clearedAt, onClear }: Pr
         <h3 className="notification-day">{g.label}</h3>
         <ul className="notification-list">
           {g.items.map((n) => (
-            <NotificationItem key={n.id} item={n} isNew={(n.createdAt ?? Infinity) > newSince} />
+            <NotificationItem key={n.id} item={n} isNew={(n.createdAt ?? Infinity) > newSince} onRemove={() => remove(n.id)} />
           ))}
         </ul>
       </div>
@@ -124,7 +124,7 @@ export function NotificationsView({ notifications, now, clearedAt, onClear }: Pr
   )
 }
 
-function NotificationItem({ item, isNew }: { item: PlanerNotification; isNew: boolean }) {
+function NotificationItem({ item, isNew, onRemove }: { item: PlanerNotification; isNew: boolean; onRemove: () => void }) {
   const kind = KIND()[item.kind]
   // Pełna lista, gdy powiadomienie jej nie mieściło (np. 5 zmian w planie, w powiadomieniu 3).
   const lines = item.details.length > 0 ? item.details : item.body.split('\n')
@@ -135,6 +135,18 @@ function NotificationItem({ item, isNew }: { item: PlanerNotification; isNew: bo
         <div className="notification-head">
           <strong>{item.title}</strong>
           <span className="muted small">{item.createdAt ? clock(item.createdAt) : ''}</span>
+          {/* Jedno powiadomienie mniej (na wszystkich urządzeniach) - bez pytania, to tylko historia. */}
+          <button
+            type="button"
+            className="notification-remove"
+            aria-label={t('Usuń powiadomienie „{title}”', { title: item.title })}
+            title={t('Usuń')}
+            onClick={onRemove}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 7l10 10M17 7 7 17" />
+            </svg>
+          </button>
         </div>
         {lines.length > 1 ? (
           <ul className="notification-lines">

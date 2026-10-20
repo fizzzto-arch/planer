@@ -20,8 +20,9 @@ export interface UploadProgress {
   total: number
 }
 
-// Wspólne materiały przedmiotów - dostępne dla wszystkich zalogowanych z listy dostępu.
-export function useSharedMaterials(client: Cloud | null, uid: string | null, email: string | null) {
+// Wspólne materiały przedmiotów - dostępne dla wszystkich zalogowanych z listy dostępu. Pobieramy tylko listę
+// plików z moich przedmiotów (courseKeys), a zajęte miejsce (wspólny limit) - osobno, przy wejściu i przy wysyłaniu.
+export function useSharedMaterials(client: Cloud | null, uid: string | null, email: string | null, courseKeys: string[]) {
   const [raw, setRaw] = useState<{ uid: string; docs: CloudDoc[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
@@ -29,11 +30,15 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
   const [downloading, setDownloading] = useState<Record<string, number>>({}) // id -> postęp 0..1
   const [urls, setUrls] = useState<Record<string, string>>({}) // id -> adres pobranego pliku
   const blobs = useRef(new Map<string, Blob>())
+  const [usage, setUsage] = useState<number | null>(null) // zajęte miejsce wszystkich wspólnych plików
+  // Stały napis z kluczy - nasłuch zmienia się tylko, gdy zmieni się lista przedmiotów.
+  const keys = [...new Set(courseKeys)].sort().join('|')
 
   useEffect(() => {
     if (!client || !uid) return
     let retryTimer: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = client.watchMaterials(
+      keys ? keys.split('|') : [],
       (docs) => {
         setRaw({ uid, docs })
         setError(null)
@@ -47,13 +52,21 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
       clearTimeout(retryTimer)
       unsubscribe()
     }
-  }, [client, uid, retry])
+  }, [client, uid, retry, keys])
 
   const all = useMemo(
     () => (raw && raw.uid === uid ? raw.docs.flatMap((d) => parseMaterial(d.id, d.data) ?? []) : []),
     [raw, uid],
   )
-  const usedBytes = useMemo(() => all.reduce((sum, m) => sum + m.size, 0), [all])
+
+  // Zajęte miejsce - raz przy pierwszym wejściu do materiałów (później poprawiane przy wysyłaniu i usuwaniu).
+  const loadUsage = useCallback(() => {
+    if (!client || usage !== null) return
+    client
+      .materialsUsage()
+      .then(setUsage)
+      .catch(() => undefined)
+  }, [client, usage])
 
   // Niedokończone wysyłanie widzi tylko jego autor (żeby mógł je usunąć).
   const forCourse = useCallback(
@@ -67,7 +80,10 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
   const upload = useCallback(
     async (courseKey: string, courseName: string, file: File): Promise<boolean> => {
       if (!client || !uid) return false
-      const problem = checkUpload(file.size, usedBytes)
+      // Limit jest wspólny - sprawdzamy aktualny stan tuż przed wysłaniem.
+      const used = await client.materialsUsage().catch(() => usage ?? 0)
+      setUsage(used)
+      const problem = checkUpload(file.size, used)
       if (problem) {
         setError(problem)
         return false
@@ -89,6 +105,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
           chunks,
           (done) => setUploading((u) => u && { ...u, done }),
         )
+        setUsage((u) => (u ?? used) + file.size)
         return true
       } catch (e) {
         setError(t('Nie udało się wysłać „{name}”: {error}', { name: file.name, error: errorMessage(e) }))
@@ -97,7 +114,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
         setUploading(null)
       }
     },
-    [client, uid, email, usedBytes],
+    [client, uid, email, usage],
   )
 
   // Pobiera plik i zwraca jego adres; kolejne otwarcia korzystają z pobranej kopii.
@@ -151,6 +168,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
       if (!client) return
       try {
         await client.deleteMaterial(meta.id, meta.chunkCount)
+        setUsage((u) => (u === null ? null : Math.max(0, u - meta.size)))
         const url = urls[meta.id]
         if (url) URL.revokeObjectURL(url)
         blobs.current.delete(meta.id)
@@ -163,7 +181,7 @@ export function useSharedMaterials(client: Cloud | null, uid: string | null, ema
 
   if (!client || !uid) return null
 
-  return { forCourse, usedBytes, uploading, downloading, urls, error, uid, upload, open, share, remove }
+  return { forCourse, usedBytes: usage, loadUsage, uploading, downloading, urls, error, uid, upload, open, share, remove }
 }
 
 export type SharedMaterialsApi = NonNullable<ReturnType<typeof useSharedMaterials>>

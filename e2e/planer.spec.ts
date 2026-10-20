@@ -960,6 +960,36 @@ test('powiadomienia: Wyczyść przenosi do archiwum', async ({ page }) => {
   await expect(page.locator('.notification-archive').getByText('Kolokwium z Fizyki za tydzień')).toBeVisible()
 })
 
+test('powiadomienia: usunięcie jednego - reszta zostaje, także po ponownym otwarciu', async ({ page }) => {
+  await page.evaluate(() => {
+    const store = JSON.parse(localStorage.getItem('planer.mock-cloud') ?? '{}')
+    store.notifications = {
+      n1: { kind: 'deadline', title: 'Kolokwium z Fizyki za tydzień', body: 'Fizyka · wt. 20.10', details: [], createdAt: Date.now() - 3_600_000 },
+      n2: { kind: 'day', title: 'Plan na dziś', body: '3 zajęcia', details: [], createdAt: Date.now() - 7_200_000 },
+    }
+    localStorage.setItem('planer.mock-cloud', JSON.stringify(store))
+  })
+  await page.reload()
+  await page.getByRole('button', { name: /^Powiadomienia/ }).click()
+  await page.getByRole('button', { name: 'Usuń powiadomienie „Kolokwium z Fizyki za tydzień”' }).click()
+  await expect(page.getByText('Kolokwium z Fizyki za tydzień')).toHaveCount(0)
+  await expect(page.getByText('Plan na dziś')).toBeVisible()
+  await page.reload()
+  await page.getByRole('button', { name: /^Powiadomienia/ }).click()
+  await expect(page.getByText('Plan na dziś')).toBeVisible()
+  await expect(page.getByText('Kolokwium z Fizyki za tydzień')).toHaveCount(0)
+})
+
+test('zwykła osoba: bez zakładki „Dla testerów”, program studiów w Przedmiotach, zgłoszenie z wyszukiwania', async ({ page }) => {
+  await seedIbPlan(page)
+  await tab(page, 'Ustawienia').click()
+  await page.getByRole('button', { name: 'Zobacz Planera jako zwykły użytkownik' }).click()
+  await expect(tab(page, 'Dla testerów')).toHaveCount(0)
+  await tab(page, 'Przedmioty').click()
+  await page.getByRole('button', { name: /Program studiów/ }).click()
+  await expect(page.getByText(/Semestr \d z \d/)).toBeVisible()
+})
+
 test('skróty z kodów przedmiotów w USOS: w siatce na telefonie i jako podpowiedź w ustawieniach', async ({ page }, info) => {
   // PW kończy kod przedmiotu jego skrótem (103B-IBxxx-ISP-LAEL).
   const codes: Record<string, string> = { 'U-an-w': '103A-IBxxx-ISP-ANMAT', 'U-an-c': '103A-IBxxx-ISP-ANMAT', 'U-graf': '103A-IBxxx-ISP-GRK' }

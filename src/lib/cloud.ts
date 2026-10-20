@@ -30,6 +30,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getAggregateFromServer,
   getFirestore,
   limit,
   initializeFirestore,
@@ -40,6 +41,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  sum,
   updateDoc,
   where,
   writeBatch,
@@ -344,9 +346,11 @@ function createCloud(config: FirebaseOptions): Cloud {
       )
     },
 
-    watchNotifications(uid, max, onDocs, onError) {
+    watchNotifications(uid, max, onDocs, onError, since) {
+      const all = collection(db, 'users', uid, 'notifications')
+      const newer = since ? [where('createdAt', '>', new Date(since))] : []
       return onSnapshot(
-        query(collection(db, 'users', uid, 'notifications'), orderBy('createdAt', 'desc'), limit(max)),
+        query(all, ...newer, orderBy('createdAt', 'desc'), limit(max)),
         (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
         (e) => onError(describeError(e)),
       )
@@ -358,12 +362,35 @@ function createCloud(config: FirebaseOptions): Cloud {
 
     newId: () => doc(collection(db, '_')).id,
 
-    watchMaterials(onDocs, onError) {
-      return onSnapshot(
-        collection(db, 'materials'),
-        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
-        (e) => onError(describeError(e)),
+    // Firestore: "in" przyjmuje najwyżej 30 wartości - przy większej liczbie przedmiotów kilka zapytań.
+    watchMaterials(courseKeys, onDocs, onError) {
+      const chunks: string[][] = []
+      for (let i = 0; i < courseKeys.length; i += 30) chunks.push(courseKeys.slice(i, i + 30))
+      if (chunks.length === 0) {
+        onDocs([])
+        return () => {}
+      }
+      const results = chunks.map((): { id: string; data: Record<string, unknown> }[] | null => null)
+      const unsubscribers = chunks.map((chunk, i) =>
+        onSnapshot(
+          query(collection(db, 'materials'), where('courseKey', 'in', chunk)),
+          (snap) => {
+            results[i] = snap.docs.map((d) => ({ id: d.id, data: d.data() }))
+            if (results.every((r) => r !== null)) onDocs(results.flatMap((r) => r ?? []))
+          },
+          (e) => onError(describeError(e)),
+        ),
       )
+      return () => unsubscribers.forEach((u) => u())
+    },
+
+    async materialsUsage() {
+      try {
+        const snap = await getAggregateFromServer(collection(db, 'materials'), { total: sum('size') })
+        return snap.data().total ?? 0
+      } catch (e) {
+        throw new Error(describeError(e))
+      }
     },
 
     // Kolejność ma znaczenie dla reguł: najpierw metadane (właściciel), potem kawałki,
