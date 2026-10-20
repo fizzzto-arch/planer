@@ -2,7 +2,7 @@
 // Nowa wersja = nowy wpis na początku listy i RELEASE - wtedy karta pokaże się każdemu jeden raz.
 import { msg } from './i18n'
 
-export const RELEASE = '1.0'
+export const RELEASE = '1.1'
 
 export interface Release {
   version: string
@@ -11,6 +11,15 @@ export interface Release {
 }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '1.1',
+    date: '2026-10-20',
+    items: [
+      msg('Wspólne terminy: pokaż kolokwium innym z przedmiotu, a od innych dostaniesz propozycję „Dodaj u siebie” - także gdy termin się przesunie.'),
+      msg('Laboratorium elektrotechniki: kartkówka, praca domowa i sprawozdanie osobno - Planer sam liczy połowę za słabą kartkówkę.'),
+      msg('Dla nowych osób: prawdziwy numer tygodnia od pierwszego dnia i „Pierwsze kroki” także bez konta.'),
+    ],
+  },
   {
     version: '1.0',
     date: '2026-10-19',

@@ -4,6 +4,7 @@ import type { NewMaterial } from './materials'
 import type { NewOwnFile } from './ownFiles'
 import type { PersonInfo } from './usosPeople'
 import type { Visits } from './visits'
+import type { SharedDeadlineData } from './sharedDeadlines'
 
 export interface CloudUser {
   uid: string
@@ -93,6 +94,10 @@ export interface Cloud {
   setOptimizerAccess(uid: string, on: boolean): Promise<void>
   // Kopia odhaczonych zadań testera w jego prośbie o dostęp (widzi ją administrator).
   saveTesterProgress(uid: string, done: string[]): Promise<void>
+  // Wspólne terminy (sharedDeadlines/{id terminu}): nadchodzące od dnia from; pokazać i cofnąć - tylko własne.
+  watchSharedDeadlines(from: string, onDocs: (docs: CloudDoc[]) => void, onError: (message: string) => void): Unsubscribe
+  shareDeadline(id: string, data: SharedDeadlineData): Promise<void>
+  unshareDeadline(id: string): Promise<void>
   // Licznik otwarć: +1 w dniu day, dni sprzed tygodnia (stale) usunięte.
   recordVisit(uid: string, day: string, stale: string[]): Promise<void>
   // Wspólne okienka: udostępnione godziny zajęć (sharedBusy/{uid}) - widzą je tylko udostępniający.

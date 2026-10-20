@@ -6,9 +6,11 @@ test.describe('po aktualizacji', () => {
 
   test('karta „Co nowego” raz po aktualizacji, potem lista w Ustawieniach', async ({ page, errors }) => {
     void errors
+    // Przeładowanie i kilka ekranów - na iPhonie (WebKit) przy pełnym obciążeniu bywa dłuższe niż zwykły limit.
+    test.slow()
     await page.goto('/?mock')
     const card = page.locator('.whats-new')
-    await expect(card.getByRole('heading', { name: 'Nowość: Planer 1.0' })).toBeVisible()
+    await expect(card.getByRole('heading', { name: 'Nowość: Planer 1.1' })).toBeVisible()
     await expect(card.locator('li')).toHaveCount(3)
     await card.getByRole('button', { name: 'OK' }).click()
     await expect(card).toHaveCount(0)
@@ -19,11 +21,12 @@ test.describe('po aktualizacji', () => {
     await expect(page.locator('.whats-new')).toHaveCount(0)
 
     await tab(page, 'Ustawienia').click()
-    await expect(page.getByText(/Planer 1\.0 · wersja/)).toBeVisible()
+    await expect(page.getByText(/Planer 1\.1 · wersja/)).toBeVisible()
     await page.getByRole('button', { name: /^Co nowego/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Co nowego w Planerze' })
+    await expect(dialog.getByRole('heading', { name: /Wersja 1\.1/ })).toBeVisible()
     await expect(dialog.getByRole('heading', { name: /Wersja 1\.0/ })).toBeVisible()
-    await expect(dialog.locator('li')).toHaveCount(8)
+    await expect(dialog.locator('li')).toHaveCount(11)
     await dialog.locator('.dialog-actions').getByRole('button', { name: 'Zamknij' }).click()
     await expect(dialog).toBeHidden()
   })

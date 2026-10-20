@@ -39,6 +39,7 @@ export interface Deadline {
   note: string
   done: boolean
   checklist?: ChecklistItem[] // "do przygotowania" (np. rozdziały na kolokwium)
+  fromShared?: string // dodany z propozycji "od innych z roku" (id wspólnego terminu)
 }
 
 export interface ChecklistItem {
@@ -153,6 +154,7 @@ export function parseDeadline(id: string, raw: Raw): Deadline | null {
     note: str(raw.note),
     done: raw.done === true,
     checklist: parseChecklist(raw.checklist),
+    ...(typeof raw.fromShared === 'string' && raw.fromShared ? { fromShared: raw.fromShared } : {}),
   }
 }
 

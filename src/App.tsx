@@ -26,6 +26,9 @@ import { MeetingEditor } from './components/MeetingEditor'
 import { SwipeDebugOverlay } from './components/SwipeDebugOverlay'
 import { UpdateBanner } from './components/UpdateBanner'
 import { WhatsNewCard } from './components/WhatsNew'
+import { useSharedDeadlines } from './hooks/useSharedDeadlines'
+import { sharedSuggestions as findSuggestions, withDismissed, type Suggestion } from './lib/sharedDeadlines'
+import { uploaderNameFromEmail } from './lib/materials'
 import { SourceForm } from './components/SourceForm'
 import { Tabs, type TabsControl } from './components/Tabs'
 import { TodayView } from './components/TodayView'
@@ -61,7 +64,7 @@ import { SearchBar, SearchIcon } from './components/SearchBar'
 import type { SearchKeys } from './components/SearchPanel'
 import { applyEdits, customMeetingId, weekdayOf, type PlanMeeting } from './lib/edits'
 import { weekNumbers } from './lib/classDates'
-import { seriesKey } from './lib/extras'
+import { courseKey, seriesKey } from './lib/extras'
 import { EMPTY_EXTRAS, notesEnabled, type Deadline } from './lib/extras'
 import { withLanguageClasses, type Meeting } from './lib/usos'
 import { englishReady, loadEnglish, locale, setLanguage, t } from './lib/i18n'
@@ -315,6 +318,12 @@ function App() {
   const ownFiles = useOwnFiles(cloud.client, cloud.uid)
   const prefsApi = usePrefs(extrasApi)
   const { prefs } = prefsApi
+  // Wspólne terminy - podpis jak we "Wspólnych okienkach", bez niego początek e-maila.
+  const sharedDeadlines = useSharedDeadlines(
+    cloud.client,
+    cloud.uid,
+    prefs.shareName.trim() || uploaderNameFromEmail(cloud.state.kind === 'signedIn' ? cloud.state.user.email : null),
+  )
   // Język przed narysowaniem czegokolwiek - teksty (t()) czytają go w trakcie renderowania.
   setLanguage(prefs.language)
   // Angielski wybrany w trakcie (albo z konta na nowym urządzeniu): słownik dociągamy i rysujemy od nowa.
@@ -419,6 +428,38 @@ function App() {
     const { prefs: current, update } = prefsNow.current
     if (current.firstSteps.done.includes(id)) return
     update({ firstSteps: { ...current.firstSteps, done: [...current.firstSteps.done, id] } }, true)
+  }, [])
+
+  // Wspólne terminy "od innych z roku" z moich przedmiotów (także przesunięte, które już mam).
+  const today = toDateKey(now)
+  const suggestions = useMemo(
+    () =>
+      sharedDeadlines && extrasApi
+        ? findSuggestions(sharedDeadlines.list, {
+            courseKeys: new Set(meetings.map((m) => courseKey(m.courseName))),
+            own: extras.deadlines,
+            uid: sharedDeadlines.uid,
+            dismissed: prefs.dismissedShared,
+            today,
+          })
+        : [],
+    [sharedDeadlines, extrasApi, meetings, extras.deadlines, prefs.dismissedShared, today],
+  )
+  const saveDeadline = extrasApi?.saveDeadline
+  const adoptShared = useCallback(
+    (s: Suggestion) => {
+      if (!saveDeadline) return
+      if (s.kind === 'changed') saveDeadline({ ...s.own, date: s.shared.date, time: s.shared.time })
+      else {
+        const { courseName, kind, title, date, time, id } = s.shared
+        saveDeadline({ courseName, kind, title, date, time, note: '', done: false, checklist: [], fromShared: id })
+      }
+    },
+    [saveDeadline],
+  )
+  const dismissShared = useCallback((key: string) => {
+    const { prefs: current, update } = prefsNow.current
+    update({ dismissedShared: withDismissed(current.dismissedShared, key) }, true)
   }, [])
 
   const openCourse = useCallback((name: string) => {
@@ -749,6 +790,9 @@ function App() {
       autoShort: (name: string) => courseShorts.get(name) ?? suggestAlias(name),
       setHiddenClasses: (hiddenClasses: HiddenClass[]) => prefsApi.update({ hiddenClasses }, true),
       openSearch: () => openSearch(true),
+      sharedSuggestions: suggestions,
+      adoptShared,
+      dismissShared,
       skipFirstStep: markFirstStep,
       hideFirstSteps: () => prefsApi.update({ firstSteps: { ...prefs.firstSteps, hidden: true } }, true),
     }),
@@ -777,6 +821,9 @@ function App() {
       prefsApi,
       openSearch,
       markFirstStep,
+      suggestions,
+      adoptShared,
+      dismissShared,
       notesOn,
       courseShorts,
     ],
@@ -1033,8 +1080,21 @@ function App() {
           <DeadlineEditor
             draft={deadlineDraft}
             courseNames={courseNames}
-            onSave={extrasApi.saveDeadline}
-            onDelete={extrasApi.deleteDeadline}
+            sharing={
+              sharedDeadlines && {
+                name: sharedDeadlines.name,
+                shared: !!deadlineDraft.id && sharedDeadlines.isMine(deadlineDraft.id),
+                byOther: sharedDeadlines.byOther,
+              }
+            }
+            onSave={(deadline, share) => {
+              const id = extrasApi.saveDeadline(deadline)
+              if (id) sharedDeadlines?.setShared({ ...deadline, id }, share)
+            }}
+            onDelete={(id) => {
+              extrasApi.deleteDeadline(id)
+              sharedDeadlines?.unshare(id)
+            }}
             onClose={() => setDeadlineDraft(null)}
           />
         )}

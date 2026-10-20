@@ -5,6 +5,7 @@
 import type { AccessRequest, AccessStatus, Cloud, CloudDoc, CloudUser, CollectionName } from './cloudTypes'
 import type { PersonInfo } from './usosPeople'
 import { addDays, toDateKey } from './dates'
+import { courseKey } from './extras'
 import { isUniversityEmail } from './firebaseConfig'
 
 const STORAGE_KEY = 'planer.mock-cloud'
@@ -93,6 +94,24 @@ function createMockCloud(): Cloud {
     ],
   ])
   const accessListeners = new Set<() => void>()
+  // Wspólne terminy - przykładowy od Ali: kolokwium z analizy za dwa tygodnie (do propozycji "dodaj u siebie").
+  const sharedDeadlines = new Map<string, Record<string, unknown>>([
+    [
+      'shared-ala-1',
+      {
+        courseKey: courseKey('Analiza matematyczna'),
+        courseName: 'Analiza matematyczna',
+        kind: 'kolokwium',
+        title: 'Kolokwium 1',
+        date: day(-14),
+        time: '10:15',
+        sharedBy: 'u-ala',
+        sharedByName: 'ala',
+      },
+    ],
+  ])
+  const sharedListeners = new Set<() => void>()
+  const emitShared = () => setTimeout(() => sharedListeners.forEach((cb) => cb()), 0)
   const feedbackStore = new Map<string, { data: Record<string, unknown>; files: Uint8Array[] }>()
   const feedbackListeners = new Set<() => void>()
   const emitFeedback = () => setTimeout(() => feedbackListeners.forEach((cb) => cb()), 0)
@@ -243,6 +262,21 @@ function createMockCloud(): Cloud {
         for (const id of ids) peopleStore.set(id, { title: 'dr inż.', position: 'adiunkt', unit: 'Wydział testowy' })
         peopleListeners.forEach((cb) => cb())
       }, 300)
+    },
+    watchSharedDeadlines(from, onDocs) {
+      const emitOwn = () =>
+        onDocs([...sharedDeadlines.entries()].filter(([, d]) => String(d.date) >= from).map(([id, data]) => ({ id, data: { ...data } })))
+      sharedListeners.add(emitOwn)
+      setTimeout(emitOwn, 0)
+      return () => sharedListeners.delete(emitOwn)
+    },
+    async shareDeadline(id, data) {
+      sharedDeadlines.set(id, { ...data })
+      emitShared()
+    },
+    async unshareDeadline(id) {
+      sharedDeadlines.delete(id)
+      emitShared()
     },
     async recordVisit(uid, visitDay, stale) {
       const current = access.get(uid)

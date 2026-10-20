@@ -149,6 +149,29 @@ service cloud.firestore {
         && request.resource.data.requestedAt == request.time;
     }
 
+    // Wspólne terminy: kolokwium czy egzamin pokazany innym z przedmiotu (id = id terminu u autora).
+    // Czytają wszyscy z dostępem; pokazuje, zmienia i cofa tylko autor - bez notatki, w podanym kształcie.
+    // Administrator może usunąć cudzy (np. pomyłkę).
+    match /sharedDeadlines/{id} {
+      function validShared() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['courseKey', 'courseName', 'kind', 'title', 'date', 'time', 'sharedBy', 'sharedByName', 'updatedAt'])
+          && d.sharedBy == request.auth.uid
+          && d.courseKey is string && d.courseKey.size() > 0 && d.courseKey.size() <= 600
+          && d.courseName is string && d.courseName.size() > 0 && d.courseName.size() <= 200
+          && d.kind in ['kolokwium', 'egzamin', 'projekt', 'inne']
+          && d.title is string && d.title.size() <= 200
+          && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && (d.time == null || (d.time is string && d.time.matches('^[0-9]{2}:[0-9]{2}$')))
+          && d.sharedByName is string && d.sharedByName.size() <= 64
+          && d.updatedAt == request.time;
+      }
+      allow read: if hasAccess();
+      allow create: if hasAccess() && validShared();
+      allow update: if hasAccess() && resource.data.sharedBy == request.auth.uid && validShared();
+      allow delete: if isAdmin() || (hasAccess() && resource.data.sharedBy == request.auth.uid);
+    }
+
     // Wspólne okienka: każdy zapisuje tylko swoje godziny zajęć (bez nazw i sal). Cudze widzi
     // wyłącznie ten, kto sam udostępnia (wzajemność) - i tylko z dostępem do Planera.
     match /sharedBusy/{uid} {

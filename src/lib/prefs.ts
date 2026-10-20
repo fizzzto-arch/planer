@@ -2,6 +2,7 @@
 import { parseHiddenClasses, type HiddenClass } from './hiddenClasses'
 import { LANGUAGES, detectLanguage, type Language } from './i18n'
 import { DEFAULT_REMINDERS, parseReminderKinds, type ReminderKind } from './reminders'
+import { DISMISSED_MAX } from './sharedDeadlines'
 
 export type AnimationsMode = 'on' | 'off' | 'system'
 export type ThemeMode = 'system' | 'light' | 'dark'
@@ -37,6 +38,7 @@ export interface Prefs {
   weekPhone: WeekLayout // widok tygodnia osobno na telefonie i na komputerze
   weekDesktop: WeekLayout
   notificationsClearedAt: number | null // "Wyczyść" w powiadomieniach - starsze są w archiwum
+  dismissedShared: string[] // ukryte propozycje "od innych z roku" (lib/sharedDeadlines.ts)
 }
 
 export interface FirstStepsState {
@@ -70,6 +72,7 @@ export const DEFAULT_PREFS: Prefs = {
   weekPhone: 'list',
   weekDesktop: 'grid',
   notificationsClearedAt: null,
+  dismissedShared: [],
 }
 
 const SIZES: readonly TextSize[] = ['small', 'normal', 'large']
@@ -127,6 +130,9 @@ export function parsePrefs(raw: Record<string, unknown>): Prefs {
     weekPhone: oneOf(raw.weekPhone, ['list', 'grid'], DEFAULT_PREFS.weekPhone),
     weekDesktop: oneOf(raw.weekDesktop, ['list', 'grid'], DEFAULT_PREFS.weekDesktop),
     notificationsClearedAt: typeof raw.notificationsClearedAt === 'number' ? raw.notificationsClearedAt : null,
+    dismissedShared: Array.isArray(raw.dismissedShared)
+      ? raw.dismissedShared.filter((k): k is string => typeof k === 'string').slice(-DISMISSED_MAX)
+      : [],
   }
 }
 

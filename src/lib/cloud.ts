@@ -250,6 +250,15 @@ function createCloud(config: FirebaseOptions): Cloud {
 
     setOptimizerAccess: (uid, on) => wrap(() => setDoc(doc(db, 'access', uid), { optimizer: on }, { merge: true })),
     saveTesterProgress: (uid, done) => wrap(() => setDoc(doc(db, 'access', uid), { testerTasks: done }, { merge: true })),
+    watchSharedDeadlines(from, onDocs, onError) {
+      return onSnapshot(
+        query(collection(db, 'sharedDeadlines'), where('date', '>=', from)),
+        (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+        (e) => onError(describeError(e)),
+      )
+    },
+    shareDeadline: (id, data) => wrap(() => setDoc(doc(db, 'sharedDeadlines', id), { ...data, updatedAt: serverTimestamp() })),
+    unshareDeadline: (id) => wrap(() => deleteDoc(doc(db, 'sharedDeadlines', id))),
     // Pola dni jako FieldPath - klucze z myślnikami ("2026-10-15") bez kłopotów z zapisem przez kropki.
     recordVisit: (uid, day, stale) =>
       wrap(() =>
@@ -540,6 +549,9 @@ function createCloud(config: FirebaseOptions): Cloud {
         } catch {
           // brak uprawnień - zostają do usunięcia przez administratora
         }
+        // Terminy pokazane innym z przedmiotu.
+        const shared = await getDocs(query(collection(db, 'sharedDeadlines'), where('sharedBy', '==', uid)))
+        for (const s of shared.docs) await deleteDoc(s.ref)
         // Udostępnione godziny zajęć (wspólne okienka) - jeśli były.
         await deleteDoc(doc(db, 'sharedBusy', uid)).catch(() => undefined)
         // Starsze reguły nie pozwalały usunąć własnej prośby - wtedy zostaje (sam e-mail i status).

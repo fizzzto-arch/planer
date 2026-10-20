@@ -136,14 +136,15 @@ export function useExtras(client: Cloud | null, uid: string | null) {
     [extras, write],
   )
 
+  // Zwraca id terminu (nowy dostaje je od razu) - np. do pokazania go innym z przedmiotu.
   const saveDeadline = useCallback(
-    (deadline: Omit<Deadline, 'id'> & { id?: string }) => {
-      write((c, u) => {
-        const { id, ...data } = deadline
-        return c.setItem(u, 'deadlines', id || c.newId(), clean(data))
-      })
+    (deadline: Omit<Deadline, 'id'> & { id?: string }): string => {
+      const { id: given, ...data } = deadline
+      const id = given || client?.newId() || ''
+      write((c, u) => c.setItem(u, 'deadlines', id, clean(data)))
+      return id
     },
-    [write],
+    [client, write],
   )
 
   const deleteDeadline = useCallback(

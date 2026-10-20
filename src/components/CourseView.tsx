@@ -7,6 +7,7 @@ import type { PlanMeeting } from '../lib/edits'
 import { courseKey } from '../lib/extras'
 import { placeLabel, typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
+import { SharedSuggestions } from './SharedSuggestions'
 import { MaterialsSection } from './MaterialsSection'
 import { MeetingCard } from './MeetingCard'
 import { NoteField } from './NoteField'
@@ -122,6 +123,7 @@ export function CourseView({ courseName, meetings, now, onBack, onSwitch }: Prop
                   {t('+ Dodaj')}
                 </button>
               </div>
+              <SharedSuggestions courseName={courseName} />
               {activeDeadlines.length === 0 ? (
                 <p className="muted">{t('Brak nadchodzących kolokwiów i terminów.')}</p>
               ) : (

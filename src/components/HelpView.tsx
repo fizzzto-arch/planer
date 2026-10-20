@@ -89,7 +89,7 @@ export function HelpView({ onBack, onFeedback }: Props) {
           </dd>
           <dt>{t('Widoczne dla innych')}</dt>
           <dd>
-            {t('Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem. Jeśli włączysz „Wspólne okienka”, osoby, które też je włączyły, widzą godziny Twoich zajęć (bez nazw i sal) i wybrany przez Ciebie podpis.')}
+            {t('Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem. Jeśli włączysz „Wspólne okienka”, osoby, które też je włączyły, widzą godziny Twoich zajęć (bez nazw i sal) i wybrany przez Ciebie podpis. Terminy, które pokażesz innym z przedmiotu (rodzaj, tytuł, data i godzina - bez notatki), widzą osoby z dostępem do Planera, z Twoim podpisem.')}
           </dd>
           <dt>{t('Widoczne dla administratora')}</dt>
           <dd>

@@ -9,6 +9,7 @@ import type { ExtrasApi } from './useExtras'
 import type { SharedMaterialsApi } from './useSharedMaterials'
 import type { OwnFilesApi } from './useOwnFiles'
 import type { SharedBusyApi } from './useSharedBusy'
+import type { Suggestion } from '../lib/sharedDeadlines'
 
 // Termin do edycji: bez id = nowy (pola mogą być wstępnie wypełnione).
 export type DeadlineDraft = Partial<Deadline>
@@ -54,6 +55,10 @@ export interface PlanUi {
   autoShort: (courseName: string) => string // skrót bez wpisanego: z kodu USOS (np. "LAEL") albo z pierwszych liter
   setHiddenClasses: (hidden: HiddenClass[]) => void // zajęcia usunięte z planu (prefs.hiddenClasses)
   openSearch: () => void // pasek wyszukiwania (od razu do pisania)
+  // Wspólne terminy: propozycje "od innych z roku", dodanie u siebie (albo aktualizacja) i ukrycie.
+  sharedSuggestions: Suggestion[]
+  adoptShared: (suggestion: Suggestion) => void
+  dismissShared: (key: string) => void
   skipFirstStep: (id: string) => void // "Pierwsze kroki": krok zrobiony albo pominięty
   hideFirstSteps: () => void // "Pierwsze kroki": schowaj całą kartę
 }

@@ -334,6 +334,48 @@ describe('tytuły prowadzących (people)', () => {
   })
 })
 
+describe('wspólne terminy (sharedDeadlines)', () => {
+  const shared = (who: Who, over: Record<string, unknown> = {}) => ({
+    courseKey: 'Analiza%20matematyczna',
+    courseName: 'Analiza matematyczna',
+    kind: 'kolokwium',
+    title: 'Kolokwium 1',
+    date: '2026-10-28',
+    time: '10:15',
+    sharedBy: who.uid,
+    sharedByName: 'alice',
+    updatedAt: serverTimestamp(),
+    ...over,
+  })
+
+  it('pokazuje i zmienia tylko autor, w podanym kształcie (bez notatki)', async () => {
+    const ref = doc(as(ALICE), 'sharedDeadlines', 'd1')
+    await assertSucceeds(setDoc(ref, shared(ALICE)))
+    await assertSucceeds(setDoc(ref, shared(ALICE, { date: '2026-10-30' })))
+    // Cudzy - nie: ani nadpisać, ani podpisać się za kogoś.
+    await assertFails(setDoc(doc(as(BOB), 'sharedDeadlines', 'd1'), shared(BOB)))
+    await assertFails(setDoc(doc(as(BOB), 'sharedDeadlines', 'd2'), shared(ALICE)))
+    // Notatka, zły rodzaj albo data, zmyślony czas zapisu - nie.
+    await assertFails(setDoc(doc(as(BOB), 'sharedDeadlines', 'd3'), shared(BOB, { note: 'tajne' })))
+    await assertFails(setDoc(doc(as(BOB), 'sharedDeadlines', 'd3'), shared(BOB, { kind: 'impreza' })))
+    await assertFails(setDoc(doc(as(BOB), 'sharedDeadlines', 'd3'), shared(BOB, { date: 'jutro' })))
+    await assertFails(setDoc(doc(as(BOB), 'sharedDeadlines', 'd3'), shared(BOB, { updatedAt: new Date(2020, 0, 1) })))
+    // Bez dostępu do Planera - nic.
+    await assertFails(setDoc(doc(as(PENDING), 'sharedDeadlines', 'd4'), shared(PENDING)))
+  })
+
+  it('czytają wszyscy z dostępem; usuwa autor albo administrator', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'sharedDeadlines', 'd1'), { ...shared(ALICE), updatedAt: new Date() }))
+    await assertSucceeds(getDocs(query(collection(as(BOB), 'sharedDeadlines'), where('date', '>=', '2026-10-20'))))
+    await assertFails(getDocs(collection(as(PENDING), 'sharedDeadlines')))
+    await assertFails(getDocs(collection(anon(), 'sharedDeadlines')))
+    await assertFails(deleteDoc(doc(as(BOB), 'sharedDeadlines', 'd1')))
+    await assertSucceeds(deleteDoc(doc(as(ALICE), 'sharedDeadlines', 'd1')))
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'sharedDeadlines', 'd2'), { ...shared(ALICE), updatedAt: new Date() }))
+    await assertSucceeds(deleteDoc(doc(as(ADMIN), 'sharedDeadlines', 'd2')))
+  })
+})
+
 describe('wspólne okienka (sharedBusy)', () => {
   const busy = (who: Who, over: Record<string, unknown> = {}) => ({
     name: who.email.split('@')[0],

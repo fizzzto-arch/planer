@@ -1,19 +1,28 @@
 import { t } from '../lib/i18n'
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import type { DeadlineDraft } from '../hooks/planUi'
 import { parseDateKey } from '../lib/dates'
 import { CHECKLIST_MAX, DEADLINE_KINDS, deadlineKindLabel, type ChecklistItem, type Deadline, type DeadlineKind } from '../lib/extras'
+import type { SharedDeadline } from '../lib/sharedDeadlines'
 import { Dialog } from './Dialog'
+
+// Pokazywanie innym z przedmiotu (wspólne terminy) - tylko z kontem z dostępem.
+interface Sharing {
+  name: string // podpis, który zobaczą inni
+  shared: boolean // ten termin jest już pokazany
+  byOther: (deadline: Omit<Deadline, 'id'>) => SharedDeadline | null // ten sam termin pokazał już ktoś inny
+}
 
 interface Props {
   draft: DeadlineDraft
   courseNames: string[]
-  onSave: (deadline: Omit<Deadline, 'id'> & { id?: string }) => void
+  sharing: Sharing | null
+  onSave: (deadline: Omit<Deadline, 'id'> & { id?: string }, share: boolean) => void
   onDelete: (id: string) => void
   onClose: () => void
 }
 
-export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }: Props) {
+export function DeadlineEditor({ draft, courseNames, sharing, onSave, onDelete, onClose }: Props) {
   const isNew = !draft.id
   const [kind, setKind] = useState<DeadlineKind>(draft.kind ?? 'kolokwium')
   const [title, setTitle] = useState(draft.title ?? '')
@@ -23,6 +32,7 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
   const [note, setNote] = useState(draft.note ?? '')
   const [done, setDone] = useState(draft.done ?? false)
   const [checklist, setChecklist] = useState<ChecklistItem[]>(draft.checklist ?? [])
+  const [share, setShare] = useState(sharing?.shared ?? false)
   const [newItem, setNewItem] = useState('')
 
   const addItem = () => {
@@ -46,17 +56,21 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
       setError(t('Wybierz godzinę.'))
       return
     }
-    onSave({
-      id: draft.id,
-      kind,
-      title: title.trim(),
-      courseName: courseName || null,
-      date,
-      time,
-      note: note.trim(),
-      done,
-      checklist,
-    })
+    onSave(
+      {
+        id: draft.id,
+        kind,
+        title: title.trim(),
+        courseName: courseName || null,
+        date,
+        time,
+        note: note.trim(),
+        done,
+        checklist,
+        ...(draft.fromShared ? { fromShared: draft.fromShared } : {}),
+      },
+      share && !!courseName,
+    )
     onClose()
   }
 
@@ -186,6 +200,8 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
           </label>
         )}
 
+        {sharing && courseName && <ShareField sharing={sharing} share={share} onShare={setShare} current={{ kind, title, courseName, date, time: time || null, note, done }} />}
+
         {error && (
           <p className="error" role="alert">
             {error}
@@ -217,5 +233,43 @@ export function DeadlineEditor({ draft, courseNames, onSave, onDelete, onClose }
         </div>
       </form>
     </Dialog>
+  )
+}
+
+// "Pokaż innym z tego przedmiotu": bez notatki i listy do przygotowania. Ten sam termin pokazany już
+// przez kogoś innego - informacja zamiast pola (drugi raz nie trzeba).
+function ShareField({
+  sharing,
+  share,
+  onShare,
+  current,
+}: {
+  sharing: Sharing
+  share: boolean
+  onShare: (share: boolean) => void
+  current: Omit<Deadline, 'id'>
+}) {
+  const hintId = useId()
+  const other = !sharing.shared ? sharing.byOther(current) : null
+  if (other) {
+    return <p className="hint">{t('Ten termin już widzą inni z przedmiotu (od {name}).', { name: other.sharedByName })}</p>
+  }
+  // Nazwa pola krótka, wyjaśnienie jako opis (inaczej "tytuł" z wyjaśnienia mieszałby się z polem "Tytuł").
+  return (
+    <label className="check-field share-field">
+      <input
+        type="checkbox"
+        checked={share}
+        aria-label={t('Pokaż innym z tego przedmiotu')}
+        aria-describedby={hintId}
+        onChange={(e) => onShare(e.target.checked)}
+      />
+      <span>
+        {t('Pokaż innym z tego przedmiotu')}
+        <span className="setting-hint" id={hintId}>
+          {t('Zobaczą rodzaj, tytuł, datę i godzinę (bez notatki) - podpisane: {name}.', { name: sharing.name })}
+        </span>
+      </span>
+    </label>
   )
 }

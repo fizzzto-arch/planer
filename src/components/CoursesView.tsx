@@ -10,6 +10,7 @@ import { GENERAL_NOTE, courseKey, type Deadline, type DeadlineKind } from '../li
 import { plural } from '../lib/plural'
 import { typeLabel, typeSlug } from '../lib/usos'
 import { DeadlineList } from './DeadlineList'
+import { SharedSuggestions } from './SharedSuggestions'
 import { NoteField } from './NoteField'
 import { assessmentLine } from '../lib/assessment'
 import { programAssessments, type AssessmentLookup } from '../lib/courseAssessment'
@@ -68,6 +69,7 @@ export function CoursesView({ meetings, now }: Props) {
           </button>
         )}
       </div>
+      {extras && <SharedSuggestions />}
       {showFilter && (
         <div className="segmented deadline-filter" role="radiogroup" aria-label={t('Rodzaj terminów')}>
           {FILTERS().map((f) => (

@@ -543,7 +543,7 @@ export const EN: Record<string, string> = {
   'Na Twoim koncie (Google Firebase)': 'In your account (Google Firebase)',
   'Adres e-mail, link do planu z USOS (albo plan wgrany ze strony WAT), notatki, linki, Twoje zdjęcia i pliki przedmiotów, terminy, zmiany w planie, własne zajęcia, ustawienia, lista urządzeń z włączonymi przypomnieniami i historia powiadomień z ostatnich 60 dni. Tylko dla Ciebie.': 'Email address, USOS timetable link (or a timetable uploaded from the WAT website), notes, links, your own course photos and files, deadlines, timetable changes, your own classes, settings, the list of devices with reminders on and notification history from the last 60 days. For you only.',
   'Widoczne dla innych': 'Visible to others',
-  'Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem. Jeśli włączysz „Wspólne okienka”, osoby, które też je włączyły, widzą godziny Twoich zajęć (bez nazw i sal) i wybrany przez Ciebie podpis.': 'Only files you share with your group in course materials - people with access to Planer see them, with the start of your email (the part before @) as the author. If you turn on “Shared free time”, people who also turned it on see the hours of your classes (without names or rooms) and the name you chose.',
+  'Tylko pliki, które sam udostępnisz grupie w materiałach przedmiotu - widzą je osoby z dostępem do Planera, razem z początkiem Twojego e-maila (część przed @) jako autorem. Jeśli włączysz „Wspólne okienka”, osoby, które też je włączyły, widzą godziny Twoich zajęć (bez nazw i sal) i wybrany przez Ciebie podpis. Terminy, które pokażesz innym z przedmiotu (rodzaj, tytuł, data i godzina - bez notatki), widzą osoby z dostępem do Planera, z Twoim podpisem.': 'Only files you share with your group in course materials - people with access to Planer see them, with the start of your email (the part before @) as the author. If you turn on “Shared free time”, people who also turned it on see the hours of your classes (without names or rooms) and the name you chose. Deadlines you show to others in a course (type, title, date and time - no note) are visible to people with access to Planer, with your signature.',
   'Widoczne dla administratora': 'Visible to the administrator',
   'Lista kont: e-mail i status (czeka / ma dostęp), żeby mógł zatwierdzać konta, to, które zadania dla testerów odhaczyłeś, oraz ile razy w ostatnich 7 dniach otwierałeś Planer i kiedy ostatnio. Do tego zgłoszenia, które sam wyślesz.': 'The list of accounts: email and status (waiting / has access) so they can approve accounts, which tester tasks you ticked off, and how many times you opened Planer in the last 7 days and when you last did. Plus the reports you send yourself.',
   'Kto ma dostęp - uczciwie': 'Who has access - honestly',
@@ -1386,4 +1386,18 @@ export const EN: Record<string, string> = {
   'Kartkówka': 'Quiz',
   'Praca domowa': 'Homework',
   'Wykonanie i sprawozdanie': 'Lab work and report',
+  // Wspólne terminy
+  'Ten termin już widzą inni z przedmiotu (od {name}).': 'Others in this course already see this date (from {name}).',
+  'Pokaż innym z tego przedmiotu': 'Show to others in this course',
+  'Zobaczą rodzaj, tytuł, datę i godzinę (bez notatki) - podpisane: {name}.': 'They will see the type, title, date and time (no note) - signed: {name}.',
+  'Od innych z roku': 'From others in your year',
+  'od {name} i {n} innych': 'from {name} and {n} others',
+  'od {name}': 'from {name}',
+  'Termin przesunięty - u Ciebie: {old}': 'Date moved - yours says: {old}',
+  'Zaktualizuj': 'Update',
+  'Dodaj u siebie': 'Add to mine',
+  // Co nowego 1.1
+  'Wspólne terminy: pokaż kolokwium innym z przedmiotu, a od innych dostaniesz propozycję „Dodaj u siebie” - także gdy termin się przesunie.': 'Shared deadlines: show a test to others in the course, and get “Add to mine” suggestions from others - also when a date moves.',
+  'Laboratorium elektrotechniki: kartkówka, praca domowa i sprawozdanie osobno - Planer sam liczy połowę za słabą kartkówkę.': 'Electrical engineering lab: quiz, homework and report separately - Planer halves the exercise for a weak quiz by itself.',
+  'Dla nowych osób: prawdziwy numer tygodnia od pierwszego dnia i „Pierwsze kroki” także bez konta.': 'For newcomers: the right week number from day one and “First steps” also without an account.',
 }
